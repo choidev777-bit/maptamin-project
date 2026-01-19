@@ -7,6 +7,7 @@ import { PlaceSearchInput } from '@/components/search/PlaceSearchInput'
 import { KeywordInput } from '@/components/search/KeywordInput'
 import { MapGridConfigurator } from '@/components/search/MapGridConfigurator'
 import { DistanceSettings } from '@/components/search/DistanceSettings'
+import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
 import { MapPin, Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 
 interface Place {
@@ -86,20 +87,62 @@ export default function NewSearchPage() {
         if (!place) return
 
         setIsSubmitting(true)
-        // TODO: Submit to API
-        console.log('Submitting:', {
-            place,
-            keywords: keywords.filter(k => k.trim()),
-            gridPoints: gridPoints.filter(p => p.enabled),
-            gridDistance,
-            distanceUnit
-        })
 
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        try {
+            // Convert grid distance to km if needed
+            const distanceKm = distanceUnit === 'mile' ? milesToKm(gridDistance) : gridDistance
 
-        setIsSubmitting(false)
-        router.push('/dashboard')
+            // Convert row/col to actual lat/lng coordinates
+            const gridPointsWithCoords = generateGridPointsFromTemplate(
+                place.lat,
+                place.lng,
+                gridPoints,
+                distanceKm
+            ).filter(p => p.enabled)
+
+            // Step 1: Create search record
+            const createResponse = await fetch('/api/search', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    place,
+                    keywords: keywords.filter(k => k.trim()),
+                    gridPoints: gridPointsWithCoords,
+                    distance: gridDistance,
+                    distanceUnit,
+                }),
+            })
+
+            if (!createResponse.ok) {
+                const error = await createResponse.json()
+                if (createResponse.status === 429) {
+                    alert('오늘 일일 검색 한도에 도달했습니다. 내일 다시 시도해주세요.')
+                } else {
+                    alert(error.error || '검색 생성에 실패했습니다.')
+                }
+                setIsSubmitting(false)
+                return
+            }
+
+            const { searchId } = await createResponse.json()
+
+            // Step 2: Trigger DataForSEO processing
+            const processResponse = await fetch(`/api/search/${searchId}/process`, {
+                method: 'POST',
+            })
+
+            if (!processResponse.ok) {
+                console.error('Processing failed, but search was created')
+                // Still navigate to results - it will show processing status
+            }
+
+            // Step 3: Navigate to results page
+            router.push(`/search/${searchId}`)
+        } catch (error) {
+            console.error('Search submission error:', error)
+            alert('검색 중 오류가 발생했습니다. 다시 시도해주세요.')
+            setIsSubmitting(false)
+        }
     }
 
     return (
