@@ -47,6 +47,7 @@ RULE 5: If a request requires modifying Protected Zone → ASK USER FIRST
 | **UI Components** | `src/components/ui/*` | Free to modify |
 | **Search Components** | `src/components/search/*` | Free to modify |
 | **Results Components** | `src/components/results/*` | Free to modify |
+| **Maps Components** | `src/components/maps/*` | Free to modify |
 | **Dashboard Pages** | `src/app/(dashboard)/*.tsx` | Modify with care |
 | **Utility Functions** | `src/lib/utils/*` | Add new, modify existing |
 | **New Files** | Anywhere in safe zones | Create freely |
@@ -180,6 +181,9 @@ NEVER: Add dependencies without explicit request
 | Form Input | `src/components/search/KeywordInput.tsx` |
 | Search Input | `src/components/search/PlaceSearchInput.tsx` |
 | Grid/Canvas | `src/components/search/GridConfigurator.tsx` |
+| Map Grid | `src/components/search/MapGridConfigurator.tsx` |
+| Distance Settings | `src/components/search/DistanceSettings.tsx` |
+| Maps Provider | `src/components/maps/GoogleMapsProvider.tsx` |
 | API Route (GET) | `src/app/api/search/route.ts` |
 | API Route (POST) | `src/app/api/search/route.ts` |
 | Server Component | `src/app/(dashboard)/page.tsx` |

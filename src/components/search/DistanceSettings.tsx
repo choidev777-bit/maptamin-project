@@ -10,6 +10,10 @@ interface Props {
 }
 
 const DISTANCE_PRESETS = [
+    { value: 0.1, label: '100m' },
+    { value: 0.2, label: '200m' },
+    { value: 0.3, label: '300m' },
+    { value: 0.4, label: '400m' },
     { value: 0.5, label: '500m' },
     { value: 1, label: '1km' },
     { value: 2, label: '2km' },
@@ -39,9 +43,9 @@ export function DistanceSettings({ distance, unit, onDistanceChange, onUnitChang
                 <div className="flex items-center gap-4">
                     <input
                         type="range"
-                        min="0.5"
+                        min="0.1"
                         max="5"
-                        step="0.5"
+                        step="0.1"
                         value={distance}
                         onChange={(e) => onDistanceChange(parseFloat(e.target.value))}
                         className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
@@ -59,8 +63,8 @@ export function DistanceSettings({ distance, unit, onDistanceChange, onUnitChang
                             key={preset.value}
                             onClick={() => onDistanceChange(preset.value)}
                             className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${distance === preset.value
-                                    ? 'bg-blue-100 text-blue-700 border-2 border-blue-500'
-                                    : 'bg-gray-50 text-gray-600 border-2 border-transparent hover:bg-gray-100'
+                                ? 'bg-blue-100 text-blue-700 border-2 border-blue-500'
+                                : 'bg-gray-50 text-gray-600 border-2 border-transparent hover:bg-gray-100'
                                 }`}
                         >
                             {unit === 'mile'
@@ -79,8 +83,8 @@ export function DistanceSettings({ distance, unit, onDistanceChange, onUnitChang
                     <button
                         onClick={() => onUnitChange('km')}
                         className={`px-6 py-2.5 text-sm font-medium transition-all ${unit === 'km'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-gray-600 hover:bg-gray-50'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-600 hover:bg-gray-50'
                             }`}
                     >
                         킬로미터 (km)
@@ -88,8 +92,8 @@ export function DistanceSettings({ distance, unit, onDistanceChange, onUnitChang
                     <button
                         onClick={() => onUnitChange('mile')}
                         className={`px-6 py-2.5 text-sm font-medium transition-all ${unit === 'mile'
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-gray-600 hover:bg-gray-50'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white text-gray-600 hover:bg-gray-50'
                             }`}
                     >
                         마일 (mile)

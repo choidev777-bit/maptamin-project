@@ -64,9 +64,12 @@ local-seo-tracker/
 │   ├── search/
 │   │   ├── PlaceSearchInput.tsx
 │   │   ├── KeywordInput.tsx
-│   │   ├── GridConfigurator.tsx
-│   │   ├── DistanceSettings.tsx
+│   │   ├── GridConfigurator.tsx        # CSS 그리드 (레거시)
+│   │   ├── MapGridConfigurator.tsx     # 지도 기반 그리드 (BrightLocal 스타일)
+│   │   ├── DistanceSettings.tsx        # 100m~5km 거리 설정
 │   │   └── GridPresets.tsx
+│   ├── maps/
+│   │   └── GoogleMapsProvider.tsx      # Google Maps API 래퍼
 │   ├── results/
 │   │   ├── RankHeatmap.tsx
 │   │   ├── RankMarker.tsx
@@ -162,14 +165,35 @@ CREATE POLICY "Users can view own usage"
 
 ### 핵심 컴포넌트 상세
 
-#### [NEW] GridConfigurator.tsx
+#### [NEW] GridConfigurator.tsx (레거시)
 
-15x15 인터랙티브 그리드 캔버스:
+**CSS 그리드 기반** (지도 없이 작동):
+- 15x15 인터랙티브 그리드 캔버스
 - 중앙에 비즈니스 마커 표시
 - 클릭으로 개별 그리드 포인트 토글
 - 드래그로 영역 선택/해제
 - 선택된 포인트 수 표시 (n/49)
 - 프리셋 버튼 (3x3, 5x5, 7x7)
+
+#### [NEW] MapGridConfigurator.tsx (BrightLocal 스타일)
+
+**지도 기반 그리드** (실제 Google Map 위에 표시):
+- `@vis.gl/react-google-maps`의 `AdvancedMarker` 사용
+- 실제 Google Map 배경 위에 그리드 포인트를 마커로 표시
+- 파란색 마커 = 활성, 회색 마커 = 비활성
+- 중앙에 비즈니스 위치 마커 (특별 아이콘)
+- 클릭으로 마커 토글 (활성/비활성)
+- 자동 Bounds 조정 (모든 마커가 보이도록)
+- 거리 변경 시 마커 위치 실시간 업데이트
+- 프리셋 버튼 (3x3, 5x5, 7x7, 초기화)
+
+#### [NEW] DistanceSettings.tsx
+
+그리드 포인트 간격 설정:
+- 슬라이더: 0.1km ~ 5km (step: 0.1)
+- 빠른 프리셋: 100m, 200m, 300m, 400m, 500m, 1km, 2km, 3km, 5km
+- km/mile 단위 토글
+- 예상 측정 범위(반경) 표시
 
 #### [NEW] RankHeatmap.tsx
 

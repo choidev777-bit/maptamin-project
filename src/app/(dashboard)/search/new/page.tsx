@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { GoogleMapsProvider } from '@/components/maps/GoogleMapsProvider'
 import { PlaceSearchInput } from '@/components/search/PlaceSearchInput'
 import { KeywordInput } from '@/components/search/KeywordInput'
-import { GridConfigurator } from '@/components/search/GridConfigurator'
+import { MapGridConfigurator } from '@/components/search/MapGridConfigurator'
 import { DistanceSettings } from '@/components/search/DistanceSettings'
 import { MapPin, Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 
@@ -180,11 +180,16 @@ export default function NewSearchPage() {
                                 </p>
                             </div>
 
-                            <GridConfigurator
-                                selectedPoints={gridPoints}
-                                onPointsChange={setGridPoints}
-                                maxPoints={49}
-                            />
+                            {place && (
+                                <MapGridConfigurator
+                                    centerLat={place.lat}
+                                    centerLng={place.lng}
+                                    selectedPoints={gridPoints}
+                                    onPointsChange={setGridPoints}
+                                    gridDistance={gridDistance}
+                                    maxPoints={49}
+                                />
+                            )}
 
                             <div className="border-t border-gray-100 pt-8">
                                 <DistanceSettings

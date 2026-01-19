@@ -1014,6 +1014,172 @@ export function DistanceSettings({ distance, unit, onDistanceChange, onUnitChang
 
 ---
 
+### 7.4 Create Google Maps Provider
+**File**: `src/components/maps/GoogleMapsProvider.tsx`
+```typescript
+'use client'
+
+import { APIProvider } from '@vis.gl/react-google-maps'
+
+interface Props {
+    children: React.ReactNode
+}
+
+export function GoogleMapsProvider({ children }: Props) {
+    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+
+    if (!apiKey) {
+        return (
+            <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg">
+                Google Maps API key is not configured
+            </div>
+        )
+    }
+
+    return (
+        <APIProvider apiKey={apiKey}>
+            {children}
+        </APIProvider>
+    )
+}
+```
+**Test**: Wrap a Map component → No API errors
+
+---
+
+### 7.5 Create Map-Based Grid Configurator (BrightLocal Style)
+**File**: `src/components/search/MapGridConfigurator.tsx`
+
+> [!NOTE]
+> This is the enhanced version that displays grid points on an actual Google Map, similar to BrightLocal's implementation.
+
+```typescript
+'use client'
+
+import { useMemo, useCallback } from 'react'
+import { Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps'
+import { MapPin, Grid3X3 } from 'lucide-react'
+
+interface GridPoint {
+    row: number
+    col: number
+    enabled: boolean
+}
+
+interface Props {
+    centerLat: number
+    centerLng: number
+    selectedPoints: GridPoint[]
+    onPointsChange: (points: GridPoint[]) => void
+    gridDistance: number // in km
+    maxPoints?: number
+}
+
+// Calculate lat/lng for a grid point
+function calculatePointPosition(
+    centerLat: number,
+    centerLng: number,
+    row: number,
+    col: number,
+    distanceKm: number
+): { lat: number; lng: number } {
+    const latDegreePerKm = 1 / 111.32
+    const lngDegreePerKm = 1 / (111.32 * Math.cos(centerLat * Math.PI / 180))
+
+    return {
+        lat: centerLat + (row * distanceKm * latDegreePerKm),
+        lng: centerLng + (col * distanceKm * lngDegreePerKm),
+    }
+}
+
+export function MapGridConfigurator({
+    centerLat,
+    centerLng,
+    selectedPoints,
+    onPointsChange,
+    gridDistance,
+    maxPoints = 49,
+}: Props) {
+    // Calculate positions for all points
+    const pointsWithPosition = useMemo(() => {
+        return selectedPoints.map(point => ({
+            ...point,
+            ...calculatePointPosition(centerLat, centerLng, point.row, point.col, gridDistance),
+        }))
+    }, [selectedPoints, centerLat, centerLng, gridDistance])
+
+    // Toggle a point
+    const togglePoint = useCallback((row: number, col: number) => {
+        const existingIndex = selectedPoints.findIndex(p => p.row === row && p.col === col)
+        
+        if (existingIndex >= 0) {
+            const updated = [...selectedPoints]
+            updated[existingIndex] = { ...updated[existingIndex], enabled: !updated[existingIndex].enabled }
+            onPointsChange(updated)
+        }
+    }, [selectedPoints, onPointsChange])
+
+    // Apply preset
+    const applyPreset = useCallback((size: number) => {
+        const newPoints: GridPoint[] = []
+        const presetHalf = Math.floor(size / 2)
+
+        for (let row = -presetHalf; row <= presetHalf; row++) {
+            for (let col = -presetHalf; col <= presetHalf; col++) {
+                newPoints.push({ row, col, enabled: true })
+            }
+        }
+        onPointsChange(newPoints)
+    }, [onPointsChange])
+
+    return (
+        <div className="space-y-6">
+            {/* Preset Buttons */}
+            <div className="flex gap-3">
+                {[3, 5, 7].map(size => (
+                    <button
+                        key={size}
+                        onClick={() => applyPreset(size)}
+                        className="flex-1 py-3 px-4 rounded-xl border-2"
+                    >
+                        {size}×{size}
+                    </button>
+                ))}
+            </div>
+
+            {/* Map with Markers */}
+            <div className="rounded-2xl overflow-hidden border-2" style={{ height: '400px' }}>
+                <Map
+                    defaultCenter={{ lat: centerLat, lng: centerLng }}
+                    defaultZoom={14}
+                    mapId={process.env.NEXT_PUBLIC_GOOGLE_MAP_ID}
+                    gestureHandling="greedy"
+                >
+                    {pointsWithPosition.map(point => (
+                        <AdvancedMarker
+                            key={`${point.row}-${point.col}`}
+                            position={{ lat: point.lat, lng: point.lng }}
+                            onClick={() => togglePoint(point.row, point.col)}
+                        >
+                            <div className={`w-6 h-6 rounded-full ${
+                                point.enabled ? 'bg-blue-500' : 'bg-gray-400'
+                            }`} />
+                        </AdvancedMarker>
+                    ))}
+                </Map>
+            </div>
+        </div>
+    )
+}
+```
+**Test**: 
+- Grid markers appear on real Google Map
+- Clicking markers toggles them on/off
+- Preset buttons update marker count
+- Changing distance repositions markers in real-time
+
+---
+
 ## Phase 8: DataForSEO Integration
 
 ### 8.1 Create DataForSEO Client
