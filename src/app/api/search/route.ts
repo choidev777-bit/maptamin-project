@@ -9,6 +9,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Start body parsing immediately (parallel with usage check)
+    // "Start early, await late" pattern for better performance
+    const bodyPromise = request.json()
+
     // Admin emails that bypass daily limits
     const ADMIN_EMAILS = [
         'canadacyj0226@gmail.com',
@@ -31,7 +35,8 @@ export async function POST(request: Request) {
         }
     }
 
-    const body = await request.json()
+    // Await body only after usage check passes
+    const body = await bodyPromise
     const { place, keywords, gridPoints, distance, distanceUnit } = body
 
     // Create search record

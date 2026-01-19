@@ -2,13 +2,19 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { GoogleMapsProvider } from '@/components/maps/GoogleMapsProvider'
+import dynamic from 'next/dynamic'
 import { PlaceSearchInput } from '@/components/search/PlaceSearchInput'
 import { KeywordInput } from '@/components/search/KeywordInput'
 import { MapGridConfigurator } from '@/components/search/MapGridConfigurator'
 import { DistanceSettings } from '@/components/search/DistanceSettings'
 import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
 import { MapPin, Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
+
+// Dynamic import for heavy Google Maps component (bundle-dynamic-imports)
+const GoogleMapsProvider = dynamic(
+    () => import('@/components/maps/GoogleMapsProvider').then(m => m.GoogleMapsProvider),
+    { ssr: false }
+)
 
 interface Place {
     placeId: string

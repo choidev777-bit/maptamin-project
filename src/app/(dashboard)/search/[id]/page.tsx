@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, getCurrentUser } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { GoogleMapsProvider } from '@/components/maps/GoogleMapsProvider'
@@ -10,31 +10,35 @@ interface PageProps {
 
 export default async function SearchResultsPage({ params }: PageProps) {
     const { id } = await params
-    const supabase = await createClient()
 
-    // Verify user is authenticated
-    const { data: { user } } = await supabase.auth.getUser()
+    // Use cached getCurrentUser for auth deduplication
+    const user = await getCurrentUser()
     if (!user) {
         notFound()
     }
 
-    // Get search record
-    const { data: search, error: searchError } = await supabase
-        .from('searches')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single()
+    const supabase = await createClient()
+
+    // Parallel fetch: search record and results (async-parallel pattern)
+    const [searchResult, resultsResult] = await Promise.all([
+        supabase
+            .from('searches')
+            .select('*')
+            .eq('id', id)
+            .eq('user_id', user.id)
+            .single(),
+        supabase
+            .from('search_results')
+            .select('*')
+            .eq('search_id', id)
+    ])
+
+    const { data: search, error: searchError } = searchResult
+    const { data: results } = resultsResult
 
     if (searchError || !search) {
         notFound()
     }
-
-    // Get search results
-    const { data: results } = await supabase
-        .from('search_results')
-        .select('*')
-        .eq('search_id', id)
 
     return (
         <div className="max-w-6xl mx-auto">
