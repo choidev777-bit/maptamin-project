@@ -19,6 +19,7 @@ export interface Search {
     grid_distance: number
     distance_unit: 'km' | 'mile'
     status: 'pending' | 'processing' | 'completed' | 'failed'
+    platform?: 'google' | 'naver'  // 기본값: 'google'
     created_at: string
 }
 
@@ -45,6 +46,7 @@ export interface DailyUsage {
     user_id: string
     usage_date: string
     search_count: number
+    platform?: 'google' | 'naver'  // 기본값: 'google'
 }
 
 export interface Place {

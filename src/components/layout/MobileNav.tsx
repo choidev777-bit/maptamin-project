@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Home, Search, History, Settings, LogOut } from 'lucide-react'
+import { Menu, X, Home, Search, History, Settings, LogOut, MapPin } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -27,7 +27,8 @@ export function MobileNav({ user }: Props) {
 
     const navItems = [
         { href: '/dashboard', label: '대시보드', icon: Home },
-        { href: '/search/new', label: '새 검색', icon: Search },
+        { href: '/search/new', label: '구글 검색', icon: Search },
+        { href: '/naver-search/new', label: '네이버 검색 (Beta)', icon: MapPin, highlight: true },
         { href: '/search/history', label: '검색 기록', icon: History },
         { href: '/settings', label: '설정', icon: Settings },
     ]

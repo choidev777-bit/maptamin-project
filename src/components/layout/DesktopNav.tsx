@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Home, Search, History, Settings } from 'lucide-react'
+import { Home, Search, History, Settings, MapPin } from 'lucide-react'
 
 interface Props {
     user: {
@@ -26,7 +26,15 @@ export function DesktopNav({ user }: Props) {
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                     <Search className="w-4 h-4" />
-                    새 검색
+                    구글 검색
+                </Link>
+                <Link
+                    href="/naver-search/new"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+                >
+                    <MapPin className="w-4 h-4" />
+                    네이버 검색
+                    <span className="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Beta</span>
                 </Link>
                 <Link
                     href="/search/history"
