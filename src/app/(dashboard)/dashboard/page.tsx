@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { UsageStatsCard } from '@/components/dashboard/UsageStatsCard'
 import { SearchHistoryCard } from '@/components/dashboard/SearchHistoryCard'
+import { DeleteAllButton } from '@/components/dashboard/DeleteAllButton'
 import { Search } from '@/lib/types'
 import { Plus, Search as SearchIcon } from 'lucide-react'
 
@@ -15,6 +16,7 @@ export default async function DashboardPage() {
     const { data: searches } = await supabase
         .from('searches')
         .select('*')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false })
         .limit(10)
 
@@ -31,6 +33,7 @@ export default async function DashboardPage() {
     const { count: totalSearches } = await supabase
         .from('searches')
         .select('*', { count: 'exact', head: true })
+        .is('deleted_at', null)
 
     const searchesToday = usage?.search_count || 0
     const maxSearchesPerDay = 1 // Free plan limit
@@ -83,8 +86,9 @@ export default async function DashboardPage() {
             </div>
 
             {/* Search History Section */}
-            <div className="mb-4">
+            <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-gray-900">최근 검색</h2>
+                {searches && searches.length > 0 && <DeleteAllButton />}
             </div>
 
             {/* Content */}

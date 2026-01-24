@@ -20,6 +20,7 @@ export interface Search {
     distance_unit: 'km' | 'mile'
     status: 'pending' | 'processing' | 'completed' | 'failed'
     platform?: 'google' | 'naver'  // 기본값: 'google'
+    deleted_at?: string | null
     created_at: string
 }
 
