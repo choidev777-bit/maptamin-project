@@ -133,6 +133,10 @@ export async function scrapeAtLocation(options: ScrapeOptions): Promise<ScrapeRe
     let browser: Browser | null = null;
     let context: BrowserContext | null = null;
 
+    // 측정 변수
+    let totalBytes = 0;
+    const startTime = Date.now();
+
     try {
         // ========== Step 1: PC 브라우저 실행 ==========
         browser = await chromium.launch({
@@ -147,6 +151,56 @@ export async function scrapeAtLocation(options: ScrapeOptions): Promise<ScrapeRe
 
         const page = await context.newPage();
         page.setDefaultTimeout(NAVER_SCRAPER_CONFIG.navigationTimeout);
+
+        // ========== 모니터링: 데이터 사용량 추적 ==========
+        page.on('response', async (response) => {
+            try {
+                // 헤더에서 content-length 가져오기 (압축된 전송 크기 근사치)
+                const headers = response.headers();
+                const len = headers['content-length'];
+                if (len) {
+                    totalBytes += parseInt(len, 10);
+                } else {
+                    // content-length가 없으면 body buffer 크기로 (압축 해제된 크기일 수 있음)
+                    // 정확도는 떨어지지만 없는 것보단 나음
+                    try {
+                        const buffer = await response.body();
+                        totalBytes += buffer.length;
+                    } catch (e) { }
+                }
+            } catch (e) { }
+        });
+
+        // ========== 1단계: 리소스 차단 (Resource Blocking) ==========
+
+        // ========== 1단계: 리소스 차단 (Resource Blocking) ==========
+        // 문서 규칙에 따라 폰트, 이미지, 미디어, 그리고 '지도 타일'까지 차단합니다.
+        await page.route('**/*', async (route) => {
+            const request = route.request();
+            const resourceType = request.resourceType();
+            const url = request.url();
+
+            // 1. 리소스 타입 체크
+            const BLOCKED_TYPES = ['image', 'media', 'font', 'stylesheet', 'imageset', 'texttrack', 'beacon', 'csp_report'];
+            if (BLOCKED_TYPES.includes(resourceType)) {
+                return route.abort();
+            }
+
+            // 2. URL 패턴 체크 (지도 타일 제외 - 위치 오류 방지)
+            const BLOCKED_PATTERNS = [
+                '.png', '.jpg', '.jpeg', '.gif', '.webp',
+                '.woff', '.woff2', '.ttf',
+                'log.naver', 'google-analytics',
+                // 'map-tile', 'vector-tile', // ⚠️ 타일 차단 해제 (위치 정확도 보장)
+                'panorama', 'street-view'
+            ];
+
+            if (BLOCKED_PATTERNS.some(pattern => url.includes(pattern))) {
+                return route.abort();
+            }
+
+            return route.continue();
+        });
 
         // ========== Step 2: 네이버 지도 접속 ==========
         await page.goto('https://map.naver.com/p', { waitUntil: 'domcontentloaded' });
@@ -222,12 +276,21 @@ export async function scrapeAtLocation(options: ScrapeOptions): Promise<ScrapeRe
             console.log(`[Scraper v4] Target "${targetBusinessName}" rank: ${targetRank ?? 'Not found'}`);
         }
 
+        const endTime = Date.now();
+        const durationSeconds = (endTime - startTime) / 1000;
+        const dataUsageMB = (totalBytes / 1024 / 1024).toFixed(2);
+
+        console.log(`[Scraper v4] ⏱️ Duration: ${durationSeconds}s, 📊 Data: ${dataUsageMB} MB`);
+
         return {
             success: true,
             results,
             targetRank,
             scrapedAt: new Date().toISOString(),
+            dataUsageBytes: totalBytes,
+            durationSeconds: durationSeconds
         };
+
 
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';

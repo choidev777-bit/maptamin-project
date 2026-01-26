@@ -35,6 +35,8 @@ export interface ScrapeResult {
     targetRank: number | null;  // 타겟 비즈니스 순위 (없으면 null)
     error?: string;
     scrapedAt: string;  // ISO 날짜
+    dataUsageBytes?: number; // 데이터 사용량 (bytes)
+    durationSeconds?: number; // 소요 시간 (초)
 }
 
 /**
