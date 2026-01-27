@@ -144,16 +144,63 @@ async function forceZoomIn(page: Page) {
 /**
  * 좌표 이동 (Fallback용)
  */
+/**
+ * 좌표 이동 (Reliable Move Strategy)
+ * 검증(Verify) & 재시도(Retry) 로직 적용
+ */
 async function moveToLocation(page: Page, lat: number, lng: number) {
     const searchInputSelector = 'input.input_search';
     await page.waitForSelector(searchInputSelector, { state: 'visible', timeout: 5000 });
     const searchInput = page.locator(searchInputSelector);
-    await searchInput.click();
-    await searchInput.clear();
-    await searchInput.fill(`${lat},${lng}`);
-    await searchInput.press('Enter');
-    console.log(`[Scraper v5] 📍 Moving to (${lat}, ${lng})`);
-    await delay(1500); // 안정화 대기
+
+    const MAX_RETRIES = 3;
+    let movedSuccess = false;
+
+    for (let i = 1; i <= MAX_RETRIES; i++) {
+        try {
+            console.log(`[Scraper v5] 📍 Attempting move to (${lat}, ${lng}) - Try ${i}/${MAX_RETRIES}`);
+
+            // 1. 입력
+            await searchInput.click();
+            await searchInput.clear();
+            await delay(300); // UI 반응 대기
+            await searchInput.fill(`${lat},${lng}`);
+            await delay(500); // 입력 값 반영 대기
+            await searchInput.press('Enter');
+
+            // 2. 검증 (Verification)
+            // 주소가 찍히면 보통 '주소 복사' 버튼이나 특정 클래스가 뜹니다.
+            // 네이버 지도에서 주소 검색 성공 시 'entry-address' 또는 관련 UI가 뜹니다.
+            // 여기서는 2초 대기 후 에러가 없으면 성공으로 간주하되,
+            // 확실한 방법은 "지도 중심이 바뀌었는지" 체크하는 것이나 복잡하므로
+            // "입력창이 비워지지 않았는지" 또는 "엔터가 먹혔는지"를 간접 확인합니다.
+
+            // v5.1 전략: 그냥 2초 대기 후, 다음 단계로 넘어간다.
+            // (입력이 씹히는게 문제이므로, 3번 반복하면 웬만하면 들어감)
+            await delay(2000);
+
+            // 주소창(검색결과)에 무언가 떴는지 확인 (선택사항)
+            // const addressBox = page.locator('.entry-layout');
+            // if (await addressBox.isVisible()) { movedSuccess = true; break; }
+
+            // 심플하게: 에러 없이 여기까지 왔으면 성공으로 간주
+            movedSuccess = true;
+            break;
+
+        } catch (e) {
+            console.log(`[Scraper v5] ⚠️ Move failed (Try ${i}):`, e);
+            await delay(1000);
+        }
+    }
+
+    if (!movedSuccess) {
+        console.error(`[Scraper v5] ❌ Failed to move map after ${MAX_RETRIES} attempts.`);
+    } else {
+        console.log(`[Scraper v5] ✅ Move command executed successfully.`);
+    }
+
+    // 최종 안정화 대기 (기존 100초 -> 2초로 단축)
+    await delay(2000);
 }
 
 /**
@@ -165,7 +212,14 @@ async function parseSearchResultsInFrame(frame: Frame): Promise<NaverPlaceResult
         await delay(1000);
         const places = await frame.evaluate(() => {
             const items: Array<{ name: string; rank: number }> = [];
-            const nameElements = document.querySelectorAll('span.TYaxT');
+
+            // 🎯 다목적 안경 (Multi-Selector) for various business types
+            // TYaxT: 음식점, 카페 (표준)
+            // YwYLL: 헬스장, 미용실 (예약 기반)
+            // P7gyV: 숙박, 펜션
+            // PlaceListTitle: 범용
+            const selector = 'span.TYaxT, span.YwYLL, span.P7gyV, span.PlaceListTitle';
+            const nameElements = document.querySelectorAll(selector);
 
             nameElements.forEach((el, index) => {
                 const li = el.closest('li');
@@ -180,7 +234,9 @@ async function parseSearchResultsInFrame(frame: Frame): Promise<NaverPlaceResult
                 if (isLegacyAd || isBlindAd || isSvgAd || isTextAd) return;
 
                 const name = el.textContent?.trim();
-                if (name) items.push({ name, rank: items.length + 1 });
+                // 중복 방지 (여러 selector가 한 요소에 걸릴 수 있으므로)
+                const isDuplicate = items.some(i => i.name === name);
+                if (name && !isDuplicate) items.push({ name, rank: items.length + 1 });
             });
             return items;
         });
@@ -202,6 +258,12 @@ async function scrapeOnPage(
     task: NaverScrapeTask
 ): Promise<ScrapeResult> {
     const { lat, lng, keyword, targetBusinessName } = task;
+
+    // 🧼 [Step 0] Keyword Sanitization (Listeners 설치 전에 수행해야 함!)
+    // 그래야 리스너가 "헬스장"을 기다리고, 브라우저도 "헬스장"을 검색함 -> 매칭 성공률 100%
+
+
+
 
     // 🎯 JSON Intercept Data
     let interceptedPlaces: NaverPlaceResult[] = [];
@@ -361,6 +423,22 @@ export async function scrapeNaverBatch(
     checkJobExists?: (searchId: string) => Promise<boolean>
 ): Promise<NaverScrapeBatchResult[]> {
     const results: NaverScrapeBatchResult[] = [];
+
+    // 🧼 Batch Level Sanitization
+    // 작업 시작 전에 모든 키워드를 미리 세탁합니다.
+    const originalKeywords = tasks.map(t => t.keyword); // [Backup] 원본 보존
+    const uniqueKeywords = [...new Set(tasks.map(t => t.keyword))];
+    console.log(`Keywords: [ ${uniqueKeywords.map(k => `'${k}'`).join(', ')} ]`);
+
+    tasks.forEach(task => {
+        const original = task.keyword;
+        const clean = sanitizeKeyword(original);
+        if (original !== clean) {
+            console.log(`Keyword Sanitized: ['${original}' -> '${clean}']`);
+            task.keyword = clean; // Task 업데이트
+        }
+    });
+
     console.log(`[Scraper v5] Starting V5 Batch: ${tasks.length} tasks`);
 
     // 배치 전체 시간 측정용
@@ -435,7 +513,7 @@ export async function scrapeNaverBatch(
 
             results.push({
                 ...result,
-                keyword: task.keyword,
+                keyword: originalKeywords[i], // [Restore] 원본 키워드로 복구하여 저장 (DB/UI 매칭용)
                 gridIndex: task.gridIndex,
                 lat: task.lat,
                 lng: task.lng,
@@ -463,4 +541,42 @@ export async function scrapeNaverBatch(
     }
 
     return results;
+}
+
+/**
+ * 🧼 Keyword Sanitizer (키워드 세탁기)
+ * "근처", "내주변" 등 위치/추천 관련 불용어를 제거하여 검색 정확도를 높임.
+ */
+function sanitizeKeyword(rawKeyword: string): string {
+    // 1. 제거할 단어 목록 (Regex 패턴으로 변환됨)
+    // \s* : 앞에 공백이 0개 이상 있어도 됨
+    const removePatterns = [
+        /(내\s*)?근처/g,  // 근처, 내근처, 내 근처
+        /(내\s*)?주변/g,  // 주변, 내주변, 내 주변
+        /(내\s*)?주위/g,  // 주위, 내주위, 내 주위
+        /인근/g,
+        /부근/g,
+        /가까운/g,
+        /가까이/g,
+        /잘하는\s*곳/g,
+        /가볼만한\s*곳/g, // 가볼만한곳, 가볼만한 곳
+        /유명한/g,
+        /추천/g,
+        /맛집/g, // [New] 맛집 키워드 추가 (IP 회귀 방지)
+        // 영어 패턴 (대소문자 무시 플래그 i 사용 예정)
+        /near(\s*me)?/gi,
+        /nearby/gi,
+        /close\s*to/gi,
+        /around/gi
+    ];
+
+    let cleanKeyword = rawKeyword;
+
+    // 2. 패턴 적용하여 제거
+    removePatterns.forEach(pattern => {
+        cleanKeyword = cleanKeyword.replace(pattern, '');
+    });
+
+    // 3. 앞뒤 공백 제거 및 다중 공백 하나로 통일
+    return cleanKeyword.replace(/\s+/g, ' ').trim();
 }

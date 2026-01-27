@@ -102,11 +102,30 @@ export function NaverPlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
         setQuery(e.target.value)
     }
 
+    // Helper: Decode HTML Entities (Client-side version)
+    const decodeHTMLEntities = (text: string) => {
+        if (!text) return text
+        const entities: Record<string, string> = {
+            '&amp;': '&',
+            '&lt;': '<',
+            '&gt;': '>',
+            '&quot;': '"',
+            '&#39;': "'",
+            '&apos;': "'",
+            '&nbsp;': ' '
+        }
+        return text.replace(/&(?:amp|lt|gt|quot|#39|apos|nbsp);/g, match => entities[match] || match)
+    }
+
     const handleSelect = (place: Place) => {
         isUserTypingRef.current = false // Flag: Change caused by selection (programmatic)
-        setQuery(place.title)           // Update input with selected name
+
+        // Clean the title before using it
+        const cleanTitle = decodeHTMLEntities(place.title)
+
+        setQuery(cleanTitle)            // Update input with selected name
         setOpen(false)                  // Close dropdown immediately
-        onPlaceSelect(place)            // Notify parent
+        onPlaceSelect({ ...place, title: cleanTitle }) // Notify parent with cleaned name
         // Optional: Keep results in memory or clear them. Clearing prevents stale reopen on focus.
         // setResults([]) 
     }
@@ -150,7 +169,7 @@ export function NaverPlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
                             <MapPin className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-center text-sm font-medium text-gray-900">
-                                    <span className="truncate">{place.title}</span>
+                                    <span className="truncate">{decodeHTMLEntities(place.title)}</span>
                                     <span className="ml-2 flex-shrink-0 text-xs text-gray-400 font-normal border border-gray-200 rounded px-1.5 py-0.5">
                                         {place.category}
                                     </span>
