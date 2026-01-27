@@ -78,9 +78,19 @@ export async function POST(
 
         console.log('Total tasks to process:', tasks.length)
 
-        // Playwright 스크래핑 실행
+        // 좀비 프로세스 킬러를 위한 콜백 함수
+        const checkJobExists = async (jobId: string): Promise<boolean> => {
+            const { data } = await supabase
+                .from('searches')
+                .select('id')
+                .eq('id', jobId)
+                .single()
+            return !!data
+        }
+
+        // Playwright 스크래핑 실행 (좀비 킬러 적용)
         console.log('Starting Naver scraping...')
-        const results = await scrapeNaverBatch(tasks)
+        const results = await scrapeNaverBatch(tasks, undefined, searchId, checkJobExists)
         console.log('Scraping returned results:', results.length)
 
         // 결과를 DB에 저장

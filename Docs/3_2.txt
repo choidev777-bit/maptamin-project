@@ -1,0 +1,46 @@
+### 3단계: 하이브리드 인터셉트 (Hybrid Intercept) [Priority 3]
+API 패킷을 낚아채는 고급 기술입니다.
+
+```typescript
+// Pseudo-code inside scrapeAtLocation
+
+let jsonFound = false;
+
+// 1. 감시자 등록
+page.on('response', async (response) => {
+    const url = response.url();
+    
+    // 네이버 지도 API 패턴 (예: graphql 또는 search)
+    if (url.includes('/api/graphql') && url.includes('type=PLACE')) {
+        const data = await response.json();
+        
+        // 데이터 검증
+        if (isValidData(data)) {
+            console.log("🎯 HIT! JS 데이터 탈취 성공 (0.1MB)");
+            jsonFound = true;
+            
+            // 데이터 파싱 및 저장
+            saveResult(data);
+            
+            // ⭐️ 핵심: 더 볼 것 없으니 브라우저 즉시 닫기 (Fast Kill)
+            // (DOM 로딩 대기 취소)
+            page.close(); 
+        }
+    }
+});
+
+// 2. 페이지 접속
+try {
+    await page.goto('https://m.map.naver.com/...');
+    
+    // 3. JS 방식 실패 시 (타임아웃) -> 기존 DOM 방식 실행
+    if (!jsonFound) {
+        console.warn("⚠️ API 인터셉트 실패. DOM 스크래핑으로 전환 (Fallback)");
+        await scrapeDOM(page);
+    }
+} catch (e) {
+    // Fast Kill로 인해 'page closed' 에러가 나면 성공으로 간주
+    if (jsonFound) return success;
+    throw e;
+}
+```

@@ -14,6 +14,7 @@ export interface NaverPlaceResult {
     address?: string;
     naverPlaceId?: string;
     distance?: string;
+    isAd?: boolean;
 }
 
 /**
@@ -69,3 +70,9 @@ export type ScraperStatus = 'idle' | 'running' | 'completed' | 'failed';
  * 진행률 콜백 타입
  */
 export type ProgressCallback = (completed: number, total: number) => void;
+
+/**
+ * 좀비 프로세스 킬러용 콜백 타입
+ * 검색 ID가 아직 DB에 존재하는지 확인
+ */
+export type JobCheckCallback = (searchId: string) => Promise<boolean>;
