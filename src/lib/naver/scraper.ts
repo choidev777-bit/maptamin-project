@@ -160,6 +160,8 @@ async function moveToLocation(page: Page, lat: number, lng: number) {
         try {
             console.log(`[Scraper v5] 📍 Attempting move to (${lat}, ${lng}) - Try ${i}/${MAX_RETRIES}`);
 
+            const startUrl = page.url();
+
             // 1. 입력
             await searchInput.click();
             await searchInput.clear();
@@ -168,27 +170,22 @@ async function moveToLocation(page: Page, lat: number, lng: number) {
             await delay(500); // 입력 값 반영 대기
             await searchInput.press('Enter');
 
-            // 2. 검증 (Verification)
-            // 주소가 찍히면 보통 '주소 복사' 버튼이나 특정 클래스가 뜹니다.
-            // 네이버 지도에서 주소 검색 성공 시 'entry-address' 또는 관련 UI가 뜹니다.
-            // 여기서는 2초 대기 후 에러가 없으면 성공으로 간주하되,
-            // 확실한 방법은 "지도 중심이 바뀌었는지" 체크하는 것이나 복잡하므로
-            // "입력창이 비워지지 않았는지" 또는 "엔터가 먹혔는지"를 간접 확인합니다.
+            // 2. 검증 (Verification) - [도착 보증 시스템 v2]
+            // 좌표 검색 성공 시 URL이 /entry/coordinates/... 로 바뀜
+            // 이 경로가 나타나면 네이버가 좌표를 인식하고 이동 완료한 것임
+            try {
+                await page.waitForURL(/\/entry\/coordinates\//, { timeout: 5000 });
+            } catch (timeout) {
+                // 5초 내에 좌표 페이지로 안 바뀜 -> 이동 실패 간주
+                throw new Error("Map did not move (coordinates page not reached)");
+            }
 
-            // v5.1 전략: 그냥 2초 대기 후, 다음 단계로 넘어간다.
-            // (입력이 씹히는게 문제이므로, 3번 반복하면 웬만하면 들어감)
-            await delay(2000);
-
-            // 주소창(검색결과)에 무언가 떴는지 확인 (선택사항)
-            // const addressBox = page.locator('.entry-layout');
-            // if (await addressBox.isVisible()) { movedSuccess = true; break; }
-
-            // 심플하게: 에러 없이 여기까지 왔으면 성공으로 간주
+            // 성공으로 간주
             movedSuccess = true;
             break;
 
         } catch (e) {
-            console.log(`[Scraper v5] ⚠️ Move failed (Try ${i}):`, e);
+            console.log(`[Scraper v5] ⚠️ Move failed (Try ${i}):`, e instanceof Error ? e.message : e);
             await delay(1000);
         }
     }
