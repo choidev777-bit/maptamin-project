@@ -250,71 +250,70 @@ async function scrapeOnPage(
         // Target API: 'api/search/allSearch' (Log confirmed)
         if (url.includes('api/search/allSearch')) {
             try {
-                // Query Check (URL에 포함된 경우)
-                // 예: .../allSearch?query=쌀국수...
-                if (decodeURIComponent(url).includes(keyword)) {
-                    const json = await response.json();
+                // ✅ 모든 allSearch 응답 캡처 (키워드 매칭 제거)
+                // 이유: "근처 맛집", "건대 데이트 맛집" 등 복합 키워드의 URL 인코딩 차이로 매칭 실패 방지
+                // 보호: boundary 검증이 잘못된 위치를 잡아냄
+                const json = await response.json();
 
-                    // JSON Parsing Strategy (allSearch Response)
-                    // 보통 result.place.list 또는 result.site.list 구조
-                    let items: any[] = [];
+                // JSON Parsing Strategy (allSearch Response)
+                // 보통 result.place.list 또는 result.site.list 구조
+                let items: any[] = [];
 
-                    if (json?.result?.place?.list) {
-                        items = json.result.place.list;
-                    } else if (json?.result?.site?.list) {
-                        items = json.result.site.list;
-                    } else if (json?.result?.list) {
-                        items = json.result.list;
-                    }
+                if (json?.result?.place?.list) {
+                    items = json.result.place.list;
+                } else if (json?.result?.site?.list) {
+                    items = json.result.site.list;
+                } else if (json?.result?.list) {
+                    items = json.result.list;
+                }
 
-                    if (items && Array.isArray(items) && items.length > 0) {
-                        console.log(`[Scraper v5] 🎯 JSON HIT! Intercepted ${items.length} items from 'allSearch'.`);
+                if (items && Array.isArray(items) && items.length > 0) {
+                    console.log(`[Scraper v5] 🎯 JSON HIT! Intercepted ${items.length} items from 'allSearch'.`);
 
-                        // 🗺️ [Restore & Improve] Boundary Validation
-                        // 목표 좌표가 검색 결과의 범위(boundary) 안에 있는지 확인
-                        const boundary = json?.result?.place?.boundary;
-                        if (boundary && Array.isArray(boundary) && boundary.length === 4) {
-                            const b = boundary.map(Number);
-                            // 순서에 상관없이 최대/최소값 추출 (안전장치)
-                            const minLng = Math.min(b[0], b[2]);
-                            const maxLng = Math.max(b[0], b[2]);
-                            const minLat = Math.min(b[1], b[3]);
-                            const maxLat = Math.max(b[1], b[3]);
+                    // 🗺️ [Restore & Improve] Boundary Validation
+                    // 목표 좌표가 검색 결과의 범위(boundary) 안에 있는지 확인
+                    const boundary = json?.result?.place?.boundary;
+                    if (boundary && Array.isArray(boundary) && boundary.length === 4) {
+                        const b = boundary.map(Number);
+                        // 순서에 상관없이 최대/최소값 추출 (안전장치)
+                        const minLng = Math.min(b[0], b[2]);
+                        const maxLng = Math.max(b[0], b[2]);
+                        const minLat = Math.min(b[1], b[3]);
+                        const maxLat = Math.max(b[1], b[3]);
 
-                            // 🛠️ Tolerance (여유범위) 추가 - 약 2km (0.02도)
-                            const BUFFER = 0.02;
+                        // 🛠️ Tolerance (여유범위) 추가 - 약 2km (0.02도)
+                        const BUFFER = 0.02;
 
-                            const isLatIn = lat >= (minLat - BUFFER) && lat <= (maxLat + BUFFER);
-                            const isLngIn = lng >= (minLng - BUFFER) && lng <= (maxLng + BUFFER);
+                        const isLatIn = lat >= (minLat - BUFFER) && lat <= (maxLat + BUFFER);
+                        const isLngIn = lng >= (minLng - BUFFER) && lng <= (maxLng + BUFFER);
 
-                            isBoundaryValid = isLatIn && isLngIn;
+                        isBoundaryValid = isLatIn && isLngIn;
 
-                            if (!isBoundaryValid) {
-                                console.log(`[Scraper v5] ⚠️ Boundary Mismatch! (IP Fallback Detected?)`);
-                                console.log(`   Target: (${lat}, ${lng})`);
-                                console.log(`   Boundary: lat[${minLat}~${maxLat}], lng[${minLng}~${maxLng}]`);
-                            } else {
-                                console.log(`[Scraper v5] ✅ Boundary Verified.`);
-                            }
+                        if (!isBoundaryValid) {
+                            console.log(`[Scraper v5] ⚠️ Boundary Mismatch! (IP Fallback Detected?)`);
+                            console.log(`   Target: (${lat}, ${lng})`);
+                            console.log(`   Boundary: lat[${minLat}~${maxLat}], lng[${minLng}~${maxLng}]`);
                         } else {
-                            // boundary 정보가 없으면 통과
-                            isBoundaryValid = true;
+                            console.log(`[Scraper v5] ✅ Boundary Verified.`);
                         }
-
-                        // Parse JSON Items
-                        interceptedPlaces = items.map((item: any, index: number) => ({
-                            rank: index + 1,
-                            businessName: item.name || item.title || 'Unknown',
-                            naverPlaceId: item.id,
-                            address: item.roadAddress || item.addr || '',
-                            isAd: item.isAd || item.adId ? true : false
-                        })).filter(p => !p.isAd); // 필터링
-
-                        // 랭킹 재조정
-                        interceptedPlaces = interceptedPlaces.map((p, i) => ({ ...p, rank: i + 1 }));
-
-                        isJsonHit = true;
+                    } else {
+                        // boundary 정보가 없으면 통과
+                        isBoundaryValid = true;
                     }
+
+                    // Parse JSON Items
+                    interceptedPlaces = items.map((item: any, index: number) => ({
+                        rank: index + 1,
+                        businessName: item.name || item.title || 'Unknown',
+                        naverPlaceId: item.id,
+                        address: item.roadAddress || item.addr || '',
+                        isAd: item.isAd || item.adId ? true : false
+                    })).filter(p => !p.isAd); // 필터링
+
+                    // 랭킹 재조정
+                    interceptedPlaces = interceptedPlaces.map((p, i) => ({ ...p, rank: i + 1 }));
+
+                    isJsonHit = true;
                 }
             } catch (e) {
                 // Ignore parsing errors
@@ -477,20 +476,9 @@ export async function scrapeNaverBatch(
 ): Promise<NaverScrapeBatchResult[]> {
     const results: NaverScrapeBatchResult[] = [];
 
-    // 🧼 Batch Level Sanitization
-    // 작업 시작 전에 모든 키워드를 미리 세탁합니다.
-    const originalKeywords = tasks.map(t => t.keyword); // [Backup] 원본 보존
+    // 🔄 Keyword Logging (Sanitization disabled)
     const uniqueKeywords = [...new Set(tasks.map(t => t.keyword))];
     console.log(`Keywords: [ ${uniqueKeywords.map(k => `'${k}'`).join(', ')} ]`);
-
-    tasks.forEach(task => {
-        const original = task.keyword;
-        const clean = sanitizeKeyword(original);
-        if (original !== clean) {
-            console.log(`Keyword Sanitized: ['${original}' -> '${clean}']`);
-            task.keyword = clean; // Task 업데이트
-        }
-    });
 
     console.log(`[Scraper v5] Starting V5 Batch: ${tasks.length} tasks`);
 
@@ -566,7 +554,7 @@ export async function scrapeNaverBatch(
 
             results.push({
                 ...result,
-                keyword: originalKeywords[i], // [Restore] 원본 키워드로 복구하여 저장 (DB/UI 매칭용)
+                keyword: task.keyword, // 원본 키워드 (sanitization 비활성화됨)
                 gridIndex: task.gridIndex,
                 lat: task.lat,
                 lng: task.lng,
