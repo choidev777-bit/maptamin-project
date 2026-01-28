@@ -142,62 +142,38 @@ async function forceZoomIn(page: Page) {
 }
 
 /**
- * 좌표 이동 (Fallback용)
- */
-/**
  * 좌표 이동 (Reliable Move Strategy)
- * 검증(Verify) & 재시도(Retry) 로직 적용
+ * 단순 이동 수행 (검증은 결과 처리 단계에서 수행)
  */
 async function moveToLocation(page: Page, lat: number, lng: number) {
     const searchInputSelector = 'input.input_search';
     await page.waitForSelector(searchInputSelector, { state: 'visible', timeout: 5000 });
     const searchInput = page.locator(searchInputSelector);
 
-    const MAX_RETRIES = 3;
-    let movedSuccess = false;
+    try {
+        console.log(`[Scraper v5] 📍 Moving to (${lat}, ${lng})...`);
 
-    for (let i = 1; i <= MAX_RETRIES; i++) {
+        // 1. 입력
+        await searchInput.click();
+        await searchInput.clear();
+        await delay(300); // UI 반응 대기
+        await searchInput.fill(`${lat},${lng}`);
+        await delay(500); // 입력 값 반영 대기
+        await searchInput.press('Enter');
+
+        // 2. URL 검증 - 좌표 페이지로 이동했는지 확인
         try {
-            console.log(`[Scraper v5] 📍 Attempting move to (${lat}, ${lng}) - Try ${i}/${MAX_RETRIES}`);
-
-            const startUrl = page.url();
-
-            // 1. 입력
-            await searchInput.click();
-            await searchInput.clear();
-            await delay(300); // UI 반응 대기
-            await searchInput.fill(`${lat},${lng}`);
-            await delay(500); // 입력 값 반영 대기
-            await searchInput.press('Enter');
-
-            // 2. 검증 (Verification) - [도착 보증 시스템 v2]
-            // 좌표 검색 성공 시 URL이 /entry/coordinates/... 로 바뀜
-            // 이 경로가 나타나면 네이버가 좌표를 인식하고 이동 완료한 것임
-            try {
-                await page.waitForURL(/\/entry\/coordinates\//, { timeout: 5000 });
-            } catch (timeout) {
-                // 5초 내에 좌표 페이지로 안 바뀜 -> 이동 실패 간주
-                throw new Error("Map did not move (coordinates page not reached)");
-            }
-
-            // 성공으로 간주
-            movedSuccess = true;
-            break;
-
-        } catch (e) {
-            console.log(`[Scraper v5] ⚠️ Move failed (Try ${i}):`, e instanceof Error ? e.message : e);
-            await delay(1000);
+            await page.waitForURL(/\/entry\/coordinates\//, { timeout: 5000 });
+        } catch (timeout) {
+            console.log("[Scraper v5] ⚠️ Move warning: URL did not change to coordinates page.");
         }
-    }
 
-    if (!movedSuccess) {
-        console.error(`[Scraper v5] ❌ Failed to move map after ${MAX_RETRIES} attempts.`);
-    } else {
-        console.log(`[Scraper v5] ✅ Move command executed successfully.`);
-    }
+        // 최종 안정화 대기
+        await delay(1000);
 
-    // 최종 안정화 대기 (기존 100초 -> 2초로 단축)
-    await delay(2000);
+    } catch (e) {
+        console.log(`[Scraper v5] ⚠️ Move operation failed:`, e);
+    }
 }
 
 /**
@@ -265,6 +241,7 @@ async function scrapeOnPage(
     // 🎯 JSON Intercept Data
     let interceptedPlaces: NaverPlaceResult[] = [];
     let isJsonHit = false;
+    let isBoundaryValid = false; // ✅ [Restore] 위치 검증 플래그
 
     // 1️⃣ 네트워크 감청 장치 설치
     page.on('response', async (response) => {
@@ -292,6 +269,37 @@ async function scrapeOnPage(
 
                     if (items && Array.isArray(items) && items.length > 0) {
                         console.log(`[Scraper v5] 🎯 JSON HIT! Intercepted ${items.length} items from 'allSearch'.`);
+
+                        // 🗺️ [Restore & Improve] Boundary Validation
+                        // 목표 좌표가 검색 결과의 범위(boundary) 안에 있는지 확인
+                        const boundary = json?.result?.place?.boundary;
+                        if (boundary && Array.isArray(boundary) && boundary.length === 4) {
+                            const b = boundary.map(Number);
+                            // 순서에 상관없이 최대/최소값 추출 (안전장치)
+                            const minLng = Math.min(b[0], b[2]);
+                            const maxLng = Math.max(b[0], b[2]);
+                            const minLat = Math.min(b[1], b[3]);
+                            const maxLat = Math.max(b[1], b[3]);
+
+                            // 🛠️ Tolerance (여유범위) 추가 - 약 2km (0.02도)
+                            const BUFFER = 0.02;
+
+                            const isLatIn = lat >= (minLat - BUFFER) && lat <= (maxLat + BUFFER);
+                            const isLngIn = lng >= (minLng - BUFFER) && lng <= (maxLng + BUFFER);
+
+                            isBoundaryValid = isLatIn && isLngIn;
+
+                            if (!isBoundaryValid) {
+                                console.log(`[Scraper v5] ⚠️ Boundary Mismatch! (IP Fallback Detected?)`);
+                                console.log(`   Target: (${lat}, ${lng})`);
+                                console.log(`   Boundary: lat[${minLat}~${maxLat}], lng[${minLng}~${maxLng}]`);
+                            } else {
+                                console.log(`[Scraper v5] ✅ Boundary Verified.`);
+                            }
+                        } else {
+                            // boundary 정보가 없으면 통과
+                            isBoundaryValid = true;
+                        }
 
                         // Parse JSON Items
                         interceptedPlaces = items.map((item: any, index: number) => ({
@@ -356,31 +364,79 @@ async function scrapeOnPage(
         }
 
         let results: NaverPlaceResult[] = [];
+        let retryCount = 0;
+        const MAX_LOCATION_RETRIES = 2;
 
-        if (isJsonHit) {
-            // ✅ Case A: JSON Success
-            console.log(`[Scraper v5] 🚀 Fast Kill! Using JSON Data.`);
-            results = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
-        } else {
-            // ⚠️ Case B: JSON Fail -> DOM Fallback
-            console.log(`[Scraper v5] ⚠️ JSON Missed. Fallback to DOM parsing...`);
+        while (retryCount <= MAX_LOCATION_RETRIES) {
+            if (isJsonHit) {
+                // ✅ Case A: JSON Success
+                if (isBoundaryValid) {
+                    console.log(`[Scraper v5] 🚀 Fast Kill! Using JSON Data.`);
+                    results = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
+                    break;  // 성공, 루프 탈출
+                } else {
+                    // ⚠️ 위치 불일치 - 재시도
+                    console.log(`[Scraper v5] 🔄 Location mismatch detected. Retry ${retryCount + 1}/${MAX_LOCATION_RETRIES}...`);
+                    retryCount++;
 
-            const frames = page.frames();
-            const searchFrame = frames.find(f => f.name() === 'searchIframe');
+                    if (retryCount > MAX_LOCATION_RETRIES) {
+                        console.log(`[Scraper v5] ❌ Max retries reached. Using current results anyway.`);
+                        results = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
+                        break;
+                    }
 
-            // iframe 기다리기 (최대 5초)
-            if (!searchFrame) await delay(2000); // 렌더링 대기
+                    // 재시도: 데이터 초기화
+                    isJsonHit = false;
+                    isBoundaryValid = false;
+                    interceptedPlaces = [];
 
-            const freshFrames = page.frames();
-            const freshSearchFrame = freshFrames.find(f => f.name() === 'searchIframe');
+                    // 🔄 [핵심] 페이지 완전 새로고침 - 캐시된 상태 초기화
+                    console.log(`[Scraper v5] 🔄 Refreshing page to clear cached state...`);
+                    await page.goto('https://map.naver.com/p', { waitUntil: 'domcontentloaded' });
+                    await delay(1500);
+                    await forceZoomIn(page);
 
-            if (freshSearchFrame) {
-                try {
-                    await freshSearchFrame.waitForSelector('span.TYaxT', { timeout: 8000 });
-                    results = await parseSearchResultsInFrame(freshSearchFrame);
-                } catch (e) {
-                    console.log('[Scraper v5] Fallback failed: Element not found');
+                    // 좌표 이동 & 검색
+                    await moveToLocation(page, lat, lng);
+                    await forceZoomIn(page);
+
+                    const retryInput = page.locator(searchInputSelector);
+                    const retryClearBtn = page.locator('.btn_clear');
+                    if (await retryClearBtn.isVisible()) await retryClearBtn.click();
+                    await retryInput.click();
+                    await retryInput.fill(keyword);
+                    await retryInput.press('Enter');
+
+                    // 새 결과 대기
+                    let retryElapsed = 0;
+                    while (!isJsonHit && retryElapsed < maxWaitTime) {
+                        await delay(checkInterval);
+                        retryElapsed += checkInterval;
+                    }
+                    continue;  // 다시 검증 루프
                 }
+            } else {
+                // ⚠️ Case B: JSON Fail -> DOM Fallback
+                console.log(`[Scraper v5] ⚠️ JSON Missed. Fallback to DOM parsing...`);
+
+                const frames = page.frames();
+                const searchFrame = frames.find(f => f.name() === 'searchIframe');
+
+                // iframe 기다리기 (최대 5초)
+                if (!searchFrame) await delay(2000); // 렌더링 대기
+
+                const freshFrames = page.frames();
+                const freshSearchFrame = freshFrames.find(f => f.name() === 'searchIframe');
+
+                if (freshSearchFrame) {
+                    try {
+                        await freshSearchFrame.waitForSelector('span.TYaxT', { timeout: 8000 });
+                        results = await parseSearchResultsInFrame(freshSearchFrame);
+                    } catch (e) {
+                        console.log('[Scraper v5] Fallback failed: Element not found');
+                    }
+                }
+                break;  // DOM fallback은 재시도 없이 종료
             }
         }
 
