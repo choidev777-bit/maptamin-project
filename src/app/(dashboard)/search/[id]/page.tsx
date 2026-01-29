@@ -1,7 +1,7 @@
 import { createClient, getCurrentUser } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
-import { GoogleMapsProvider } from '@/components/maps/GoogleMapsProvider'
+
 import { ResultsContent } from './ResultsContent'
 
 interface PageProps {
@@ -90,11 +90,9 @@ export default async function SearchResultsPage({ params }: PageProps) {
             )}
 
             {search.status === 'completed' && results && results.length > 0 && (
-                <GoogleMapsProvider>
-                    <Suspense fallback={<div>로딩 중...</div>}>
-                        <ResultsContent search={search} results={results} />
-                    </Suspense>
-                </GoogleMapsProvider>
+                <Suspense fallback={<div>로딩 중...</div>}>
+                    <ResultsContent search={search} results={results} />
+                </Suspense>
             )}
 
             {search.status === 'completed' && (!results || results.length === 0) && (
