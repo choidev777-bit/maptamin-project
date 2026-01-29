@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Home, Search, History, Settings, MapPin } from 'lucide-react'
+import { WalletLabel } from './WalletLabel'
 
 interface Props {
     user: {
@@ -54,6 +55,7 @@ export function DesktopNav({ user }: Props) {
 
             {/* User Info */}
             <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
+                <WalletLabel />
                 <span className="text-sm text-gray-600">{user.email}</span>
             </div>
         </div>

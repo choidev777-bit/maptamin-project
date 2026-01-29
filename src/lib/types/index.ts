@@ -57,3 +57,55 @@ export interface Place {
     lat: number
     lng: number
 }
+
+// Pricing System Interfaces
+
+export interface Plan {
+    id: 'light' | 'basic' | 'pro';
+    name: string;
+    monthly_points: number;
+    max_grid_size: number;
+    limits: {
+        places: number;
+        competitors: number;
+    };
+}
+
+export interface UserCredits {
+    user_id: string;
+    subscription_balance: number;
+    cash_balance: number;
+    plan_id: string;
+    updated_at: string;
+}
+
+export interface ManagedPlace {
+    id: string;
+    user_id: string;
+    place_id: string;
+    place_name?: string;
+    locked_until: string;
+    created_at: string;
+}
+
+export interface ManagedCompetitor {
+    id: string;
+    user_id: string;
+    place_id: string;
+    place_name?: string;
+    locked_until: string;
+    created_at: string;
+}
+
+export interface SearchSchedule {
+    id: string;
+    user_id: string;
+    place_id: string;
+    keywords: string[];
+    grid_config: GridPoint[]; // Reusing GridPoint
+    crawling_days: number[]; // [1, 3, 5]
+    crawling_time: string; // '09:00:00'
+    is_active: boolean;
+    last_run_at?: string;
+    created_at: string;
+}

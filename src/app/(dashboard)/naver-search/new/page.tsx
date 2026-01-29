@@ -1,13 +1,16 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { KeywordInput } from '@/components/search/KeywordInput'
 import { NaverMapGridConfigurator } from '@/components/naver/NaverMapGridConfigurator'
 import { DistanceSettings } from '@/components/search/DistanceSettings'
 import { NaverPlaceSearchInput } from '@/components/search/NaverPlaceSearchInput'
+import { PlaceSelector } from '@/components/search/PlaceSelector'
 import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
-import { MapPin, Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, AlertTriangle } from 'lucide-react'
+import { MapPin, Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, AlertTriangle, Coins } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { UserCredits } from '@/lib/types'
 
 interface GridPointSelection {
     row: number
@@ -16,10 +19,10 @@ interface GridPointSelection {
 }
 
 const STEPS = [
-    { id: 1, name: '장소 입력', icon: MapPin },
+    { id: 1, name: '장소 선택', icon: MapPin },
     { id: 2, name: '키워드 입력', icon: Tag },
     { id: 3, name: '그리드 설정', icon: Grid3X3 },
-    { id: 4, name: '확인', icon: Check },
+    { id: 4, name: '결제 및 확인', icon: Check },
 ]
 
 // Default 3x3 grid preset
@@ -33,11 +36,16 @@ export default function NewNaverSearchPage() {
     const router = useRouter()
     const [step, setStep] = useState(1)
 
-    // 네이버용 장소 입력 (수동)
+    // User Data
+    const [userCredits, setUserCredits] = useState<UserCredits | null>(null)
+
+    // Place Data
     const [placeName, setPlaceName] = useState('')
     const [placeAddress, setPlaceAddress] = useState('')
     const [placeLat, setPlaceLat] = useState('')
     const [placeLng, setPlaceLng] = useState('')
+    const [selectedPlaceId, setSelectedPlaceId] = useState<string>('')
+    const [placeType, setPlaceType] = useState<'place' | 'competitor' | 'new'>('new')
 
     const [keywords, setKeywords] = useState<string[]>([''])
     const [gridPoints, setGridPoints] = useState<GridPointSelection[]>(DEFAULT_GRID_POINTS)
@@ -45,9 +53,35 @@ export default function NewNaverSearchPage() {
     const [distanceUnit, setDistanceUnit] = useState<'km' | 'mile'>('km')
     const [isSubmitting, setIsSubmitting] = useState(false)
 
+    // Fetch credits on mount
+    useEffect(() => {
+        const fetchCredits = async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            const { data } = await supabase
+                .from('user_credits')
+                .select('*')
+                .eq('user_id', user.id)
+                .single()
+
+            if (data) setUserCredits(data as UserCredits)
+        }
+        fetchCredits()
+    }, [])
+
     const enabledGridCount = useMemo(() => {
         return gridPoints.filter(p => p.enabled).length
     }, [gridPoints])
+
+    const totalCost = useMemo(() => {
+        const activeKeywords = keywords.filter(k => k.trim().length > 0).length
+        return activeKeywords * enabledGridCount
+    }, [keywords, enabledGridCount])
+
+    const totalBalance = (userCredits?.subscription_balance || 0) + (userCredits?.cash_balance || 0)
+    const hasSufficientBalance = totalBalance >= totalCost
 
     const canProceed = () => {
         switch (step) {
@@ -60,7 +94,7 @@ export default function NewNaverSearchPage() {
             case 3:
                 return enabledGridCount > 0
             case 4:
-                return true
+                return hasSufficientBalance
             default:
                 return false
         }
@@ -76,6 +110,15 @@ export default function NewNaverSearchPage() {
         if (step > 1) {
             setStep(step - 1)
         }
+    }
+
+    const handlePlaceSelect = (id: string, type: 'place' | 'competitor', name?: string) => {
+        setSelectedPlaceId(id)
+        setPlaceType(type)
+        if (name) setPlaceName(name)
+        // Note: For existing places, we might lack Lat/Lng. 
+        // In a real app, we'd fetch details or require a re-search to set grid center.
+        // For this UI demo, we'll keep the PlaceSearchInput visible to "confirm" location.
     }
 
     const handleSubmit = async () => {
@@ -110,6 +153,9 @@ export default function NewNaverSearchPage() {
                     gridPoints: gridPointsWithCoords,
                     distance: gridDistance,
                     distanceUnit,
+                    // If selected from list, we pass ID to verify 'managed' status
+                    // If 'new', backend might perform logic to register or reject depending on policy
+                    placeId: selectedPlaceId || undefined
                 }),
             })
 
@@ -192,26 +238,54 @@ export default function NewNaverSearchPage() {
 
             {/* Step Content */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                {/* Step 1: Place Input (Automated via Naver Open API) */}
+                {/* Step 1: Place Input */}
                 {step === 1 && (
                     <div className="space-y-6">
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900">비즈니스 검색</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">비즈니스 선택</h2>
                             <p className="mt-2 text-gray-600">
-                                네이버 지도에서 순위를 추적할 비즈니스를 검색하세요.
+                                관리 중인 가게를 선택하거나 새로운 가게를 검색하세요.
                             </p>
                         </div>
 
-                        <div className="flex flex-col items-center py-4">
-                            <NaverPlaceSearchInput
-                                onPlaceSelect={(place) => {
-                                    setPlaceName(place.title)
-                                    setPlaceAddress(place.address)
-                                    setPlaceLat(place.lat.toString())
-                                    setPlaceLng(place.lng.toString())
-                                }}
-                                selectedPlace={placeName ? { name: placeName, address: placeAddress } : null}
-                            />
+                        <div className="space-y-4">
+                            <div className="p-4 bg-gray-50 rounded-lg">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    내 가게 / 경쟁사에서 선택
+                                </label>
+                                <PlaceSelector
+                                    onSelect={handlePlaceSelect}
+                                    selectedPlaceId={selectedPlaceId}
+                                />
+                            </div>
+
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t border-gray-200" />
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-white px-2 text-gray-500">또는 직접 검색</span>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col items-center">
+                                <NaverPlaceSearchInput
+                                    onPlaceSelect={(place) => {
+                                        setPlaceName(place.title)
+                                        setPlaceAddress(place.address)
+                                        setPlaceLat(place.lat.toString())
+                                        setPlaceLng(place.lng.toString())
+                                        // Reset selection if manual search is used?
+                                        // setIsNew(true)
+                                    }}
+                                    selectedPlace={placeName ? { name: placeName, address: placeAddress } : null}
+                                />
+                                {selectedPlaceId && !placeLat && (
+                                    <p className="text-sm text-amber-600 mt-2">
+                                        * 선택한 가게의 정확한 위치(그리드 중심)를 위해 위에서 한 번 더 검색해주세요.
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
@@ -222,10 +296,7 @@ export default function NewNaverSearchPage() {
                         <div>
                             <h2 className="text-2xl font-bold text-gray-900">검색 키워드 입력</h2>
                             <p className="mt-2 text-gray-600">
-                                네이버 지도에서 검색할 키워드를 입력하세요. (최대 3개)
-                            </p>
-                            <p className="mt-1 text-sm text-amber-600">
-                                ⚠️ &quot;근처 맛집&quot;처럼 위치 기반 키워드를 사용하세요.
+                                네이버 지도에서 검색할 키워드를 입력하세요.
                             </p>
                         </div>
 
@@ -234,6 +305,17 @@ export default function NewNaverSearchPage() {
                             onChange={setKeywords}
                             maxKeywords={3}
                         />
+
+                        <div className="p-4 bg-blue-50 rounded-lg flex items-start gap-3">
+                            <Coins className="w-5 h-5 text-blue-600 mt-0.5" />
+                            <div>
+                                <p className="text-sm font-medium text-blue-800">예상 비용 미리보기</p>
+                                <p className="text-sm text-blue-700">
+                                    현재 설정: 키워드 {keywords.filter(k => k.trim()).length}개 × 포인트 {enabledGridCount}개
+                                    = <span className="font-bold">{keywords.filter(k => k.trim()).length * enabledGridCount} P</span>
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -243,7 +325,7 @@ export default function NewNaverSearchPage() {
                         <div>
                             <h2 className="text-2xl font-bold text-gray-900">검색 그리드 설정</h2>
                             <p className="mt-2 text-gray-600">
-                                검색 포인트와 간격을 설정하세요. 각 포인트에서 별도로 순위를 확인합니다.
+                                검색 포인트와 간격을 설정하세요.
                             </p>
                         </div>
 
@@ -262,66 +344,69 @@ export default function NewNaverSearchPage() {
                             gridDistance={distanceUnit === 'mile' ? gridDistance * 1.60934 : gridDistance}
                         />
 
-                        <p className="text-center text-sm text-gray-500">
-                            선택된 포인트: <span className="font-medium text-emerald-600">{enabledGridCount}</span>개
-                        </p>
+                        <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                            <span className="text-sm text-gray-600">활성 포인트</span>
+                            <span className="font-bold text-emerald-600">{enabledGridCount}개</span>
+                        </div>
                     </div>
                 )}
 
-                {/* Step 4: Confirmation */}
+                {/* Step 4: Confirmation & Cost */}
                 {step === 4 && (
                     <div className="space-y-6">
                         <div>
-                            <h2 className="text-2xl font-bold text-gray-900">검색 확인</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">결제 및 확인</h2>
                             <p className="mt-2 text-gray-600">
-                                아래 정보로 네이버 지도 순위 검색을 시작합니다.
+                                예상 비용을 확인하고 검색을 시작하세요.
                             </p>
                         </div>
 
-                        <div className="bg-gray-50 rounded-xl p-6 space-y-4">
-                            <div className="flex justify-between items-start">
-                                <span className="text-gray-600">비즈니스</span>
-                                <div className="text-right">
-                                    <p className="font-medium text-gray-900">{placeName}</p>
-                                    {placeAddress && (
-                                        <p className="text-sm text-gray-500">{placeAddress}</p>
-                                    )}
-                                    <p className="text-xs text-gray-400">
-                                        ({placeLat}, {placeLng})
-                                    </p>
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                            <div className="p-6 space-y-4">
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">비즈니스</span>
+                                    <span className="font-medium text-gray-900">{placeName}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">키워드 ({keywords.filter(k => k.trim()).length}개)</span>
+                                    <span className="font-medium text-gray-900">
+                                        {keywords.filter(k => k.trim()).join(', ')}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-gray-600">그리드 포인트</span>
+                                    <span className="font-medium text-gray-900">{enabledGridCount}개</span>
                                 </div>
                             </div>
-                            <div className="border-t border-gray-200" />
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">키워드</span>
-                                <span className="font-medium text-gray-900">
-                                    {keywords.filter(k => k.trim()).join(', ')}
-                                </span>
-                            </div>
-                            <div className="border-t border-gray-200" />
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">검색 포인트</span>
-                                <span className="font-medium text-gray-900">{enabledGridCount}개</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">포인트 간격</span>
-                                <span className="font-medium text-gray-900">
-                                    {gridDistance} {distanceUnit}
-                                </span>
-                            </div>
-                            <div className="border-t border-gray-200" />
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">예상 소요 시간</span>
-                                <span className="font-medium text-amber-600">
-                                    약 {Math.ceil(enabledGridCount * keywords.filter(k => k.trim()).length * 3 / 60)}분
-                                </span>
+
+                            {/* Cost Summary */}
+                            <div className="bg-gray-50 p-6 border-t border-gray-200">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-gray-600">보유 포인트</span>
+                                    <span className="font-medium">{totalBalance.toLocaleString()} P</span>
+                                </div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="text-gray-600">차감 예정 포인트</span>
+                                    <span className="text-xl font-bold text-red-600">-{totalCost.toLocaleString()} P</span>
+                                </div>
+                                <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
+                                    <span className="font-medium text-gray-900">잔액 예상</span>
+                                    <span className={`text-lg font-bold ${hasSufficientBalance ? 'text-emerald-600' : 'text-red-600'}`}>
+                                        {(totalBalance - totalCost).toLocaleString()} P
+                                    </span>
+                                </div>
+                                {!hasSufficientBalance && (
+                                    <div className="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4" />
+                                        포인트가 부족하여 검색을 시작할 수 없습니다.
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         <div className="p-4 bg-amber-50 rounded-lg">
                             <p className="text-sm text-amber-800">
-                                ⚠️ 네이버 검색은 구글보다 더 많은 시간이 소요됩니다.
-                                잠시 기다려 주세요.
+                                ⚠️ 검색 시작 시 포인트가 즉시 차감됩니다. (실패 시 자동 환불)
                             </p>
                         </div>
                     </div>
@@ -357,18 +442,18 @@ export default function NewNaverSearchPage() {
                 ) : (
                     <button
                         onClick={handleSubmit}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !hasSufficientBalance}
                         className="flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSubmitting ? (
                             <>
                                 <Loader2 className="w-5 h-5 animate-spin" />
-                                스크래핑 시작 중...
+                                처리 중...
                             </>
                         ) : (
                             <>
                                 <Check className="w-5 h-5" />
-                                검색 시작
+                                {hasSufficientBalance ? '결제 및 시작' : '잔액 부족'}
                             </>
                         )}
                     </button>
