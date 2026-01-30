@@ -2,6 +2,13 @@
 
 import * as React from 'react'
 
+declare global {
+    interface Window {
+        naver: any
+    }
+}
+declare var naver: any;
+
 // ========================================
 // Types
 // ========================================
@@ -82,8 +89,8 @@ export function NaverMap({
     showZoomControl = true
 }: NaverMapProps) {
     const mapContainerRef = React.useRef<HTMLDivElement>(null)
-    const mapInstanceRef = React.useRef<naver.maps.Map | null>(null)
-    const markersRef = React.useRef<naver.maps.Marker[]>([])
+    const mapInstanceRef = React.useRef<any | null>(null)
+    const markersRef = React.useRef<any[]>([])
 
     const [isLoading, setIsLoading] = React.useState(true)
     const [error, setError] = React.useState<string | null>(null)
@@ -107,7 +114,7 @@ export function NaverMap({
                 if (!isMounted || !mapContainerRef.current) return
 
                 // Create map instance
-                const mapOptions: naver.maps.MapOptions = {
+                const mapOptions: any = {
                     center: new naver.maps.LatLng(center.lat, center.lng),
                     zoom,
                     zoomControl: showZoomControl,
