@@ -6,7 +6,7 @@ export class ChargeService {
      * Restricted: typically called by Admin or Payment Webhook.
      */
     static async chargePoints(userId: string, amount: number) {
-        const supabase = createClient();
+        const supabase = await createClient();
 
         // In a real scenario, verification of payment status would happen here.
 
