@@ -6,7 +6,7 @@ export class PlaceManager {
      * Registers a new "My Place" with 30-day lock.
      */
     static async registerPlace(userId: string, placeId: string, placeName: string) {
-        const supabase = createClient();
+        const supabase = await createClient();
 
         // 1. Get User Plan Limits
         const { data: userCredits } = await supabase.from('user_credits').select('plan_id').eq('user_id', userId).single();
@@ -47,7 +47,7 @@ export class PlaceManager {
      * Registers a new "Competitor" with 30-day lock.
      */
     static async registerCompetitor(userId: string, placeId: string, placeName: string) {
-        const supabase = createClient();
+        const supabase = await createClient();
 
         // 1. Get User Plan Limits
         const { data: userCredits } = await supabase.from('user_credits').select('plan_id').eq('user_id', userId).single();
@@ -88,7 +88,7 @@ export class PlaceManager {
      * Downgrade Guard: Check compliance before changing plan.
      */
     static async changePlan(userId: string, newPlanId: string) {
-        const supabase = createClient();
+        const supabase = await createClient();
 
         // 1. Fetch New Plan
         const { data: newPlanData } = await supabase.from('plans').select('*').eq('id', newPlanId).single();

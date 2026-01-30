@@ -22,7 +22,7 @@ export class SearchService {
         gridPoints: GridPoint[],
         platform: 'naver' | 'google' = 'naver'
     ): Promise<ScraperResult> {
-        const supabase = createClient();
+        const supabase = await createClient();
 
         // 0. Fetch User Plan & Validation
         const { data: userCredits, error: creditError } = await supabase
