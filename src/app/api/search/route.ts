@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ searchId: search.id })
 }
 
-export async function GET(request: Request) {
+export async function GET() {
     const supabase = await createClient()
 
     const { data: { user } } = await supabase.auth.getUser()
