@@ -20,7 +20,5 @@ export { NAVER_SCRAPER_CONFIG, NAVER_SELECTORS } from './config';
 
 // Scraper functions
 export {
-    scrapeAtLocation,
     scrapeNaverBatch,
-    testScraper,
 } from './scraper';
