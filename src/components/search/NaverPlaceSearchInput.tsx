@@ -4,13 +4,17 @@ import * as React from 'react'
 import { Search, Loader2, MapPin } from 'lucide-react'
 import { useDebounce } from '@/lib/hooks/use-debounce'
 
+import { Place as GlobalPlace } from '@/lib/types'
+
 /**
- * Type definition for a Place object returned by Naver API
+ * Type definition for a Place object returned by Naver API (Internal use)
  */
-interface Place {
+interface NaverPlaceItem {
     title: string
     address: string
     category: string
+    mapx: string // Naver returns mapx/mapy usually? or lat/lng if processed.
+    // The previous code had lat/lng, so assuming the API route normalizes it.
     lat: number
     lng: number
 }
@@ -19,7 +23,7 @@ interface Place {
  * Props for the NaverPlaceSearchInput component
  */
 interface Props {
-    onPlaceSelect: (place: Place) => void
+    onPlaceSelect: (place: GlobalPlace) => void
     selectedPlace?: { name: string; address: string } | null
 }
 
@@ -34,7 +38,7 @@ export function NaverPlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
     // UI State
     const [open, setOpen] = React.useState(false)
     const [query, setQuery] = React.useState('')
-    const [results, setResults] = React.useState<Place[]>([])
+    const [results, setResults] = React.useState<NaverPlaceItem[]>([])
     const [loading, setLoading] = React.useState(false)
 
     // Performance: Debounce search query to reduce API calls (Vercel Best Practice)
@@ -117,17 +121,31 @@ export function NaverPlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
         return text.replace(/&(?:amp|lt|gt|quot|#39|apos|nbsp);/g, match => entities[match] || match)
     }
 
-    const handleSelect = (place: Place) => {
+    const handleSelect = (place: NaverPlaceItem) => {
         isUserTypingRef.current = false // Flag: Change caused by selection (programmatic)
 
         // Clean the title before using it
         const cleanTitle = decodeHTMLEntities(place.title)
 
+        // Generate a pseudo-ID if not present (Naver Search API doesn't return stable ID)
+        // Using base64 of title + address as a consistent ID
+        const generatedId = typeof window !== 'undefined'
+            ? window.btoa(unescape(encodeURIComponent(`${cleanTitle}-${place.address}`)))
+            : `${cleanTitle}-${place.address}`
+
         setQuery(cleanTitle)            // Update input with selected name
         setOpen(false)                  // Close dropdown immediately
-        onPlaceSelect({ ...place, title: cleanTitle }) // Notify parent with cleaned name
-        // Optional: Keep results in memory or clear them. Clearing prevents stale reopen on focus.
-        // setResults([]) 
+
+        // Map to global Place interface expected by parent
+        // Parent expects: { placeId, name, address, lat, lng }
+        // We provide: { title, address, category, lat, lng } -> mapped
+        onPlaceSelect({
+            placeId: generatedId,
+            name: cleanTitle,
+            address: place.address,
+            lat: place.lat,
+            lng: place.lng
+        })
     }
 
     return (
@@ -147,7 +165,7 @@ export function NaverPlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
                             setOpen(true)
                         }
                     }}
-                    placeholder="네이버 지도에서 비즈니스 검색 (예: 스타벅스 강남)"
+                    placeholder="입력"
                     className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
                 />
                 {loading && (
@@ -159,7 +177,7 @@ export function NaverPlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
 
             {/* Dropdown Section */}
             {open && results.length > 0 && (
-                <ul className="absolute z-50 mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto sm:text-sm divide-y divide-gray-100">
+                <ul className="absolute z-[100] mt-1 w-full bg-white shadow-lg max-h-60 rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 overflow-auto sm:text-sm divide-y divide-gray-100">
                     {results.map((place, index) => (
                         <li
                             key={`${place.title}-${index}`}

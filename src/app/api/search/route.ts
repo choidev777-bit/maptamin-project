@@ -21,19 +21,16 @@ export async function POST(request: NextRequest) {
     const isAdmin = user.email && ADMIN_EMAILS.includes(user.email)
 
     // Check daily usage (skip for admins)
+    // Check daily usage (skip for admins)
+    // Legacy hard limit removed in favor of Point-based system
+    /* 
     if (!isAdmin) {
-        const today = new Date().toISOString().split('T')[0]
-        const { data: usage } = await supabase
-            .from('daily_usage')
-            .select('search_count')
-            .eq('user_id', user.id)
-            .eq('usage_date', today)
-            .single()
+        ...
+    } 
+    */
+    // Keeping the query for now if needed for stats, but removing the BLOCKING logic.
+    // Actually, simply removing the block is cleaner.
 
-        if (usage && usage.search_count >= 1) {
-            return NextResponse.json({ error: 'Daily limit reached' }, { status: 429 })
-        }
-    }
 
     // Await body only after usage check passes
     const body = await bodyPromise

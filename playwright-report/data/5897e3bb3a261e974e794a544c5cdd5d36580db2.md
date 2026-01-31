@@ -1,0 +1,124 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - generic:
+    - banner:
+      - generic:
+        - generic:
+          - link:
+            - /url: /dashboard
+            - img
+          - generic:
+            - generic:
+              - navigation:
+                - link:
+                  - /url: /dashboard
+                  - img
+                  - text: 대시보드
+                - generic:
+                  - button:
+                    - img
+                    - text: 내 순위 검색
+                    - img
+                - generic:
+                  - button:
+                    - img
+                    - text: 경쟁사 순위 검색
+                    - img
+                - link:
+                  - /url: /settings
+                  - img
+                  - text: 설정
+              - generic:
+                - generic:
+                  - img
+                  - generic: 1,000 P
+                - generic: e2e-comp-1769844658723@example.com
+    - main:
+      - generic:
+        - generic:
+          - heading [level=1]:
+            - img
+            - text: 설정
+          - paragraph: 계정 정보 및 구독 관리
+        - generic:
+          - heading [level=2]: 프로필
+          - generic:
+            - generic:
+              - img
+            - generic:
+              - heading [level=3]: 사용자
+              - paragraph:
+                - img
+                - text: e2e-comp-1769844658723@example.com
+              - paragraph:
+                - img
+                - text: 2026년 1월 31일 가입
+        - generic:
+          - heading [level=2]: 구독 플랜
+          - generic:
+            - generic:
+              - generic:
+                - img
+              - generic:
+                - heading [level=3]: Free Plan
+                - paragraph: 하루 1회 검색 가능
+            - button:
+              - text: 업그레이드
+              - img
+          - generic:
+            - generic:
+              - generic:
+                - img
+                - generic: 오늘 사용
+              - paragraph: 0 / 1
+            - generic:
+              - generic:
+                - img
+                - generic: 총 검색
+              - paragraph: "0"
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - heading [level=2]: 경쟁사 관리
+                - paragraph: 경쟁 업체의 순위를 추적하세요. (등록 후 30일간 변경 불가)
+              - generic:
+                - button: 네이버
+                - button: 구글
+            - generic:
+              - generic:
+                - img
+                - paragraph: 등록된 경쟁사가 없습니다.
+            - button:
+              - img
+              - text: 경쟁사 추가하기
+        - generic:
+          - heading [level=2]: 계정
+          - button:
+            - img
+            - text: 로그아웃
+  - button "Open Next.js Dev Tools" [ref=e6] [cursor=pointer]:
+    - img [ref=e7]
+  - alert
+  - dialog "선택 확인" [active] [ref=e11]:
+    - generic [ref=e12]:
+      - heading "선택 확인" [level=2] [ref=e13]
+      - paragraph [ref=e14]: 선택한 매장이 맞는지 확인해주세요.
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - heading [level=4]
+        - paragraph [ref=e18]: 123 Comp Street
+      - generic [ref=e19]:
+        - img [ref=e20]
+        - generic [ref=e22]:
+          - 'heading "주의: 30일간 변경 불가" [level=5] [ref=e23]'
+          - paragraph [ref=e24]: 한 번 설정하면 데이터의 정확성을 위해 30일 동안 변경할 수 없습니다. 정말 이 매장이 맞나요?
+    - generic [ref=e25]:
+      - button "다시 검색" [ref=e26]
+      - button "확인 및 저장" [ref=e27]
+    - button "Close" [ref=e28]:
+      - img [ref=e29]
+      - generic [ref=e32]: Close
+```

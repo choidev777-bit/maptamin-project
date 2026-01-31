@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Home, Search, History, Settings, LogOut, MapPin } from 'lucide-react'
+import { Menu, X, Home, Search, History, Settings, LogOut, MapPin, CalendarClock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -27,9 +27,30 @@ export function MobileNav({ user }: Props) {
 
     const navItems = [
         { href: '/dashboard', label: '대시보드', icon: Home },
-        { href: '/search/new', label: '구글 검색', icon: Search },
-        { href: '/naver-search/new', label: '네이버 검색 (Beta)', icon: MapPin, highlight: true },
-        { href: '/search/history', label: '검색 기록', icon: History },
+        {
+            label: '내 순위 검색',
+            icon: Search,
+            subItems: [
+                { href: '/naver-search/new?mode=my-shop', label: '네이버 지도 검색' },
+                { href: '/search/new?mode=my-shop', label: '구글 지도 검색' },
+            ]
+        },
+        {
+            label: '경쟁사 순위 검색',
+            icon: MapPin,
+            subItems: [
+                { href: '/competitor-search/naver', label: '네이버 지도 검색' },
+                { href: '/competitor-search/google', label: '구글 지도 검색' },
+            ]
+        },
+        {
+            label: '그리드맵 자동 검색 예약',
+            icon: CalendarClock,
+            subItems: [
+                { href: '/schedule/naver', label: '네이버 지도 검색' },
+                { href: '/schedule/google', label: '구글 지도 검색' },
+            ]
+        },
         { href: '/settings', label: '설정', icon: Settings },
     ]
 
@@ -95,17 +116,39 @@ export function MobileNav({ user }: Props) {
                 </div>
 
                 {/* Navigation Links */}
-                <nav className="p-2">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setIsOpen(false)}
-                            className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
-                        >
-                            <item.icon className="w-5 h-5 text-gray-500" />
-                            <span className="font-medium">{item.label}</span>
-                        </Link>
+                <nav className="p-2 space-y-1">
+                    {navItems.map((item, index) => (
+                        <div key={index}>
+                            {item.subItems ? (
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-3 px-4 py-2 text-gray-900 font-semibold mt-2">
+                                        <item.icon className="w-5 h-5 text-gray-500" />
+                                        <span>{item.label}</span>
+                                    </div>
+                                    <div className="pl-12 space-y-1">
+                                        {item.subItems.map((sub) => (
+                                            <Link
+                                                key={sub.href}
+                                                href={sub.href}
+                                                onClick={() => setIsOpen(false)}
+                                                className="block px-4 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                                            >
+                                                {sub.label}
+                                            </Link>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <Link
+                                    href={item.href!}
+                                    onClick={() => setIsOpen(false)}
+                                    className="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+                                >
+                                    <item.icon className="w-5 h-5 text-gray-500" />
+                                    <span className="font-medium">{item.label}</span>
+                                </Link>
+                            )}
+                        </div>
                     ))}
                 </nav>
 

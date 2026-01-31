@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { SettingsContent } from './SettingsContent'
+import { PLAN_CONFIG } from '@/lib/pricing/config'
+import { UserCredits } from '@/lib/types'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -10,21 +12,6 @@ export default async function SettingsPage() {
         redirect('/login')
     }
 
-    // Get user's usage stats
-    const today = new Date().toISOString().split('T')[0]
-    const { data: todayUsage } = await supabase
-        .from('daily_usage')
-        .select('search_count')
-        .eq('user_id', user.id)
-        .eq('usage_date', today)
-        .single()
-
-    // Get total searches
-    const { count: totalSearches } = await supabase
-        .from('searches')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-
     const userInfo = {
         email: user.email || '',
         name: user.user_metadata?.full_name || user.user_metadata?.name || '사용자',
@@ -32,12 +19,22 @@ export default async function SettingsPage() {
         createdAt: user.created_at,
     }
 
-    const stats = {
-        searchesToday: todayUsage?.search_count || 0,
-        totalSearches: totalSearches || 0,
-        plan: 'free' as const,
+    // Fetch User Credits
+    const { data: userCredits } = await supabase
+        .from('user_credits')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()
+
+    const planId = (userCredits as UserCredits)?.plan_id || 'light'
+    const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['light']
+
+    // planConfig.limits.competitor (singular) is correct per config.ts
+    const planStats = {
+        plan: planId as 'light' | 'basic' | 'pro',
+        limitCompetitor: planConfig.limits.competitor,
         maxSearchesPerDay: 1,
     }
 
-    return <SettingsContent user={userInfo} stats={stats} />
+    return <SettingsContent user={userInfo} planStats={planStats} />
 }

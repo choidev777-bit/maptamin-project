@@ -1,6 +1,9 @@
+'use client'
+
 import Link from 'next/link'
-import { Home, Search, History, Settings, MapPin } from 'lucide-react'
+import { Home, Search, Settings, MapPin, CalendarClock } from 'lucide-react'
 import { WalletLabel } from './WalletLabel'
+import { NavDropdown } from './NavDropdown'
 
 interface Props {
     user: {
@@ -22,28 +25,35 @@ export function DesktopNav({ user }: Props) {
                     <Home className="w-4 h-4" />
                     대시보드
                 </Link>
-                <Link
-                    href="/search/new"
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                    <Search className="w-4 h-4" />
-                    구글 검색
-                </Link>
-                <Link
-                    href="/naver-search/new"
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
-                >
-                    <MapPin className="w-4 h-4" />
-                    네이버 검색
-                    <span className="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">Beta</span>
-                </Link>
-                <Link
-                    href="/search/history"
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                    <History className="w-4 h-4" />
-                    기록
-                </Link>
+
+                <NavDropdown
+                    label="내 순위 검색"
+                    icon={Search}
+                    items={[
+                        { label: '네이버 지도 검색', href: '/naver-search/new?mode=my-shop' },
+                        { label: '구글 지도 검색', href: '/search/new?mode=my-shop' },
+                    ]}
+                />
+
+                <NavDropdown
+                    label="경쟁사 순위 검색"
+                    icon={MapPin}
+                    items={[
+                        { label: '네이버 지도 검색', href: '/competitor-search/naver' },
+                        { label: '구글 지도 검색', href: '/competitor-search/google' },
+                    ]}
+                />
+
+                <NavDropdown
+                    label="그리드맵 자동 검색 예약"
+                    icon={CalendarClock}
+                    items={[
+                        { label: '네이버 지도 검색', href: '/schedule/naver' },
+                        { label: '구글 지도 검색', href: '/schedule/google' },
+                    ]}
+                />
+
+
                 <Link
                     href="/settings"
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"

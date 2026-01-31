@@ -89,7 +89,7 @@ export function SearchHistoryCard({ search, averageRank }: Props) {
     return (
         <div className="relative group">
             <Link
-                href={`/search/${search.id}`}
+                href={search.platform === 'naver' ? `/naver-search/${search.id}` : `/search/${search.id}`}
                 className="block bg-white rounded-2xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-lg transition-all"
             >
                 <div className="flex items-start gap-4">

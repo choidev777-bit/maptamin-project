@@ -82,8 +82,12 @@ export interface UserCredits {
 export interface ManagedPlace {
     id: string;
     user_id: string;
+    platform: 'naver' | 'google';  // Added
     place_id: string;
     place_name?: string;
+    address?: string | null;       // Added
+    lat?: number | null;           // Added
+    lng?: number | null;           // Added
     locked_until: string;
     created_at: string;
 }
@@ -91,16 +95,22 @@ export interface ManagedPlace {
 export interface ManagedCompetitor {
     id: string;
     user_id: string;
+    platform: 'naver' | 'google';
     place_id: string;
-    place_name?: string;
-    locked_until: string;
+    place_name: string;
+    address?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+    locked_until?: string | null;
     created_at: string;
 }
 
 export interface SearchSchedule {
     id: string;
     user_id: string;
+    platform: 'naver' | 'google';  // Added
     place_id: string;
+    place_name: string;            // Added
     keywords: string[];
     grid_config: GridPoint[]; // Reusing GridPoint
     crawling_days: number[]; // [1, 3, 5]

@@ -97,7 +97,7 @@ export function PlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
 
         // Create the autocomplete element
         const autocomplete = document.createElement('gmp-place-autocomplete')
-        autocomplete.setAttribute('placeholder', '비즈니스 이름을 검색하세요...')
+        autocomplete.setAttribute('placeholder', '입력')
 
         // Listen for selection events
         autocomplete.addEventListener('gmp-placeselect', handleSelect)

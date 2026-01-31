@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User, Mail, Calendar, Crown, LogOut, Settings, ChevronRight, Zap } from 'lucide-react'
 import Image from 'next/image'
+import { CompetitorManager } from '@/components/settings/CompetitorManager'
+import { MyShopManager } from '@/components/settings/MyShopManager'
 
 interface UserInfo {
     email: string
@@ -13,19 +15,16 @@ interface UserInfo {
     createdAt: string
 }
 
-interface Stats {
-    searchesToday: number
-    totalSearches: number
-    plan: 'free' | 'pro'
-    maxSearchesPerDay: number
-}
-
 interface Props {
     user: UserInfo
-    stats: Stats
+    planStats: {
+        plan: 'light' | 'basic' | 'pro'
+        limitCompetitor: number
+        maxSearchesPerDay: number
+    }
 }
 
-export function SettingsContent({ user, stats }: Props) {
+export function SettingsContent({ user, planStats }: Props) {
     const router = useRouter()
     const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -94,50 +93,42 @@ export function SettingsContent({ user, stats }: Props) {
 
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl mb-4">
                     <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${stats.plan === 'pro' ? 'bg-gradient-to-r from-yellow-400 to-orange-500' : 'bg-gray-200'
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${planStats.plan === 'pro'
+                            ? 'bg-gradient-to-r from-yellow-400 to-orange-500'
+                            : planStats.plan === 'basic'
+                                ? 'bg-blue-600'
+                                : 'bg-gray-200'
                             }`}>
-                            <Crown className={`w-5 h-5 ${stats.plan === 'pro' ? 'text-white' : 'text-gray-500'}`} />
+                            <Crown className={`w-5 h-5 ${planStats.plan === 'light' ? 'text-gray-500' : 'text-white'}`} />
                         </div>
                         <div>
                             <h3 className="font-semibold text-gray-900">
-                                {stats.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                                {planStats.plan === 'light' ? 'Free Plan' :
+                                    planStats.plan === 'basic' ? 'Basic Plan' : 'Pro Plan'}
                             </h3>
                             <p className="text-sm text-gray-500">
-                                하루 {stats.maxSearchesPerDay}회 검색 가능
+                                경쟁사 최대 {planStats.limitCompetitor}개 등록 가능
                             </p>
                         </div>
                     </div>
 
-                    {stats.plan === 'free' && (
+                    {planStats.plan === 'light' && (
                         <button className="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all">
                             업그레이드
                             <ChevronRight className="w-4 h-4" />
                         </button>
                     )}
                 </div>
+            </div>
 
-                {/* Usage Stats */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-blue-50 rounded-xl">
-                        <div className="flex items-center gap-2 text-blue-600 mb-1">
-                            <Zap className="w-4 h-4" />
-                            <span className="text-sm font-medium">오늘 사용</span>
-                        </div>
-                        <p className="text-2xl font-bold text-blue-900">
-                            {stats.searchesToday} / {stats.maxSearchesPerDay}
-                        </p>
-                    </div>
+            {/* My Shop Management */}
+            <div className="mb-6">
+                <MyShopManager />
+            </div>
 
-                    <div className="p-4 bg-green-50 rounded-xl">
-                        <div className="flex items-center gap-2 text-green-600 mb-1">
-                            <Settings className="w-4 h-4" />
-                            <span className="text-sm font-medium">총 검색</span>
-                        </div>
-                        <p className="text-2xl font-bold text-green-900">
-                            {stats.totalSearches}
-                        </p>
-                    </div>
-                </div>
+            {/* Competitor Management */}
+            <div className="mb-6">
+                <CompetitorManager />
             </div>
 
             {/* Actions Section */}

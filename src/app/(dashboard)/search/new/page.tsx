@@ -1,28 +1,22 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { PlaceSearchInput } from '@/components/search/PlaceSearchInput'
 import { KeywordInput } from '@/components/search/KeywordInput'
 import { MapGridConfigurator } from '@/components/search/MapGridConfigurator'
 import { DistanceSettings } from '@/components/search/DistanceSettings'
 import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
-import { MapPin, Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
+import { MapPin, Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, AlertTriangle, Plus } from 'lucide-react'
+import { PlaceSelectionModal } from '@/components/dashboard/PlaceSelectionModal'
+import { Place } from '@/lib/types'
 
 // Dynamic import for heavy Google Maps component (bundle-dynamic-imports)
 const GoogleMapsProvider = dynamic(
     () => import('@/components/maps/GoogleMapsProvider').then(m => m.GoogleMapsProvider),
     { ssr: false }
 )
-
-interface Place {
-    placeId: string
-    name: string
-    address: string
-    lat: number
-    lng: number
-}
 
 interface GridPointSelection {
     row: number
@@ -54,9 +48,113 @@ export default function NewSearchPage() {
     const [distanceUnit, setDistanceUnit] = useState<'km' | 'mile'>('km')
     const [isSubmitting, setIsSubmitting] = useState(false)
 
+    const searchParams = useSearchParams()
+    const mode = searchParams.get('mode')
+    const competitorId = searchParams.get('competitorId')
+
+    // My Shop Auto-Register State
+    const [isLoadingMyShop, setIsLoadingMyShop] = useState(mode === 'my-shop')
+    const [isPlaceModalOpen, setIsPlaceModalOpen] = useState(false)
+
     const handlePlaceSelect = useCallback((p: Place) => {
         setPlace(p)
     }, [])
+
+    // Auto-fill My Shop or Competitor (Google)
+    useEffect(() => {
+        if (mode === 'my-shop') {
+            const fetchMyShop = async () => {
+                try {
+                    const res = await fetch('/api/settings/my-shop?platform=google')
+                    if (res.ok) {
+                        const { data } = await res.json()
+                        const myShop = data?.[0]
+                        if (myShop && myShop.place_id && myShop.lat && myShop.lng) {
+                            setPlace({
+                                placeId: myShop.place_id,
+                                name: myShop.place_name,
+                                address: myShop.address || '',
+                                lat: myShop.lat,
+                                lng: myShop.lng
+                            })
+                            setStep(2)
+                            setIsLoadingMyShop(false)
+                        } else {
+                            // No shop found -> Open Register Modal
+                            setIsLoadingMyShop(false)
+                            setIsPlaceModalOpen(true)
+                        }
+                    } else {
+                        setIsLoadingMyShop(false)
+                    }
+                } catch (error) {
+                    console.error(error)
+                    setIsLoadingMyShop(false)
+                }
+            }
+            fetchMyShop()
+        } else {
+            setIsLoadingMyShop(false)
+        }
+
+        if (mode === 'competitor') {
+            const fetchCompetitors = async () => {
+                try {
+                    // Reuse same endpoint but filter by platform=google
+                    const res = await fetch('/api/settings/competitors?platform=google')
+                    if (res.ok) {
+                        const { data } = await res.json()
+                        if (competitorId) {
+                            const target = data?.find((c: any) => c.id === competitorId)
+                            if (target && target.place_id && target.lat && target.lng) {
+                                setPlace({
+                                    placeId: target.place_id,
+                                    name: target.place_name,
+                                    address: target.address || '',
+                                    lat: target.lat,
+                                    lng: target.lng
+                                })
+                                setStep(2)
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error(error)
+                }
+            }
+            fetchCompetitors()
+        }
+    }, [mode, competitorId])
+
+    const handleRegisterMyShop = async (place: Place) => {
+        try {
+            const res = await fetch('/api/settings/my-shop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    platform: 'google',
+                    placeId: place.placeId,
+                    placeName: place.name,
+                    address: place.address,
+                    lat: place.lat,
+                    lng: place.lng
+                }),
+            })
+
+            if (res.ok) {
+                // Success: Set state and move to next step
+                setPlace(place)
+                setIsPlaceModalOpen(false)
+                setStep(2)
+            } else {
+                const error = await res.json()
+                alert(error.error || '가게 등록에 실패했습니다.')
+            }
+        } catch (error) {
+            console.error(error)
+            alert('오류가 발생했습니다.')
+        }
+    }
 
     const enabledGridCount = useMemo(() => {
         return gridPoints.filter(p => p.enabled).length
@@ -151,6 +249,41 @@ export default function NewSearchPage() {
         }
     }
 
+    // New Loading state
+    if (isLoadingMyShop) {
+        return (
+            <div className="max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
+                <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+                <p className="text-gray-500">사장님의 가게 정보를 불러오고 있습니다...</p>
+            </div>
+        )
+    }
+
+    // Modal Wrapper (Pass-through)
+    if (isPlaceModalOpen) {
+        return (
+            <div className="max-w-3xl mx-auto min-h-[400px]">
+                <div className="text-center py-20">
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">가게 등록이 필요합니다</h2>
+                    <p className="text-gray-600 mb-8">안정적인 순위 추적을 위해 사장님의 가게를 먼저 등록해주세요.</p>
+                    <button
+                        onClick={() => router.back()}
+                        className="px-4 py-2 text-gray-500 hover:text-gray-900"
+                    >
+                        이전으로 돌아가기
+                    </button>
+                </div>
+
+                <PlaceSelectionModal
+                    isOpen={isPlaceModalOpen}
+                    onClose={() => router.back()}
+                    platform="google"
+                    onConfirm={handleRegisterMyShop}
+                />
+            </div>
+        )
+    }
+
     return (
         <GoogleMapsProvider>
             <div className="max-w-3xl mx-auto">
@@ -192,7 +325,9 @@ export default function NewSearchPage() {
                     {step === 1 && (
                         <div className="space-y-6">
                             <div>
-                                <h2 className="text-2xl font-bold text-gray-900">비즈니스 검색</h2>
+                                <h2 className="text-2xl font-bold text-gray-900">
+                                    {mode === 'my-shop' ? '내 순위 조회' : (mode === 'competitor' ? '경쟁사 순위 조회' : '비즈니스 검색')}
+                                </h2>
                                 <p className="mt-2 text-gray-600">
                                     Google 지도에서 순위를 추적할 비즈니스를 검색하세요.
                                 </p>

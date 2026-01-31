@@ -11,19 +11,19 @@ export class ScheduleManager {
     static async runScheduledSearches() {
         const supabase = await createClient();
 
-        const now = new Date();
-        const currentDay = now.getDay(); // 0 (Sun) - 6 (Sat)
+        // Fix Timezone: Convert Server Time (UTC) to KST (UTC+9)
+        // We need to find "What time is it in Seoul right now?"
+        const nowInKst = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
 
-        // Format current time to HH:MM:00 for simple matching
-        const hours = now.getHours().toString().padStart(2, '0');
-        // We assume the cron runs hourly, so we check for schedules set to this hour.
-        // If we support minute-level, we'd need precise matching logic. 
-        // Here we assume "XX:00:00" format in DB time column.
+        const currentDay = nowInKst.getDay(); // 0 (Sun) - 6 (Sat) in KST
+
+        // Format KST time to HH:MM:00
+        const hours = nowInKst.getHours().toString().padStart(2, '0');
         const timePrefix = `${hours}:00:00`;
 
-        // 1. Fetch Active Schedules matching Day & Time
-        // Note: 'crawling_days' is an integer array. using 'cs' operator for "contains" in Supabase URL params,
-        // but in JS client we use .contains().
+        console.log(`[ScheduleManager] Checking schedules for KST Day ${currentDay} @ ${timePrefix}`);
+
+        // 1. Fetch Active Schedules matching KST Day & Time
         const { data: schedules, error } = await supabase
             .from('search_schedules')
             .select('*')
@@ -47,12 +47,15 @@ export class ScheduleManager {
         for (const schedule of schedules) {
             const job = schedule as SearchSchedule;
             try {
+                // Determine Platform from schedule (fallback to 'naver' if missing)
+                const targetPlatform = job.platform || 'naver';
+
                 await SearchService.executeSearch(
                     job.user_id,
                     job.place_id,
                     job.keywords,
                     job.grid_config,
-                    'naver' // Defaulting to naver as per context, or add platform to schedule schema
+                    targetPlatform
                 );
 
                 // Update last run time
