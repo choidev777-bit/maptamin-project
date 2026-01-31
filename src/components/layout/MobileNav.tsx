@@ -44,7 +44,7 @@ export function MobileNav({ user }: Props) {
             ]
         },
         {
-            label: '그리드맵 자동 검색 예약',
+            label: '자동 검색 예약',
             icon: CalendarClock,
             subItems: [
                 { href: '/schedule/naver', label: '네이버 지도 검색' },
