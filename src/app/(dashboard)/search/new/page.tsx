@@ -1,18 +1,15 @@
 'use client'
 
-import { useState, useCallback, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { PlaceSearchInput } from '@/components/search/PlaceSearchInput'
 import { KeywordInput } from '@/components/search/KeywordInput'
 import { MapGridConfigurator } from '@/components/search/MapGridConfigurator'
 import { DistanceSettings } from '@/components/search/DistanceSettings'
 import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
-import { MapPin, Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, AlertTriangle, Plus } from 'lucide-react'
-import { PlaceSelectionModal } from '@/components/dashboard/PlaceSelectionModal'
-import { Place } from '@/lib/types'
+import { Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
 
-// Dynamic import for heavy Google Maps component (bundle-dynamic-imports)
+// Dynamic import for heavy Google Maps component
 const GoogleMapsProvider = dynamic(
     () => import('@/components/maps/GoogleMapsProvider').then(m => m.GoogleMapsProvider),
     { ssr: false }
@@ -24,11 +21,19 @@ interface GridPointSelection {
     enabled: boolean
 }
 
+interface PlaceData {
+    placeId: string
+    name: string
+    address: string
+    lat: number
+    lng: number
+}
+
+// Simplified steps: No place selection (handled in dashboard)
 const STEPS = [
-    { id: 1, name: '장소 선택', icon: MapPin },
-    { id: 2, name: '키워드 입력', icon: Tag },
-    { id: 3, name: '그리드 설정', icon: Grid3X3 },
-    { id: 4, name: '확인', icon: Check },
+    { id: 1, name: '키워드 입력', icon: Tag },
+    { id: 2, name: '그리드 설정', icon: Grid3X3 },
+    { id: 3, name: '확인', icon: Check },
 ]
 
 // Default 3x3 grid preset
@@ -40,121 +45,56 @@ const DEFAULT_GRID_POINTS: GridPointSelection[] = [
 
 export default function NewSearchPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const mode = searchParams.get('mode')
+
     const [step, setStep] = useState(1)
-    const [place, setPlace] = useState<Place | null>(null)
+    const [isLoading, setIsLoading] = useState(true)
+
+    // Place Data (auto-filled from dashboard)
+    const [place, setPlace] = useState<PlaceData | null>(null)
+
     const [keywords, setKeywords] = useState<string[]>([''])
     const [gridPoints, setGridPoints] = useState<GridPointSelection[]>(DEFAULT_GRID_POINTS)
     const [gridDistance, setGridDistance] = useState(1) // km
     const [distanceUnit, setDistanceUnit] = useState<'km' | 'mile'>('km')
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const searchParams = useSearchParams()
-    const mode = searchParams.get('mode')
-    const competitorId = searchParams.get('competitorId')
-
-    // My Shop Auto-Register State
-    const [isLoadingMyShop, setIsLoadingMyShop] = useState(mode === 'my-shop')
-    const [isPlaceModalOpen, setIsPlaceModalOpen] = useState(false)
-
-    const handlePlaceSelect = useCallback((p: Place) => {
-        setPlace(p)
-    }, [])
-
-    // Auto-fill My Shop or Competitor (Google)
+    // Fetch shop data and redirect if not found
     useEffect(() => {
-        if (mode === 'my-shop') {
-            const fetchMyShop = async () => {
-                try {
-                    const res = await fetch('/api/settings/my-shop?platform=google')
-                    if (res.ok) {
-                        const { data } = await res.json()
-                        const myShop = data?.[0]
-                        if (myShop && myShop.place_id && myShop.lat && myShop.lng) {
-                            setPlace({
-                                placeId: myShop.place_id,
-                                name: myShop.place_name,
-                                address: myShop.address || '',
-                                lat: myShop.lat,
-                                lng: myShop.lng
-                            })
-                            setStep(2)
-                            setIsLoadingMyShop(false)
-                        } else {
-                            // No shop found -> Open Register Modal
-                            setIsLoadingMyShop(false)
-                            setIsPlaceModalOpen(true)
-                        }
+        const fetchShopData = async () => {
+            try {
+                const res = await fetch('/api/settings/my-shop?platform=google')
+                if (res.ok) {
+                    const { data } = await res.json()
+                    const myShop = data?.[0]
+
+                    if (myShop && myShop.place_id && myShop.lat && myShop.lng) {
+                        // Shop found - set data
+                        setPlace({
+                            placeId: myShop.place_id,
+                            name: myShop.place_name,
+                            address: myShop.address || '',
+                            lat: myShop.lat,
+                            lng: myShop.lng
+                        })
+                        setIsLoading(false)
                     } else {
-                        setIsLoadingMyShop(false)
+                        // No shop registered - redirect to dashboard
+                        alert('구글 지도에 등록된 사장님의 매장을 먼저 대시보드에서 등록해주세요.')
+                        router.push('/dashboard')
                     }
-                } catch (error) {
-                    console.error(error)
-                    setIsLoadingMyShop(false)
+                } else {
+                    // API error - redirect
+                    router.push('/dashboard')
                 }
+            } catch (error) {
+                console.error('Failed to fetch shop data:', error)
+                router.push('/dashboard')
             }
-            fetchMyShop()
-        } else {
-            setIsLoadingMyShop(false)
         }
-
-        if (mode === 'competitor') {
-            const fetchCompetitors = async () => {
-                try {
-                    // Reuse same endpoint but filter by platform=google
-                    const res = await fetch('/api/settings/competitors?platform=google')
-                    if (res.ok) {
-                        const { data } = await res.json()
-                        if (competitorId) {
-                            const target = data?.find((c: any) => c.id === competitorId)
-                            if (target && target.place_id && target.lat && target.lng) {
-                                setPlace({
-                                    placeId: target.place_id,
-                                    name: target.place_name,
-                                    address: target.address || '',
-                                    lat: target.lat,
-                                    lng: target.lng
-                                })
-                                setStep(2)
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error(error)
-                }
-            }
-            fetchCompetitors()
-        }
-    }, [mode, competitorId])
-
-    const handleRegisterMyShop = async (place: Place) => {
-        try {
-            const res = await fetch('/api/settings/my-shop', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    platform: 'google',
-                    placeId: place.placeId,
-                    placeName: place.name,
-                    address: place.address,
-                    lat: place.lat,
-                    lng: place.lng
-                }),
-            })
-
-            if (res.ok) {
-                // Success: Set state and move to next step
-                setPlace(place)
-                setIsPlaceModalOpen(false)
-                setStep(2)
-            } else {
-                const error = await res.json()
-                alert(error.error || '가게 등록에 실패했습니다.')
-            }
-        } catch (error) {
-            console.error(error)
-            alert('오류가 발생했습니다.')
-        }
-    }
+        fetchShopData()
+    }, [router])
 
     const enabledGridCount = useMemo(() => {
         return gridPoints.filter(p => p.enabled).length
@@ -163,12 +103,10 @@ export default function NewSearchPage() {
     const canProceed = () => {
         switch (step) {
             case 1:
-                return place !== null
-            case 2:
                 return keywords.some(k => k.trim().length > 0)
-            case 3:
+            case 2:
                 return enabledGridCount > 0
-            case 4:
+            case 3:
                 return true
             default:
                 return false
@@ -176,7 +114,7 @@ export default function NewSearchPage() {
     }
 
     const handleNext = () => {
-        if (canProceed() && step < 4) {
+        if (canProceed() && step < 3) {
             setStep(step + 1)
         }
     }
@@ -193,10 +131,8 @@ export default function NewSearchPage() {
         setIsSubmitting(true)
 
         try {
-            // Convert grid distance to km if needed
             const distanceKm = distanceUnit === 'mile' ? milesToKm(gridDistance) : gridDistance
 
-            // Convert row/col to actual lat/lng coordinates
             const gridPointsWithCoords = generateGridPointsFromTemplate(
                 place.lat,
                 place.lng,
@@ -204,7 +140,6 @@ export default function NewSearchPage() {
                 distanceKm
             ).filter(p => p.enabled)
 
-            // Step 1: Create search record
             const createResponse = await fetch('/api/search', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -230,17 +165,14 @@ export default function NewSearchPage() {
 
             const { searchId } = await createResponse.json()
 
-            // Step 2: Trigger DataForSEO processing
             const processResponse = await fetch(`/api/search/${searchId}/process`, {
                 method: 'POST',
             })
 
             if (!processResponse.ok) {
                 console.error('Processing failed, but search was created')
-                // Still navigate to results - it will show processing status
             }
 
-            // Step 3: Navigate to results page
             router.push(`/search/${searchId}`)
         } catch (error) {
             console.error('Search submission error:', error)
@@ -249,37 +181,12 @@ export default function NewSearchPage() {
         }
     }
 
-    // New Loading state
-    if (isLoadingMyShop) {
+    // Loading state
+    if (isLoading) {
         return (
             <div className="max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
                 <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
-                <p className="text-gray-500">사장님의 가게 정보를 불러오고 있습니다...</p>
-            </div>
-        )
-    }
-
-    // Modal Wrapper (Pass-through)
-    if (isPlaceModalOpen) {
-        return (
-            <div className="max-w-3xl mx-auto min-h-[400px]">
-                <div className="text-center py-20">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">가게 등록이 필요합니다</h2>
-                    <p className="text-gray-600 mb-8">안정적인 순위 추적을 위해 사장님의 가게를 먼저 등록해주세요.</p>
-                    <button
-                        onClick={() => router.back()}
-                        className="px-4 py-2 text-gray-500 hover:text-gray-900"
-                    >
-                        이전으로 돌아가기
-                    </button>
-                </div>
-
-                <PlaceSelectionModal
-                    isOpen={isPlaceModalOpen}
-                    onClose={() => router.back()}
-                    platform="google"
-                    onConfirm={handleRegisterMyShop}
-                />
+                <p className="text-gray-500">가게 정보를 불러오는 중...</p>
             </div>
         )
     }
@@ -287,6 +194,13 @@ export default function NewSearchPage() {
     return (
         <GoogleMapsProvider>
             <div className="max-w-3xl mx-auto">
+                {/* Selected Shop Display */}
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-600 mb-1">분석 대상</p>
+                    <p className="font-semibold text-blue-900">{place?.name}</p>
+                    {place?.address && <p className="text-sm text-blue-700">{place.address}</p>}
+                </div>
+
                 {/* Step Indicator */}
                 <div className="flex items-center justify-center mb-10">
                     {STEPS.map((s, index) => (
@@ -321,27 +235,8 @@ export default function NewSearchPage() {
 
                 {/* Step Content */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                    {/* Step 1: Place Search */}
+                    {/* Step 1: Keywords */}
                     {step === 1 && (
-                        <div className="space-y-6">
-                            <div>
-                                <h2 className="text-2xl font-bold text-gray-900">
-                                    {mode === 'my-shop' ? '내 순위 조회' : (mode === 'competitor' ? '경쟁사 순위 조회' : '비즈니스 검색')}
-                                </h2>
-                                <p className="mt-2 text-gray-600">
-                                    Google 지도에서 순위를 추적할 비즈니스를 검색하세요.
-                                </p>
-                            </div>
-
-                            <PlaceSearchInput
-                                onPlaceSelect={handlePlaceSelect}
-                                selectedPlace={place}
-                            />
-                        </div>
-                    )}
-
-                    {/* Step 2: Keywords */}
-                    {step === 2 && (
                         <div className="space-y-6">
                             <div>
                                 <h2 className="text-2xl font-bold text-gray-900">키워드 입력</h2>
@@ -354,8 +249,8 @@ export default function NewSearchPage() {
                         </div>
                     )}
 
-                    {/* Step 3: Grid Configuration */}
-                    {step === 3 && (
+                    {/* Step 2: Grid Configuration */}
+                    {step === 2 && (
                         <div className="space-y-8">
                             <div>
                                 <h2 className="text-2xl font-bold text-gray-900">그리드 설정</h2>
@@ -386,8 +281,8 @@ export default function NewSearchPage() {
                         </div>
                     )}
 
-                    {/* Step 4: Confirmation */}
-                    {step === 4 && (
+                    {/* Step 3: Confirmation */}
+                    {step === 3 && (
                         <div className="space-y-6">
                             <div>
                                 <h2 className="text-2xl font-bold text-gray-900">검색 확인</h2>
@@ -445,7 +340,7 @@ export default function NewSearchPage() {
                             </button>
                         )}
 
-                        {step < 4 ? (
+                        {step < 3 ? (
                             <button
                                 onClick={handleNext}
                                 disabled={!canProceed()}
