@@ -1,12 +1,12 @@
+import 'dotenv/config'; // Must be first to ensure env vars are loaded before other imports
 import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
+
 // Dynamic imports for scraper functions to avoid load-time errors if they use browser APIs
 // We will import them inside the main function or use require if needed, 
 // but standard ES import is cleaner if the modules are isomorphic.
 // Assuming scraper.ts is isomorphic or Node-safe.
 import { scrapeNaverBatch } from '../src/lib/naver/scraper';
-
-dotenv.config();
+import { NaverScrapeTask } from '../src/lib/naver/types';
 
 // Initialize Admin Client (Bypass RLS)
 // This script runs in a secure environment (GitHub Actions)
@@ -61,16 +61,48 @@ async function processSearch(search: any) {
         let results = [];
         if (search.platform === 'naver') {
             const keywords = Array.isArray(search.keywords) ? search.keywords : [search.keywords];
-            const tasks = keywords.map((k: string, idx: number) => ({
-                keyword: k,
-                lat: search.place_lat,
-                lng: search.place_lng,
-                targetBusinessName: search.place_name,
-                gridIndex: idx
-            }));
+            const gridPoints = Array.isArray(search.grid_points) ? search.grid_points : [];
+            const targetBusinessName = search.place_name;
 
-            console.log(`[Worker] Starting Naver Scrape for ${search.place_name} (${tasks.length} keywords)...`);
+            // Generate Tasks (Grid x Keywords)
+            const tasks: NaverScrapeTask[] = [];
+            let gridIndex = 0;
+
+            console.log(`[Worker] Generating tasks for ${gridPoints.length} grid points x ${keywords.length} keywords`);
+
+            // Iterate over grid points (assuming they are ordered)
+            if (gridPoints.length > 0) {
+                for (const point of gridPoints) {
+                    // Only process enabled points
+                    if (point.enabled === undefined || point.enabled === true) {
+                        for (const keyword of keywords) {
+                            tasks.push({
+                                keyword,
+                                lat: point.lat,
+                                lng: point.lng,
+                                gridIndex,
+                                targetBusinessName,
+                            });
+                        }
+                    }
+                    gridIndex++;
+                }
+            } else {
+                // Fallback for no grid points (legacy)
+                for (const keyword of keywords) {
+                    tasks.push({
+                        keyword,
+                        lat: search.place_lat,
+                        lng: search.place_lng,
+                        gridIndex: 0,
+                        targetBusinessName,
+                    });
+                }
+            }
+
+            console.log(`[Worker] Starting Naver Scrape for ${search.place_name} (${tasks.length} tasks)...`);
             results = await scrapeNaverBatch(tasks);
+
         } else {
             console.log('[Worker] Google Search not fully supported in this script yet.');
             return;
@@ -78,13 +110,22 @@ async function processSearch(search: any) {
 
         // 3. Save Results
         if (results && results.length > 0) {
+            console.log(`[Worker] Saving ${results.length} results to database...`);
+
+            // Map to 'search_results' table schema
             const insertData = results.map((r: any) => ({
                 search_id: search.id,
                 keyword: r.keyword,
                 rank: r.targetRank || null,
+                grid_index: r.gridIndex,    // Added: Required column
                 grid_lat: r.lat,
                 grid_lng: r.lng,
-                place_name: search.place_name,
+                competitors: r.results.map((c: any) => ({  // Added: JSONB column
+                    name: c.businessName,
+                    rank: c.rank,
+                    place_id: c.naverPlaceId || '',
+                }))
+                // Removed: place_name (column does not exist)
             }));
 
             if (insertData.length > 0) {
@@ -93,10 +134,13 @@ async function processSearch(search: any) {
             }
 
             // Completed
-            await supabase.from('searches').update({
-                status: 'completed',
-                completed_at: new Date().toISOString()
-            }).eq('id', search.id);
+            // Note: 'completed_at' column doesn't exist in schema but we keep it just in case logic changes
+            // Setup update object strongly typed or loose
+            const updatePayload: any = {
+                status: 'completed'
+            };
+
+            await supabase.from('searches').update(updatePayload).eq('id', search.id);
 
             console.log(`[Worker] Search ${search.id} Completed.`);
         } else {
@@ -109,14 +153,19 @@ async function processSearch(search: any) {
         // Mark as failed
         await supabase.from('searches').update({
             status: 'failed',
-            error_message: error.message || 'Unknown error'
+            // error_message column doesn't exist in schema, so we skip saving it to DB
+            // error_message: error.message || 'Unknown error' 
         }).eq('id', search.id);
 
         // REFUND LOGIC
         // Calculate cost: keywords * grid_points (default 1 if missing)
         const kwCount = Array.isArray(search.keywords) ? search.keywords.length : 1;
-        const gridCount = Array.isArray(search.grid_points) ? search.grid_points.length : (search.grid_points?.length || 1);
-        // Note: Check if grid_points is stored as JSON array in DB.
+
+        let gridCount = 1;
+        if (Array.isArray(search.grid_points)) {
+            gridCount = search.grid_points.filter((p: any) => p.enabled !== false).length;
+            if (gridCount === 0) gridCount = 1;
+        }
 
         const refundAmount = kwCount * gridCount;
         if (refundAmount > 0) {
@@ -192,3 +241,4 @@ async function main() {
 }
 
 main();
+
