@@ -2,6 +2,7 @@ import { createClient, getCurrentUser } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { NaverResultsContent } from './NaverResultsContent'
+import { SearchStatusPoller } from '@/components/search/SearchStatusPoller'
 
 interface PageProps {
     params: Promise<{ id: string }>
@@ -83,6 +84,7 @@ export default async function NaverSearchResultsPage({ params }: PageProps) {
 
             {search.status === 'processing' && (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-8 text-center">
+                    <SearchStatusPoller searchId={id} initialStatus={search.status} />
                     <div className="w-16 h-16 mx-auto mb-4 animate-spin">
                         <div className="w-full h-full border-4 border-emerald-200 border-t-emerald-600 rounded-full" />
                     </div>
