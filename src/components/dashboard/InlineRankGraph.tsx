@@ -92,10 +92,9 @@ export function InlineRankGraph({ placeId, keyword, platform }: InlineRankGraphP
                         strokeWidth={2}
                         dot={false}
                         isAnimationActive={false}
-                        reversed // Rank 1 is higher (at top)
                     />
                     {/* YAxis reversed domain to show 1 at top, e.g. [1, 50] */}
-                    <YAxis hide domain={[1, 'auto']} result="revers" />
+                    <YAxis hide domain={[1, 'auto']} reversed />
                 </LineChart>
             </ResponsiveContainer>
         </div>
