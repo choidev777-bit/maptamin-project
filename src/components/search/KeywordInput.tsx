@@ -6,9 +6,15 @@ interface Props {
     keywords: string[]
     onChange: (keywords: string[]) => void
     maxKeywords?: number
+    placeholder?: string
 }
 
-export function KeywordInput({ keywords, onChange, maxKeywords = 3 }: Props) {
+export function KeywordInput({
+    keywords,
+    onChange,
+    maxKeywords = 3,
+    placeholder = '키워드 입력 (예: "강남 카페", "이태원 맛집")'
+}: Props) {
     const addKeyword = () => {
         if (keywords.length < maxKeywords) {
             onChange([...keywords, ''])
@@ -37,7 +43,7 @@ export function KeywordInput({ keywords, onChange, maxKeywords = 3 }: Props) {
                             type="text"
                             value={keyword}
                             onChange={(e) => updateKeyword(index, e.target.value)}
-                            placeholder={`키워드 입력 (예: "강남 카페", "이태원 맛집")`}
+                            placeholder={placeholder}
                             className="w-full pl-10 pr-4 py-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg transition-all"
                         />
                     </div>

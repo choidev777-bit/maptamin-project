@@ -344,6 +344,7 @@ export default function NewNaverSearchPage() {
                                     keywords={keywords}
                                     onChange={setKeywords}
                                     maxKeywords={3}
+                                    placeholder='키워드 입력 (예: "삼겹살맛집", "근처헬스장", "근처술집")'
                                 />
                             </div>
                         )}
