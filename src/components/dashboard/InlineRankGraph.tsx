@@ -82,7 +82,7 @@ export function InlineRankGraph({ placeId, keyword, platform }: InlineRankGraphP
                 <LineChart data={data}>
                     <Tooltip
                         contentStyle={{ fontSize: '12px', padding: '4px' }}
-                        formatter={(value: number | string | Array<number | string>) => [`${value}위`, '순위']}
+                        formatter={(value: any) => [`${value}위`, '순위']}
                         labelStyle={{ display: 'none' }}
                     />
                     <Line
