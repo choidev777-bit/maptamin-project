@@ -7,6 +7,7 @@ import { User, Mail, Calendar, Crown, LogOut, Settings, ChevronRight, Zap } from
 import Image from 'next/image'
 import { CompetitorManager } from '@/components/settings/CompetitorManager'
 import { MyShopManager } from '@/components/settings/MyShopManager'
+import { ScheduleManager } from '@/components/settings/ScheduleManager'
 
 interface UserInfo {
     email: string
@@ -124,6 +125,11 @@ export function SettingsContent({ user, planStats }: Props) {
             {/* My Shop Management */}
             <div className="mb-6">
                 <MyShopManager />
+            </div>
+
+            {/* Schedule Management */}
+            <div className="mb-6">
+                <ScheduleManager />
             </div>
 
             {/* Competitor Management */}

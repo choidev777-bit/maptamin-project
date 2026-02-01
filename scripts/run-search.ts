@@ -20,21 +20,46 @@ if (!supabaseUrl || !serviceKey) {
 
 const supabase = createClient(supabaseUrl, serviceKey);
 
+async function refundCredits(userId: string, amount: number) {
+    if (amount <= 0) return;
+
+    try {
+        // Fetch current credits
+        const { data: credits, error: fetchError } = await supabase
+            .from('user_credits')
+            .select('subscription_balance')
+            .eq('user_id', userId)
+            .single();
+
+        if (fetchError || !credits) throw fetchError || new Error('No credit record found');
+
+        // Update with refund
+        const { error: updateError } = await supabase
+            .from('user_credits')
+            .update({
+                subscription_balance: credits.subscription_balance + amount,
+                updated_at: new Date().toISOString()
+            })
+            .eq('user_id', userId);
+
+        if (updateError) throw updateError;
+
+        console.log(`[Worker] Refunded ${amount} credits to user ${userId}.`);
+    } catch (err) {
+        console.error(`[Worker] Refund Failed for user ${userId}:`, err);
+    }
+}
+
 async function processSearch(search: any) {
     console.log(`[Worker] Processing Search ID: ${search.id} (Platform: ${search.platform})`);
 
     try {
-        // 1. Update Status to 'processing' (if not already)
+        // 1. Update Status to 'processing'
         await supabase.from('searches').update({ status: 'processing' }).eq('id', search.id);
 
         // 2. Execute Scrape
         let results = [];
         if (search.platform === 'naver') {
-            // scrapeNaverBatch expects: tasks[], onProgress?, searchId?, checkJobExists?
-            // Handling multiple keywords if 'keywords' is array
-            // If the search record has multiple keywords, we should create multiple tasks?
-            // The Result Table expects 'keyword'.
-            // For now, let's assume search.keywords is array of strings.
             const keywords = Array.isArray(search.keywords) ? search.keywords : [search.keywords];
             const tasks = keywords.map((k: string, idx: number) => ({
                 keyword: k,
@@ -45,7 +70,6 @@ async function processSearch(search: any) {
             }));
 
             console.log(`[Worker] Starting Naver Scrape for ${search.place_name} (${tasks.length} keywords)...`);
-
             results = await scrapeNaverBatch(tasks);
         } else {
             console.log('[Worker] Google Search not fully supported in this script yet.');
@@ -54,18 +78,13 @@ async function processSearch(search: any) {
 
         // 3. Save Results
         if (results && results.length > 0) {
-            // Save to search_results table
             const insertData = results.map((r: any) => ({
                 search_id: search.id,
                 keyword: r.keyword,
-                rank: r.targetRank || null, // V5 returns targetRank if matched
+                rank: r.targetRank || null,
                 grid_lat: r.lat,
                 grid_lng: r.lng,
                 place_name: search.place_name,
-                // Note: V5 returns specific 'results' array (top 50). 
-                // If we want to store the full rank list, we need a separate logic or column.
-                // Current DB schema 'search_results' likely stores ONE row per Grid Point/Keyword?
-                // Let's assume standard behavior: Store the Target Rank found.
             }));
 
             if (insertData.length > 0) {
@@ -73,7 +92,7 @@ async function processSearch(search: any) {
                 if (insError) throw insError;
             }
 
-            // Update Search Status to Verified/Completed
+            // Completed
             await supabase.from('searches').update({
                 status: 'completed',
                 completed_at: new Date().toISOString()
@@ -86,12 +105,23 @@ async function processSearch(search: any) {
 
     } catch (error: any) {
         console.error(`[Worker] Search ${search.id} Failed:`, error);
+
+        // Mark as failed
         await supabase.from('searches').update({
             status: 'failed',
-            error_message: error.message
+            error_message: error.message || 'Unknown error'
         }).eq('id', search.id);
 
-        // Potential Refund Logic here (Issue D-8) would go here
+        // REFUND LOGIC
+        // Calculate cost: keywords * grid_points (default 1 if missing)
+        const kwCount = Array.isArray(search.keywords) ? search.keywords.length : 1;
+        const gridCount = Array.isArray(search.grid_points) ? search.grid_points.length : (search.grid_points?.length || 1);
+        // Note: Check if grid_points is stored as JSON array in DB.
+
+        const refundAmount = kwCount * gridCount;
+        if (refundAmount > 0) {
+            await refundCredits(search.user_id, refundAmount);
+        }
     }
 }
 

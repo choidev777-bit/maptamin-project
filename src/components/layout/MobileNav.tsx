@@ -6,6 +6,7 @@ import { Menu, X, Home, Search, History, Settings, LogOut, MapPin, CalendarClock
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { WalletLabel } from './WalletLabel'
 
 interface Props {
     user: {
@@ -112,6 +113,9 @@ export function MobileNav({ user }: Props) {
                             <p className="font-medium text-gray-900 truncate">{user.name}</p>
                             <p className="text-sm text-gray-500 truncate">{user.email}</p>
                         </div>
+                    </div>
+                    <div className="mt-3">
+                        <WalletLabel />
                     </div>
                 </div>
 
