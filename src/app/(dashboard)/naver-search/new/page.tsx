@@ -8,7 +8,8 @@ import { DistanceSettings } from '@/components/search/DistanceSettings'
 import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
 import { Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { UserCredits } from '@/lib/types'
+import { UserCredits, Place } from '@/lib/types'
+import { PlaceSelectionModal } from '@/components/dashboard/PlaceSelectionModal'
 
 interface GridPointSelection {
     row: number
@@ -16,7 +17,7 @@ interface GridPointSelection {
     enabled: boolean
 }
 
-// Simplified steps: No place selection (handled in dashboard)
+// Simplified steps: No place selection (handled via modal)
 const STEPS = [
     { id: 1, name: '키워드 입력', icon: Tag },
     { id: 2, name: '그리드 설정', icon: Grid3X3 },
@@ -37,11 +38,12 @@ export default function NewNaverSearchPage() {
 
     const [step, setStep] = useState(1)
     const [isLoading, setIsLoading] = useState(true)
+    const [isPlaceModalOpen, setIsPlaceModalOpen] = useState(false)
 
     // User Data
     const [userCredits, setUserCredits] = useState<UserCredits | null>(null)
 
-    // Place Data (auto-filled from dashboard)
+    // Place Data (auto-filled from dashboard or modal)
     const [placeName, setPlaceName] = useState('')
     const [placeAddress, setPlaceAddress] = useState('')
     const [placeLat, setPlaceLat] = useState('')
@@ -72,7 +74,7 @@ export default function NewNaverSearchPage() {
         fetchCredits()
     }, [])
 
-    // Fetch shop data and redirect if not found
+    // Fetch shop data - show modal if not found
     useEffect(() => {
         const fetchShopData = async () => {
             try {
@@ -90,21 +92,61 @@ export default function NewNaverSearchPage() {
                         setSelectedPlaceId(myShop.place_id)
                         setIsLoading(false)
                     } else {
-                        // No shop registered - redirect to dashboard
-                        alert('네이버 지도에 등록된 사장님의 매장을 먼저 대시보드에서 등록해주세요.')
-                        router.push('/dashboard')
+                        // No shop registered - show modal
+                        setIsLoading(false)
+                        setIsPlaceModalOpen(true)
                     }
                 } else {
-                    // API error - redirect
-                    router.push('/dashboard')
+                    setIsLoading(false)
+                    setIsPlaceModalOpen(true)
                 }
             } catch (error) {
                 console.error('Failed to fetch shop data:', error)
-                router.push('/dashboard')
+                setIsLoading(false)
+                setIsPlaceModalOpen(true)
             }
         }
         fetchShopData()
-    }, [router])
+    }, [])
+
+    // Handler: Register shop from modal
+    const handleRegisterShop = async (selectedPlace: Place) => {
+        try {
+            const res = await fetch('/api/settings/my-shop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    platform: 'naver',
+                    placeId: selectedPlace.placeId,
+                    placeName: selectedPlace.name,
+                    address: selectedPlace.address,
+                    lat: selectedPlace.lat,
+                    lng: selectedPlace.lng
+                }),
+            })
+
+            if (res.ok) {
+                // Success - update state
+                setPlaceName(selectedPlace.name)
+                setPlaceAddress(selectedPlace.address || '')
+                setPlaceLat(String(selectedPlace.lat))
+                setPlaceLng(String(selectedPlace.lng))
+                setSelectedPlaceId(selectedPlace.placeId)
+                setIsPlaceModalOpen(false)
+            } else {
+                const error = await res.json()
+                alert(error.error || '가게 등록에 실패했습니다.')
+            }
+        } catch (error) {
+            console.error(error)
+            alert('오류가 발생했습니다.')
+        }
+    }
+
+    // Handler: Modal close (cancel)
+    const handleModalClose = () => {
+        router.back()
+    }
 
     const enabledGridCount = useMemo(() => {
         return gridPoints.filter(p => p.enabled).length
@@ -219,219 +261,235 @@ export default function NewNaverSearchPage() {
         )
     }
 
+    // Check if place is set
+    const hasPlace = placeName && placeLat && placeLng
+
     return (
         <div className="max-w-3xl mx-auto">
-            {/* Beta Warning */}
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                <div>
-                    <p className="text-sm font-medium text-amber-800">베타 기능</p>
-                    <p className="text-sm text-amber-700">
-                        네이버 지도 검색은 베타 기능입니다.
-                        네이버 정책 변경에 따라 기능이 제한될 수 있습니다.
-                    </p>
-                </div>
-            </div>
+            {/* Place Selection Modal */}
+            <PlaceSelectionModal
+                isOpen={isPlaceModalOpen}
+                onClose={handleModalClose}
+                platform="naver"
+                onConfirm={handleRegisterShop}
+            />
 
-            {/* Selected Shop Display */}
-            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
-                <p className="text-sm text-emerald-600 mb-1">분석 대상</p>
-                <p className="font-semibold text-emerald-900">{placeName}</p>
-                {placeAddress && <p className="text-sm text-emerald-700">{placeAddress}</p>}
-            </div>
+            {/* Main UI - only show when place is set */}
+            {hasPlace && (
+                <>
+                    {/* Beta Warning */}
+                    <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                            <p className="text-sm font-medium text-amber-800">베타 기능</p>
+                            <p className="text-sm text-amber-700">
+                                네이버 지도 검색은 베타 기능입니다.
+                                네이버 정책 변경에 따라 기능이 제한될 수 있습니다.
+                            </p>
+                        </div>
+                    </div>
 
-            {/* Step Indicator */}
-            <div className="flex items-center justify-center mb-10">
-                {STEPS.map((s, index) => (
-                    <div key={s.id} className="flex items-center">
-                        <div className="flex flex-col items-center">
-                            <div
-                                className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${step > s.id
-                                    ? 'bg-green-500 text-white'
-                                    : step === s.id
-                                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
-                                        : 'bg-gray-100 text-gray-400'
+                    {/* Selected Shop Display */}
+                    <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                        <p className="text-sm text-emerald-600 mb-1">분석 대상</p>
+                        <p className="font-semibold text-emerald-900">{placeName}</p>
+                        {placeAddress && <p className="text-sm text-emerald-700">{placeAddress}</p>}
+                    </div>
+
+                    {/* Step Indicator */}
+                    <div className="flex items-center justify-center mb-10">
+                        {STEPS.map((s, index) => (
+                            <div key={s.id} className="flex items-center">
+                                <div className="flex flex-col items-center">
+                                    <div
+                                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${step > s.id
+                                            ? 'bg-green-500 text-white'
+                                            : step === s.id
+                                                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                                                : 'bg-gray-100 text-gray-400'
+                                            }`}
+                                    >
+                                        {step > s.id ? (
+                                            <Check className="w-5 h-5" />
+                                        ) : (
+                                            <s.icon className="w-5 h-5" />
+                                        )}
+                                    </div>
+                                    <span className={`mt-2 text-xs font-medium ${step >= s.id ? 'text-gray-900' : 'text-gray-400'
+                                        }`}>
+                                        {s.name}
+                                    </span>
+                                </div>
+                                {index < STEPS.length - 1 && (
+                                    <div className={`w-16 h-1 mx-2 rounded ${step > s.id ? 'bg-green-500' : 'bg-gray-200'
+                                        }`} />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Step Content */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                        {/* Step 1: Keyword Input */}
+                        {step === 1 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">검색 키워드 입력</h2>
+                                    <p className="mt-2 text-gray-600">
+                                        네이버 지도에서 검색할 키워드를 입력하세요.
+                                    </p>
+                                </div>
+
+                                <KeywordInput
+                                    keywords={keywords}
+                                    onChange={setKeywords}
+                                    maxKeywords={3}
+                                />
+                            </div>
+                        )}
+
+                        {/* Step 2: Grid Configuration */}
+                        {step === 2 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">검색 그리드 설정</h2>
+                                    <p className="mt-2 text-gray-600">
+                                        검색 포인트와 간격을 설정하세요.
+                                    </p>
+                                </div>
+
+                                <DistanceSettings
+                                    distance={gridDistance}
+                                    unit={distanceUnit}
+                                    onDistanceChange={setGridDistance}
+                                    onUnitChange={setDistanceUnit}
+                                />
+
+                                <NaverMapGridConfigurator
+                                    centerLat={parseFloat(placeLat) || 37.5665}
+                                    centerLng={parseFloat(placeLng) || 126.9780}
+                                    selectedPoints={gridPoints}
+                                    onPointsChange={setGridPoints}
+                                    gridDistance={distanceUnit === 'mile' ? gridDistance * 1.60934 : gridDistance}
+                                />
+
+                                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">활성 포인트</span>
+                                    <span className="font-bold text-emerald-600">{enabledGridCount}개</span>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Step 3: Confirmation & Cost */}
+                        {step === 3 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">결제 및 확인</h2>
+                                    <p className="mt-2 text-gray-600">
+                                        예상 비용을 확인하고 검색을 시작하세요.
+                                    </p>
+                                </div>
+
+                                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                                    <div className="p-6 space-y-4">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">비즈니스</span>
+                                            <span className="font-medium text-gray-900">{placeName}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">키워드 ({keywords.filter(k => k.trim()).length}개)</span>
+                                            <span className="font-medium text-gray-900">
+                                                {keywords.filter(k => k.trim()).join(', ')}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">그리드 포인트</span>
+                                            <span className="font-medium text-gray-900">{enabledGridCount}개</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Cost Summary */}
+                                    <div className="bg-gray-50 p-6 border-t border-gray-200">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-gray-600">보유 포인트</span>
+                                            <span className="font-medium">{totalBalance.toLocaleString()} P</span>
+                                        </div>
+                                        <div className="flex justify-between items-center mb-4">
+                                            <span className="text-gray-600">차감 예정 포인트</span>
+                                            <span className="text-xl font-bold text-red-600">-{totalCost.toLocaleString()} P</span>
+                                        </div>
+                                        <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
+                                            <span className="font-medium text-gray-900">잔액 예상</span>
+                                            <span className={`text-lg font-bold ${hasSufficientBalance ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                {(totalBalance - totalCost).toLocaleString()} P
+                                            </span>
+                                        </div>
+                                        {!hasSufficientBalance && (
+                                            <div className="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-center gap-2">
+                                                <AlertTriangle className="w-4 h-4" />
+                                                포인트가 부족하여 검색을 시작할 수 없습니다.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="p-4 bg-amber-50 rounded-lg">
+                                    <p className="text-sm text-amber-800">
+                                        ⚠️ 검색 시작 시 포인트가 즉시 차감됩니다. (실패 시 자동 환불)
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Navigation Buttons */}
+                    <div className="flex justify-between mt-8">
+                        <button
+                            onClick={handleBack}
+                            disabled={step === 1}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${step === 1
+                                ? 'text-gray-300 cursor-not-allowed'
+                                : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                            이전
+                        </button>
+
+                        {step < 3 ? (
+                            <button
+                                onClick={handleNext}
+                                disabled={!canProceed()}
+                                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${canProceed()
+                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/30'
+                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                     }`}
                             >
-                                {step > s.id ? (
-                                    <Check className="w-5 h-5" />
-                                ) : (
-                                    <s.icon className="w-5 h-5" />
-                                )}
-                            </div>
-                            <span className={`mt-2 text-xs font-medium ${step >= s.id ? 'text-gray-900' : 'text-gray-400'
-                                }`}>
-                                {s.name}
-                            </span>
-                        </div>
-                        {index < STEPS.length - 1 && (
-                            <div className={`w-16 h-1 mx-2 rounded ${step > s.id ? 'bg-green-500' : 'bg-gray-200'
-                                }`} />
-                        )}
-                    </div>
-                ))}
-            </div>
-
-            {/* Step Content */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                {/* Step 1: Keyword Input */}
-                {step === 1 && (
-                    <div className="space-y-6">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900">검색 키워드 입력</h2>
-                            <p className="mt-2 text-gray-600">
-                                네이버 지도에서 검색할 키워드를 입력하세요.
-                            </p>
-                        </div>
-
-                        <KeywordInput
-                            keywords={keywords}
-                            onChange={setKeywords}
-                            maxKeywords={3}
-                        />
-                    </div>
-                )}
-
-                {/* Step 2: Grid Configuration */}
-                {step === 2 && (
-                    <div className="space-y-6">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900">검색 그리드 설정</h2>
-                            <p className="mt-2 text-gray-600">
-                                검색 포인트와 간격을 설정하세요.
-                            </p>
-                        </div>
-
-                        <DistanceSettings
-                            distance={gridDistance}
-                            unit={distanceUnit}
-                            onDistanceChange={setGridDistance}
-                            onUnitChange={setDistanceUnit}
-                        />
-
-                        <NaverMapGridConfigurator
-                            centerLat={parseFloat(placeLat) || 37.5665}
-                            centerLng={parseFloat(placeLng) || 126.9780}
-                            selectedPoints={gridPoints}
-                            onPointsChange={setGridPoints}
-                            gridDistance={distanceUnit === 'mile' ? gridDistance * 1.60934 : gridDistance}
-                        />
-
-                        <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                            <span className="text-sm text-gray-600">활성 포인트</span>
-                            <span className="font-bold text-emerald-600">{enabledGridCount}개</span>
-                        </div>
-                    </div>
-                )}
-
-                {/* Step 3: Confirmation & Cost */}
-                {step === 3 && (
-                    <div className="space-y-6">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900">결제 및 확인</h2>
-                            <p className="mt-2 text-gray-600">
-                                예상 비용을 확인하고 검색을 시작하세요.
-                            </p>
-                        </div>
-
-                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                            <div className="p-6 space-y-4">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">비즈니스</span>
-                                    <span className="font-medium text-gray-900">{placeName}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">키워드 ({keywords.filter(k => k.trim()).length}개)</span>
-                                    <span className="font-medium text-gray-900">
-                                        {keywords.filter(k => k.trim()).join(', ')}
-                                    </span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">그리드 포인트</span>
-                                    <span className="font-medium text-gray-900">{enabledGridCount}개</span>
-                                </div>
-                            </div>
-
-                            {/* Cost Summary */}
-                            <div className="bg-gray-50 p-6 border-t border-gray-200">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-gray-600">보유 포인트</span>
-                                    <span className="font-medium">{totalBalance.toLocaleString()} P</span>
-                                </div>
-                                <div className="flex justify-between items-center mb-4">
-                                    <span className="text-gray-600">차감 예정 포인트</span>
-                                    <span className="text-xl font-bold text-red-600">-{totalCost.toLocaleString()} P</span>
-                                </div>
-                                <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
-                                    <span className="font-medium text-gray-900">잔액 예상</span>
-                                    <span className={`text-lg font-bold ${hasSufficientBalance ? 'text-emerald-600' : 'text-red-600'}`}>
-                                        {(totalBalance - totalCost).toLocaleString()} P
-                                    </span>
-                                </div>
-                                {!hasSufficientBalance && (
-                                    <div className="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-center gap-2">
-                                        <AlertTriangle className="w-4 h-4" />
-                                        포인트가 부족하여 검색을 시작할 수 없습니다.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="p-4 bg-amber-50 rounded-lg">
-                            <p className="text-sm text-amber-800">
-                                ⚠️ 검색 시작 시 포인트가 즉시 차감됩니다. (실패 시 자동 환불)
-                            </p>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Navigation Buttons */}
-            <div className="flex justify-between mt-8">
-                <button
-                    onClick={handleBack}
-                    disabled={step === 1}
-                    className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${step === 1
-                        ? 'text-gray-300 cursor-not-allowed'
-                        : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                >
-                    <ArrowLeft className="w-5 h-5" />
-                    이전
-                </button>
-
-                {step < 3 ? (
-                    <button
-                        onClick={handleNext}
-                        disabled={!canProceed()}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${canProceed()
-                            ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/30'
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                            }`}
-                    >
-                        다음
-                        <ArrowRight className="w-5 h-5" />
-                    </button>
-                ) : (
-                    <button
-                        onClick={handleSubmit}
-                        disabled={isSubmitting || !hasSufficientBalance}
-                        className="flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                처리 중...
-                            </>
+                                다음
+                                <ArrowRight className="w-5 h-5" />
+                            </button>
                         ) : (
-                            <>
-                                <Check className="w-5 h-5" />
-                                {hasSufficientBalance ? '결제 및 시작' : '잔액 부족'}
-                            </>
+                            <button
+                                onClick={handleSubmit}
+                                disabled={isSubmitting || !hasSufficientBalance}
+                                className="flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        처리 중...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Check className="w-5 h-5" />
+                                        {hasSufficientBalance ? '결제 및 시작' : '잔액 부족'}
+                                    </>
+                                )}
+                            </button>
                         )}
-                    </button>
-                )}
-            </div>
+                    </div>
+                </>
+            )}
         </div>
     )
 }
