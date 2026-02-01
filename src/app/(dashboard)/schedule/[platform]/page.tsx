@@ -70,14 +70,14 @@ export default function SchedulePage() {
                         // Shop found - set data
                         setSelectedShop({
                             id: myShop.id,
+                            user_id: myShop.user_id,
+                            platform: platform,
                             place_id: myShop.place_id,
                             place_name: myShop.place_name,
                             address: myShop.address || '',
                             lat: myShop.lat,
                             lng: myShop.lng,
-                            platform: platform,
-                            is_my_shop: true,
-                            user_id: myShop.user_id,
+                            locked_until: myShop.locked_until || '',
                             created_at: myShop.created_at
                         })
                         setIsLoading(false)
@@ -119,14 +119,14 @@ export default function SchedulePage() {
                 // Success - update state
                 setSelectedShop({
                     id: '',
+                    user_id: '',
+                    platform: platform,
                     place_id: selectedPlace.placeId,
                     place_name: selectedPlace.name,
                     address: selectedPlace.address || '',
                     lat: selectedPlace.lat,
                     lng: selectedPlace.lng,
-                    platform: platform,
-                    is_my_shop: true,
-                    user_id: '',
+                    locked_until: '',
                     created_at: new Date().toISOString()
                 })
                 setIsPlaceModalOpen(false)
