@@ -66,8 +66,49 @@ export async function POST(request: NextRequest) {
         p_date: todayDate,
     })
 
-    // TODO: Trigger background processing here
-    // For now, we'll process inline in a separate step
+    // Trigger GitHub Action (Async Processing)
+    // We offload the heavy scraping to GitHub Actions to avoid Vercel 10s timeout
+    const ghRepo = process.env.NEXT_PUBLIC_GITHUB_REPO;
+    const ghPat = process.env.GH_PAT;
+
+    if (ghRepo && ghPat) {
+        try {
+            const [owner, repo] = ghRepo.split('/');
+            const dispatchUrl = `https://api.github.com/repos/${owner}/${repo}/dispatches`;
+
+            console.log(`[API] Dispatching manual_search to ${owner}/${repo} for SearchID: ${search.id}`);
+
+            const response = await fetch(dispatchUrl, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${ghPat}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    event_type: 'manual_search',
+                    client_payload: {
+                        search_id: search.id
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`[API] GitHub Dispatch Failed: ${response.status} ${errorText}`);
+                // Note: We don't fail the request here, but we log the error.
+                // In production, we should probably update the search status to 'failed-trigger'
+                await supabase.from('searches').update({ status: 'failed', error_message: 'Worker Trigger Failed' }).eq('id', search.id);
+                return NextResponse.json({ error: 'Failed to trigger search worker' }, { status: 500 });
+            }
+        } catch (dispatchError) {
+            console.error('[API] Dispatch Error:', dispatchError);
+            return NextResponse.json({ error: 'Internal Dispatch Error' }, { status: 500 });
+        }
+    } else {
+        console.warn('[API] Missing GitHub Config (GH_PAT or NEXT_PUBLIC_GITHUB_REPO). Search created but not triggered.');
+        // For local dev without secrets, we might want to warn
+    }
 
     return NextResponse.json({ searchId: search.id })
 }

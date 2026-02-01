@@ -152,14 +152,27 @@ test.describe('Dashboard Visualization', () => {
         // --- Verification ---
         // Check for Shop Card
         try {
-            await expect(page.getByText('Dashboard Test Shop')).toBeVisible({ timeout: 10000 });
+            await expect(page.getByText('Dashboard Test Shop')).toBeVisible({ timeout: 5000 });
         } catch (e) {
-            console.log('DEBUG: Current URL:', page.url());
-            console.log('DEBUG: Body contains "매장 선택":', (await page.locator('body').innerText()).includes('매장 선택'));
+            console.log('DEBUG: Card not found. Checking for Empty State...');
+            const emptyState = page.getByText('사장님의 매장을 연결해주세요');
+            if (await emptyState.count() > 0) {
+                console.error('FAIL: Dashboard is showing Empty State. Possible Auth/DB mismatch.');
+            } else {
+                console.error('FAIL: Neither Card nor Empty State found.');
+            }
+            // Dump page content for debugging
+            console.log(await page.content());
             throw e;
         }
 
         // Check for Rank Graph keywords
-        await expect(page.getByText('SEO')).toBeVisible({ timeout: 10000 });
+        // If 'SEO' keyword is missing, it means Seeded History didn't load
+        try {
+            await expect(page.getByText('SEO')).toBeVisible({ timeout: 5000 });
+        } catch (e) {
+            console.error('FAIL: Rank Graph (SEO keyword) not found.');
+            throw e;
+        }
     });
 });
