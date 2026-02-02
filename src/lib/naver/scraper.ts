@@ -503,6 +503,7 @@ export async function scrapeNaverBatch(
                 timezoneId: 'Asia/Seoul', // 타임존도 한국으로 명시
                 permissions: ['geolocation'], // 위치 권한 허용
                 geolocation: { latitude: task.lat, longitude: task.lng }, // 브라우저 레벨 위치 설정
+                ignoreHTTPSErrors: true, // 프록시 SSL 인증서 오류 무시
             };
 
             // 프록시 정보가 있으면 적용
