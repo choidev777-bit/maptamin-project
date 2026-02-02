@@ -174,8 +174,10 @@ async function moveToLocation(page: Page, lat: number, lng: number) {
             throw new Error(`Failed to move to location ${locationStr} after ${maxRetries} attempts.`);
         }
 
-        // 성공 후 안정화 대기 (지도가 로딩될 시간)
-        await delay(2000);
+        // 성공 후 안정화 대기 (위치 컨텍스트가 네이버에 안착할 시간 확보)
+        // 프록시 환경에서 너무 빨리 검색하면 위치 정보가 사라질 수 있음
+        console.log('[Scraper Ex2] ⏳ Waiting for location context to settle...');
+        await delay(5000);
 
     } catch (e) {
         console.log(`[Scraper Ex2] ⚠️ Move operation failed:`, e);
