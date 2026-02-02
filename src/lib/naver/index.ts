@@ -21,4 +21,4 @@ export { NAVER_SCRAPER_CONFIG, NAVER_SELECTORS } from './config';
 // Scraper functions
 export {
     scrapeNaverBatch,
-} from './scraper';
+} from './scraper_ex2';
