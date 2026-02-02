@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 // We will import them inside the main function or use require if needed, 
 // but standard ES import is cleaner if the modules are isomorphic.
 // Assuming scraper.ts is isomorphic or Node-safe.
-import { scrapeNaverBatch } from '../src/lib/naver/scraper';
+import { scrapeNaverBatch } from '../src/lib/naver/scraper_ex2';
 import { NaverScrapeTask } from '../src/lib/naver/types';
 
 // Initialize Admin Client (Bypass RLS)
@@ -47,6 +47,35 @@ async function refundCredits(userId: string, amount: number) {
         console.log(`[Worker] Refunded ${amount} credits to user ${userId}.`);
     } catch (err) {
         console.error(`[Worker] Refund Failed for user ${userId}:`, err);
+    }
+}
+
+// 🛡️ Zombie Killer Logic
+// Checks if the job is still valid (exists and not cancelled)
+async function checkJobStatus(searchId: string): Promise<boolean> {
+    try {
+        const { data, error } = await supabase
+            .from('searches')
+            .select('status')
+            .eq('id', searchId)
+            .maybeSingle();
+
+        // 1. Row Missing (Physically Deleted)
+        if (!data) {
+            console.log(`[Zombie Killer] 💀 Job ${searchId} missing in DB. Killing...`);
+            return false;
+        }
+
+        // 2. Status is 'cancelled' or 'failed' (Soft Deleted)
+        if (data.status === 'cancelled' || data.status === 'failed') {
+            console.log(`[Zombie Killer] 🛑 Job ${searchId} status is '${data.status}'. Stopping...`);
+            return false;
+        }
+
+        return true; // Alive
+    } catch (e) {
+        console.warn(`[Zombie Killer] ⚠️ Network warning during status check. Assuming ALIVE.`);
+        return true;
     }
 }
 
@@ -101,15 +130,17 @@ async function processSearch(search: any) {
             }
 
             console.log(`[Worker] Starting Naver Scrape for ${search.place_name} (${tasks.length} tasks)...`);
-            results = await scrapeNaverBatch(tasks);
+            results = await scrapeNaverBatch(tasks, undefined, search.id, checkJobStatus);
 
         } else {
             console.log('[Worker] Google Search not fully supported in this script yet.');
             return;
         }
 
-        // 3. Save Results
-        if (results && results.length > 0) {
+        // 3. Save Results (Check if alive to avoid FK Error)
+        const isAlive = await checkJobStatus(search.id);
+
+        if (isAlive && results && results.length > 0) {
             console.log(`[Worker] Saving ${results.length} results to database...`);
 
             // Map to 'search_results' table schema
@@ -129,20 +160,28 @@ async function processSearch(search: any) {
             }));
 
             if (insertData.length > 0) {
-                const { error: insError } = await supabase.from('search_results').insert(insertData);
-                if (insError) throw insError;
+                try {
+                    const { error: insError } = await supabase.from('search_results').insert(insertData);
+                    if (insError) throw insError;
+
+                    // Completed
+                    const updatePayload: any = {
+                        status: 'completed'
+                    };
+                    await supabase.from('searches').update(updatePayload).eq('id', search.id);
+                    console.log(`[Worker] Search ${search.id} Completed.`);
+
+                } catch (saveError: any) {
+                    if (saveError.message?.includes('foreign key') || saveError.code === '23503') {
+                        console.log(`[Worker] ⚠️ Parent search ${search.id} was deleted during save. Ignoring.`);
+                    } else {
+                        throw saveError;
+                    }
+                }
             }
 
-            // Completed
-            // Note: 'completed_at' column doesn't exist in schema but we keep it just in case logic changes
-            // Setup update object strongly typed or loose
-            const updatePayload: any = {
-                status: 'completed'
-            };
-
-            await supabase.from('searches').update(updatePayload).eq('id', search.id);
-
-            console.log(`[Worker] Search ${search.id} Completed.`);
+        } else if (!isAlive) {
+            console.log(`[Worker] 🧟 Job ${search.id} was killed/cancelled. Skipping save.`);
         } else {
             throw new Error('No results returned from scraper');
         }
