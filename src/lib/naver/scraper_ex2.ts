@@ -158,14 +158,17 @@ async function moveToLocation(page: Page, lat: number, lng: number) {
             await searchInput.press('Enter');
 
             try {
-                // 뒤로가기 버튼이 생길 때까지 최대 5초 대기
-                // 성공의 징표: .btn_back 등장
-                await page.waitForSelector(backBtnSelector, { state: 'visible', timeout: 5000 });
-                console.log('[Scraper Ex2] 🚀 Move Verified! (Back button appeared)');
+                // [URL 기반 확인] URL에 '/entry/'가 포함되면 이동 성공
+                // btn_back은 경량화로 렌더링 안 될 수 있으므로 URL이 더 확실함
+                await page.waitForURL(
+                    (url) => url.href.includes('/entry/'),
+                    { timeout: 5000 }
+                );
+                console.log('[Scraper Ex2] 🚀 Move Verified! (URL changed to /entry/)');
                 moveSuccess = true;
                 break; // 성공 시 루프 탈출
             } catch (e) {
-                console.log(`[Scraper Ex2] ⚠️ Move Verification Failed (Timeout). Retrying...`);
+                console.log(`[Scraper Ex2] ⚠️ Move Verification Failed (URL not changed). Retrying...`);
                 await delay(1000); // 잠시 대기 후 재시도
             }
         }
