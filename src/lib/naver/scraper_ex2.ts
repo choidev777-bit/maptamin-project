@@ -256,6 +256,21 @@ async function scrapeOnPage(
     // 🎯 JSON Intercept Data
     let interceptedPlaces: NaverPlaceResult[] = [];
     let isJsonHit = false;
+    let currentTaskDataUsage = 0; // 🆕 Bandwidth tracking
+
+    // 🆕 데이터 사용량 리스너 (Bandwidth Usage)
+    page.on('response', async (response) => {
+        try {
+            const headers = response.headers();
+            const len = headers['content-length'];
+            if (len) {
+                const bytes = parseInt(len, 10);
+                if (!isNaN(bytes)) currentTaskDataUsage += bytes;
+            }
+        } catch (e) {
+            // Ignore
+        }
+    });
 
     // 1️⃣ 네트워크 감청
     page.on('response', async (response) => {
@@ -640,41 +655,89 @@ export async function scrapeNaverBatch(
                     console.log('[Scraper Ex2] ⚠️ Map drag failed, proceeding anyway...');
                 }
 
-                // Step 4: 키워드 검색
-                const searchInputSelector = 'input.input_search';
-                const clearBtn = page.locator('.btn_clear');
-                if (await clearBtn.isVisible()) await clearBtn.click();
-
-                const searchInput = page.locator(searchInputSelector);
-                await searchInput.click();
-                await searchInput.fill(keyword);
-
-                console.log(`[Scraper Ex2] 🔎 Searching: "${keyword}"...`);
-                await searchInput.press('Enter');
-
-                // Step 5: JSON 대기
-                const maxWaitTime = 5000;
-                const checkInterval = 100;
-                let elapsed = 0;
-                while (!isJsonHit && elapsed < maxWaitTime) {
-                    await delay(checkInterval);
-                    elapsed += checkInterval;
-                }
-
+                // Step 4: Robust Search & Parsing Loop (Retry Logic)
+                const MAX_SEARCH_RETRY = 2;
                 let taskResults: NaverPlaceResult[] = [];
+
+                for (let attempt = 1; attempt <= MAX_SEARCH_RETRY; attempt++) {
+                    // JSON 인터셉터 리셋
+                    interceptedPlaces = [];
+                    isJsonHit = false;
+
+                    try {
+                        // 검색창 초기화 및 입력
+                        const searchInputSelector = 'input.input_search';
+                        const clearBtn = page.locator('.btn_clear');
+                        if (await clearBtn.isVisible()) await clearBtn.click();
+
+                        const searchInput = page.locator(searchInputSelector);
+                        await searchInput.click();
+                        await searchInput.fill(keyword);
+
+                        console.log(`[Scraper Ex2] 🔎 Searching: "${keyword}" (Attempt ${attempt}/${MAX_SEARCH_RETRY})...`);
+                        await searchInput.press('Enter');
+
+                        // JSON 대기 (5초)
+                        const maxWaitTime = 5000;
+                        const checkInterval = 100;
+                        let elapsed = 0;
+                        while (!isJsonHit && elapsed < maxWaitTime) {
+                            await delay(checkInterval);
+                            elapsed += checkInterval;
+                        }
+
+                        // 🎯 Case 1: JSON 성공
+                        if (isJsonHit && interceptedPlaces.length > 0) {
+                            console.log(`[Scraper Ex2] 🎯 JSON HIT! Intercepted ${interceptedPlaces.length} items.`);
+                            taskResults = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
+                            break; // 성공!
+                        }
+
+                        // ⚠️ Case 2: JSON 실패 -> DOM 파싱 시도
+                        console.log(`[Scraper Ex2] ⚠️ JSON Missed. Fallback to DOM parsing...`);
+                        await delay(2000); // DOM 렌더링 대기
+
+                        const frames = page.frames();
+                        const searchFrame = frames.find(f => f.name() === 'searchIframe');
+
+                        if (searchFrame) {
+                            const domResults = await parseSearchResultsInFrame(searchFrame);
+                            if (domResults.length > 0) {
+                                console.log(`[Scraper Ex2] ✅ DOM Parsed ${domResults.length} items.`);
+                                taskResults = domResults;
+                                break; // 성공!
+                            } else {
+                                console.log(`[Scraper Ex2] ⚠️ DOM also returned 0 results.`);
+                            }
+                        } else {
+                            console.log(`[Scraper Ex2] ⚠️ searchIframe not found.`);
+                        }
+
+                        // 🔄 실패 시 재시도 준비
+                        if (attempt < MAX_SEARCH_RETRY) {
+                            console.log(`[Scraper Ex2] 🔄 Retry #${attempt + 1}...`);
+                            await resetSearchState(page);
+                            await delay(1000);
+                        } else {
+                            console.log(`[Scraper Ex2] ❌ All retries failed. Returning empty result.`);
+                        }
+
+                    } catch (e) {
+                        console.log(`[Scraper Ex2] ⚠️ Search execution failed: ${e}`);
+                        if (attempt < MAX_SEARCH_RETRY) {
+                            await resetSearchState(page);
+                            await delay(1000);
+                        }
+                    }
+                }
 
                 if (isJsonHit) {
                     console.log(`[Scraper Ex2] 🚀 Fast Kill! Using JSON Data.`);
-                    taskResults = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
-                } else {
-                    console.log(`[Scraper Ex2] ⚠️ JSON Missed. Fallback to DOM parsing...`);
-                    await delay(2000);
-                    const frames = page.frames();
-                    const searchFrame = frames.find(f => f.name() === 'searchIframe');
-                    if (searchFrame) {
-                        taskResults = await parseSearchResultsInFrame(searchFrame);
-                    }
                 }
+
+                // 데이터 사용량 로그
+                console.log(`[Scraper Ex2] 📊 Data Usage for Task: ${(currentTaskDataUsage / 1024).toFixed(2)} KB`);
+
 
                 // Step 6: 타겟 순위 찾기
                 let targetRank: number | null = null;
