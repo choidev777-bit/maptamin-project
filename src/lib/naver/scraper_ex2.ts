@@ -401,6 +401,10 @@ export async function scrapeNaverBatch(
                 permissions: ['geolocation'],
                 geolocation: { latitude: task.lat, longitude: task.lng },
                 ignoreHTTPSErrors: true, // ⚠️ 필수: 프록시 SSL 문제 해결
+                recordVideo: {
+                    dir: 'videos/', // 영상 저장 경로
+                    size: { width: 1280, height: 720 } // 해상도
+                }
             };
 
             if (host && port && username && password) {
