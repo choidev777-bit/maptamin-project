@@ -111,9 +111,21 @@ async function moveToLocation(page: Page, lat: number, lng: number) {
         await searchInput.click();
         await searchInput.clear();
         await delay(300);
-        await searchInput.fill(`${lat},${lng}`);
+        // [Human-like Typing Fix]
+        // 프록시 환경에서 fill() 후 빠른 Enter는 무시될 수 있습니다.
+        // 사람이 치는 것처럼 한 글자씩 입력하고, 포커스를 확실히 잡습니다.
+
+        await searchInput.click(); // 1. 명시적 포커스
+        await searchInput.fill(''); // 2. 초기화
+
+        // 3. 한 글자씩 타이핑 (Human-like)
+        const locationStr = `${lat},${lng}`;
+        await page.keyboard.type(locationStr, { delay: 100 });
+
+        await delay(500); // 4. 입력 후 잠시 대기 (JS 인식 시간)
+        await searchInput.press('Enter'); // 5. 첫 번째 엔터
         await delay(500);
-        await searchInput.press('Enter');
+        await searchInput.press('Enter'); // 6. 혹시 모르니 확인 사살 (Double Enter)
 
         // Note: scraper_ex.ts는 여기서 URL 검증을 하지 않습니다.
         // IP 이슈로 URL이 안 바뀌더라도 일단 믿고 진행합니다.
@@ -121,7 +133,7 @@ async function moveToLocation(page: Page, lat: number, lng: number) {
         // [Proxy Latency Fix] 
         // 프록시 환경에서는 지도 이동 및 로딩이 매우 느릴 수 있으므로 
         // 1.5초 -> 5초로 대기 시간을 대폭 늘립니다.
-        await delay(10000); // 이동 대기 (1.5s -> 10s)
+        await delay(5000); // 이동 대기 (1.5s -> 5s)
 
     } catch (e) {
         console.log(`[Scraper Ex2] ⚠️ Move operation failed:`, e);
