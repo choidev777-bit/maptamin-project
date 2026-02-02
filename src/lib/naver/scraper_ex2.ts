@@ -256,22 +256,6 @@ async function scrapeOnPage(
     // 🎯 JSON Intercept Data
     let interceptedPlaces: NaverPlaceResult[] = [];
     let isJsonHit = false;
-    let currentTaskDataUsage = 0; // 🆕 Bandwidth tracking
-
-    // 🆕 데이터 사용량 리스너 (Bandwidth Usage)
-    page.on('response', async (response) => {
-        try {
-            const headers = response.headers();
-            const len = headers['content-length'];
-            if (len) {
-                const bytes = parseInt(len, 10);
-                if (!isNaN(bytes)) currentTaskDataUsage += bytes;
-            }
-        } catch (e) {
-            // Ignore
-        }
-    });
-
     // 1️⃣ 네트워크 감청
     page.on('response', async (response) => {
         const url = response.url();
@@ -500,6 +484,21 @@ export async function scrapeNaverBatch(
     let interceptedPlaces: NaverPlaceResult[] = [];
     let isJsonHit = false;
     let currentKeyword = ''; // 현재 검색 중인 키워드
+    let currentTaskDataUsage = 0; // 🆕 Bandwidth tracking
+
+    // 🆕 데이터 사용량 리스너 (Bandwidth Usage)
+    page.on('response', async (response) => {
+        try {
+            const headers = response.headers();
+            const len = headers['content-length'];
+            if (len) {
+                const bytes = parseInt(len, 10);
+                if (!isNaN(bytes)) currentTaskDataUsage += bytes;
+            }
+        } catch (e) {
+            // Ignore
+        }
+    });
 
     // 🆕 Response 리스너 1회 등록
     page.on('response', async (response) => {
