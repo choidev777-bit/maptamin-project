@@ -108,6 +108,16 @@ async function moveToLocation(page: Page, lat: number, lng: number) {
     // 검색창이 보여도 JS가 준비 안 됐을 수 있으므로 추가 대기
     await delay(2000);
 
+    // [Map Render Verification] 지도 렌더링 완료 확인 (좌표 입력 전 필수)
+    // 우측 하단 거리 척도(예: 100m, 1km)가 뜰 때까지 대기하여 JS 로딩 보장
+    try {
+        console.log('[Scraper Ex2] ⏳ Waiting for map scale indicator (Render Check)...');
+        await page.locator('span').filter({ hasText: /^\d+(m|km)$/ }).first().waitFor({ state: 'visible', timeout: 30000 });
+        console.log('[Scraper Ex2] 🗺️ Map fully rendered (Scale indicator found)');
+    } catch (e) {
+        console.log('[Scraper Ex2] ⚠️ Scale indicator not found, proceeding anyway...');
+    }
+
     try {
         console.log(`[Scraper Ex2] 📍 Moving to (${lat}, ${lng})...`);
 
