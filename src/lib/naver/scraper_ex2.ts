@@ -555,12 +555,62 @@ export async function scrapeNaverBatch(
             const { lat, lng, keyword, targetBusinessName } = task;
             onProgress?.(i, tasks.length);
 
-            const taskStartTime = Date.now();
+            let taskStartTime = Date.now();
 
             // 🆕 JSON 인터셉터 초기화 (매 Task)
             interceptedPlaces = [];
             isJsonHit = false;
             currentKeyword = keyword;
+
+            // 🆕 첫 번째 Task 워밍업 (결과 버림)
+            if (i === 0) {
+                console.log('[Scraper Ex2] 🔥 Warmup run for Task 1 (result will be discarded)...');
+                try {
+                    // 워밍업: 이동, 줌인, 드래그, 검색 (결과는 버림)
+                    await moveToLocation(page, lat, lng);
+                    await forceZoomIn(page);
+
+                    // 드래그
+                    const viewport = page.viewportSize();
+                    if (viewport) {
+                        const centerX = viewport.width / 2;
+                        const centerY = viewport.height / 2;
+                        await page.mouse.move(centerX, centerY);
+                        await page.mouse.down();
+                        await delay(100);
+                        await page.mouse.move(centerX + 100, centerY, { steps: 10 });
+                        await delay(100);
+                        await page.mouse.move(centerX, centerY, { steps: 10 });
+                        await page.mouse.up();
+                        await delay(500);
+                    }
+
+                    // 검색
+                    const warmupClearBtn = page.locator('.btn_clear');
+                    if (await warmupClearBtn.isVisible()) await warmupClearBtn.click();
+                    const warmupSearchInput = page.locator('input.input_search');
+                    await warmupSearchInput.click();
+                    await warmupSearchInput.fill(keyword);
+                    await warmupSearchInput.press('Enter');
+
+                    // JSON 대기 (워밍업용, 짧게)
+                    await delay(3000);
+                    console.log('[Scraper Ex2] ✅ Warmup complete.');
+                } catch (e) {
+                    console.log('[Scraper Ex2] ⚠️ Warmup failed, proceeding anyway...');
+                }
+
+                // 워밍업 후 상태 초기화
+                await resetSearchState(page);
+
+                // JSON 인터셉터 재초기화 (중요!)
+                interceptedPlaces = [];
+                isJsonHit = false;
+
+                // 시간 재측정 (워밍업 시간 제외)
+                taskStartTime = Date.now();
+                console.log('[Scraper Ex2] 🚀 Starting real Task 1...');
+            }
 
             try {
                 // Step 1: 좌표 이동
