@@ -118,7 +118,10 @@ async function moveToLocation(page: Page, lat: number, lng: number) {
         // Note: scraper_ex.ts는 여기서 URL 검증을 하지 않습니다.
         // IP 이슈로 URL이 안 바뀌더라도 일단 믿고 진행합니다.
 
-        await delay(1500); // 이동 대기
+        // [Proxy Latency Fix] 
+        // 프록시 환경에서는 지도 이동 및 로딩이 매우 느릴 수 있으므로 
+        // 1.5초 -> 5초로 대기 시간을 대폭 늘립니다.
+        await delay(10000); // 이동 대기 (1.5s -> 10s)
 
     } catch (e) {
         console.log(`[Scraper Ex2] ⚠️ Move operation failed:`, e);
