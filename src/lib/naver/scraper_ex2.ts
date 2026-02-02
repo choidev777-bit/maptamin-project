@@ -300,6 +300,31 @@ async function scrapeOnPage(
         await moveToLocation(page, lat, lng);
         await forceZoomIn(page); // 2차 줌인 (이동 후 다시 줌)
 
+        // ========== Step 3.5: 지도 드래그 (위치 컨텍스트 고정) ==========
+        // 프록시 환경에서 네이버가 IP 위치로 검색 결과를 보내는 것을 방지
+        // 지도를 살짝 흔들어서 "여기서 검색 중이다"라고 어필
+        try {
+            console.log('[Scraper Ex2] 🖐️ Dragging map to lock location context...');
+            const viewport = page.viewportSize();
+            if (viewport) {
+                const centerX = viewport.width / 2;
+                const centerY = viewport.height / 2;
+
+                // 지도 중앙에서 오른쪽으로 100px 드래그 후 돌아오기
+                await page.mouse.move(centerX, centerY);
+                await page.mouse.down();
+                await delay(100);
+                await page.mouse.move(centerX + 100, centerY, { steps: 10 });
+                await delay(100);
+                await page.mouse.move(centerX, centerY, { steps: 10 });
+                await page.mouse.up();
+                await delay(500); // 지도가 안정화될 시간
+                console.log('[Scraper Ex2] ✅ Map drag complete (Location locked)');
+            }
+        } catch (e) {
+            console.log('[Scraper Ex2] ⚠️ Map drag failed, proceeding anyway...');
+        }
+
         // ========== Step 4: 키워드 검색 ==========
         const searchInputSelector = 'input.input_search';
         const clearBtn = page.locator('.btn_clear');
