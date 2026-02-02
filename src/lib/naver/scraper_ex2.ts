@@ -404,8 +404,31 @@ async function scrapeOnPage(
 
 
 // ==========================================
-// Batch Export (Wrapper with Proxy)
+// Batch Export (Single Session Architecture)
 // ==========================================
+
+/**
+ * 검색 상태 초기화 (다음 좌표 검색을 위해)
+ */
+async function resetSearchState(page: Page): Promise<void> {
+    try {
+        // 검색창 X 버튼으로 초기화
+        const clearBtn = page.locator('.btn_clear');
+        if (await clearBtn.isVisible()) {
+            await clearBtn.click();
+            await delay(300);
+        }
+
+        // 뒤로가기 버튼이 있으면 클릭
+        const backBtn = page.locator('button.btn_back');
+        if (await backBtn.isVisible()) {
+            await backBtn.click();
+            await delay(500);
+        }
+    } catch (e) {
+        // 무시
+    }
+}
 
 export async function scrapeNaverBatch(
     tasks: NaverScrapeTask[],
@@ -414,12 +437,110 @@ export async function scrapeNaverBatch(
     checkJobExists?: (searchId: string) => Promise<boolean>
 ): Promise<NaverScrapeBatchResult[]> {
     const results: NaverScrapeBatchResult[] = [];
-    console.log(`[Scraper Ex2] Starting V5 Batch (Proxy Enhanced): ${tasks.length} tasks`);
+    console.log(`[Scraper Ex2] Starting V6 Batch (Single Session): ${tasks.length} tasks`);
 
     const batchStartTime = Date.now();
     const browser = await chromium.launch({ headless: true });
 
+    // 🆕 프록시 세션 ID 1회 생성 (고정)
+    const sessionID = Math.random().toString(36).substring(7);
+    const username = process.env.BRIGHT_DATA_USERNAME || '';
+    const password = process.env.BRIGHT_DATA_PASSWORD || '';
+    const host = process.env.BRIGHT_DATA_HOST || '';
+    const port = process.env.BRIGHT_DATA_PORT || '';
+    const proxyUsername = username ? `${username}-session-${sessionID}` : '';
+
+    // 🆕 Context/Page 1회 생성 (루프 바깥)
+    const contextOptions: any = {
+        viewport: { width: 1280, height: 720 },
+        locale: 'ko-KR',
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        timezoneId: 'Asia/Seoul',
+        permissions: ['geolocation'],
+        geolocation: { latitude: tasks[0]?.lat || 37.5, longitude: tasks[0]?.lng || 127.0 },
+        ignoreHTTPSErrors: true,
+        recordVideo: {
+            dir: 'videos/',
+            size: { width: 1280, height: 720 }
+        }
+    };
+
+    if (host && port && username && password) {
+        contextOptions.proxy = {
+            server: `http://${host}:${port}`,
+            username: proxyUsername,
+            password: password
+        };
+        console.log(`[Scraper Ex2] 🛡️ Proxy Active (Fixed Session: ${sessionID})`);
+    } else {
+        console.warn(`[Scraper Ex2] ⚠️ Proxy config missing. Direct connection.`);
+    }
+
+    const context = await browser.newContext(contextOptions);
+    const page = await context.newPage();
+    page.setDefaultTimeout(60000);
+    await applyResourceBlocking(page);
+
+    // 🆕 JSON 인터셉터 변수 (루프 바깥에서 선언, 루프 안에서 초기화)
+    let interceptedPlaces: NaverPlaceResult[] = [];
+    let isJsonHit = false;
+    let currentKeyword = ''; // 현재 검색 중인 키워드
+
+    // 🆕 Response 리스너 1회 등록
+    page.on('response', async (response) => {
+        const url = response.url();
+        if (url.includes('api/search/allSearch')) {
+            try {
+                if (currentKeyword && decodeURIComponent(url).includes(currentKeyword)) {
+                    const json = await response.json();
+                    let items: any[] = [];
+
+                    if (json?.result?.place?.list) items = json.result.place.list;
+                    else if (json?.result?.site?.list) items = json.result.site.list;
+                    else if (json?.result?.list) items = json.result.list;
+
+                    if (items && Array.isArray(items) && items.length > 0) {
+                        console.log(`[Scraper Ex2] 🎯 JSON HIT! Intercepted ${items.length} items.`);
+
+                        interceptedPlaces = items.map((item: any, index: number) => ({
+                            rank: index + 1,
+                            businessName: item.name || item.title || 'Unknown',
+                            naverPlaceId: item.id,
+                            address: item.roadAddress || item.addr || '',
+                            isAd: item.isAd || item.adId ? true : false
+                        })).filter(p => !p.isAd);
+
+                        interceptedPlaces = interceptedPlaces.map((p, i) => ({ ...p, rank: i + 1 }));
+                        isJsonHit = true;
+                    }
+                }
+            } catch (e) {
+                // Ignore
+            }
+        }
+    });
+
     try {
+        // 🆕 페이지 로드 및 초기화 1회
+        await page.goto('https://map.naver.com/p', { waitUntil: 'load', timeout: 60000 });
+        console.log('[Scraper Ex2] ⏳ Page loaded. Waiting for JS initialization...');
+        await delay(5000);
+
+        // 🆕 렌더링 체크 (1회, 실패 시 새로고침)
+        try {
+            console.log('[Scraper Ex2] ⏳ Waiting for map scale indicator (Render Check)...');
+            await page.locator('span').filter({ hasText: /^\d+(m|km)$/ }).first().waitFor({ state: 'visible', timeout: 30000 });
+            console.log('[Scraper Ex2] 🗺️ Map fully rendered (Scale indicator found)');
+        } catch (e) {
+            console.log('[Scraper Ex2] ⚠️ Scale indicator not found. Reloading page...');
+            await page.reload({ waitUntil: 'load', timeout: 60000 });
+            await delay(5000);
+            console.log('[Scraper Ex2] 🔄 Page reloaded. Continuing...');
+        }
+
+        await forceZoomIn(page); // 초기 줌인
+
+        // ========== Task 루프 ==========
         for (let i = 0; i < tasks.length; i++) {
             // 좀비 체크
             if (searchId && checkJobExists) {
@@ -431,71 +552,132 @@ export async function scrapeNaverBatch(
             }
 
             const task = tasks[i];
+            const { lat, lng, keyword, targetBusinessName } = task;
             onProgress?.(i, tasks.length);
 
-            // 🛡️ Proxy Configuration (from scraper.ts)
-            // 매 Task마다 새로운 세션 생성
-            const sessionID = Math.random().toString(36).substring(7);
-            const username = process.env.BRIGHT_DATA_USERNAME || '';
-            const password = process.env.BRIGHT_DATA_PASSWORD || '';
-            const host = process.env.BRIGHT_DATA_HOST || '';
-            const port = process.env.BRIGHT_DATA_PORT || '';
+            const taskStartTime = Date.now();
 
-            const proxyUsername = username ? `${username}-session-${sessionID}` : '';
+            // 🆕 JSON 인터셉터 초기화 (매 Task)
+            interceptedPlaces = [];
+            isJsonHit = false;
+            currentKeyword = keyword;
 
-            const contextOptions: any = {
-                viewport: { width: 1280, height: 720 },
-                locale: 'ko-KR',
-                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                timezoneId: 'Asia/Seoul',
-                permissions: ['geolocation'],
-                geolocation: { latitude: task.lat, longitude: task.lng },
-                ignoreHTTPSErrors: true, // ⚠️ 필수: 프록시 SSL 문제 해결
-                recordVideo: {
-                    dir: 'videos/', // 영상 저장 경로
-                    size: { width: 1280, height: 720 } // 해상도
+            try {
+                // Step 1: 좌표 이동
+                await moveToLocation(page, lat, lng);
+
+                // Step 2: 줌인
+                await forceZoomIn(page);
+
+                // Step 3: 드래그 (위치 컨텍스트 고정)
+                try {
+                    console.log('[Scraper Ex2] 🖐️ Dragging map to lock location context...');
+                    const viewport = page.viewportSize();
+                    if (viewport) {
+                        const centerX = viewport.width / 2;
+                        const centerY = viewport.height / 2;
+                        await page.mouse.move(centerX, centerY);
+                        await page.mouse.down();
+                        await delay(100);
+                        await page.mouse.move(centerX + 100, centerY, { steps: 10 });
+                        await delay(100);
+                        await page.mouse.move(centerX, centerY, { steps: 10 });
+                        await page.mouse.up();
+                        await delay(500);
+                        console.log('[Scraper Ex2] ✅ Map drag complete (Location locked)');
+                    }
+                } catch (e) {
+                    console.log('[Scraper Ex2] ⚠️ Map drag failed, proceeding anyway...');
                 }
-            };
 
-            if (host && port && username && password) {
-                contextOptions.proxy = {
-                    server: `http://${host}:${port}`,
-                    username: proxyUsername,
-                    password: password
-                };
-                console.log(`[Scraper Ex2] 🛡️ Proxy Active (Session: ${sessionID})`);
-            } else {
-                console.warn(`[Scraper Ex2] ⚠️ Proxy config missing. Direct connection.`);
+                // Step 4: 키워드 검색
+                const searchInputSelector = 'input.input_search';
+                const clearBtn = page.locator('.btn_clear');
+                if (await clearBtn.isVisible()) await clearBtn.click();
+
+                const searchInput = page.locator(searchInputSelector);
+                await searchInput.click();
+                await searchInput.fill(keyword);
+
+                console.log(`[Scraper Ex2] 🔎 Searching: "${keyword}"...`);
+                await searchInput.press('Enter');
+
+                // Step 5: JSON 대기
+                const maxWaitTime = 5000;
+                const checkInterval = 100;
+                let elapsed = 0;
+                while (!isJsonHit && elapsed < maxWaitTime) {
+                    await delay(checkInterval);
+                    elapsed += checkInterval;
+                }
+
+                let taskResults: NaverPlaceResult[] = [];
+
+                if (isJsonHit) {
+                    console.log(`[Scraper Ex2] 🚀 Fast Kill! Using JSON Data.`);
+                    taskResults = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
+                } else {
+                    console.log(`[Scraper Ex2] ⚠️ JSON Missed. Fallback to DOM parsing...`);
+                    await delay(2000);
+                    const frames = page.frames();
+                    const searchFrame = frames.find(f => f.name() === 'searchIframe');
+                    if (searchFrame) {
+                        taskResults = await parseSearchResultsInFrame(searchFrame);
+                    }
+                }
+
+                // Step 6: 타겟 순위 찾기
+                let targetRank: number | null = null;
+                if (targetBusinessName) {
+                    const matchedResult = taskResults.find(r =>
+                        isBusinessMatch(r.businessName, targetBusinessName)
+                    );
+                    targetRank = matchedResult?.rank ?? null;
+                    console.log(`[Scraper Ex2] Target "${targetBusinessName}" rank: ${targetRank ?? 'Not found'}`);
+                }
+
+                const taskDuration = (Date.now() - taskStartTime) / 1000;
+                console.log(`[Scraper Ex2] ✅ Task ${i + 1}/${tasks.length}: ⏱️ ${taskDuration.toFixed(2)}s`);
+
+                results.push({
+                    success: true,
+                    results: taskResults,
+                    targetRank,
+                    scrapedAt: new Date().toISOString(),
+                    keyword: task.keyword,
+                    gridIndex: task.gridIndex,
+                    lat: task.lat,
+                    lng: task.lng,
+                    dataUsageBytes: 0,
+                    durationSeconds: taskDuration
+                });
+
+            } catch (error) {
+                const err = error instanceof Error ? error.message : 'Unknown';
+                console.error(`[Scraper Ex2] ❌ Task ${i + 1} Error: ${err}`);
+                results.push({
+                    success: false,
+                    results: [],
+                    targetRank: null,
+                    scrapedAt: new Date().toISOString(),
+                    error: err,
+                    keyword: task.keyword,
+                    gridIndex: task.gridIndex,
+                    lat: task.lat,
+                    lng: task.lng,
+                    dataUsageBytes: 0,
+                    durationSeconds: (Date.now() - taskStartTime) / 1000
+                });
             }
 
-            const context = await browser.newContext(contextOptions);
-            const page = await context.newPage();
-
-            // 프록시 환경 고려하여 타임아웃 60초
-            page.setDefaultTimeout(60000);
-
-            const taskStartTime = Date.now();
-            await applyResourceBlocking(page);
-
-            const result = await scrapeOnPage(page, task);
-
-            const taskDuration = (Date.now() - taskStartTime) / 1000;
-            console.log(`[Scraper Ex2] ✅ Task ${i + 1}/${tasks.length}: ⏱️ ${taskDuration.toFixed(2)}s`);
-
-            results.push({
-                ...result,
-                keyword: task.keyword,
-                gridIndex: task.gridIndex,
-                lat: task.lat,
-                lng: task.lng,
-                dataUsageBytes: 0, // Simplified
-                durationSeconds: taskDuration
-            });
-
-            await context.close();
-            if (i < tasks.length - 1) await delay(1000);
+            // 🆕 다음 검색을 위한 상태 초기화
+            if (i < tasks.length - 1) {
+                await resetSearchState(page);
+                await delay(500);
+            }
         }
     } finally {
+        await context.close();
         await browser.close();
         const totalDuration = (Date.now() - batchStartTime) / 1000;
         console.log(`[Scraper Ex2] 🏁 Batch Complete! Total Time: ${totalDuration.toFixed(1)}s`);
