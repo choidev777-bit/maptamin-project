@@ -4,7 +4,6 @@
  * 1. Network Intercept: '/graphql' 또는 'place' 관련 API 응답을 감청하여 JSON 데이터 확보
  * 2. Fast Kill: 데이터 확보 즉시 중단
  * 3. Proxy Rotation: Bright Data Residential IP + Session Randomization 적용
- * 4. Strict Location Verification: 중심점 거리 30m 이내 정밀 타격
  */
 
 import { chromium, Browser, BrowserContext, Page, Frame } from 'playwright';
@@ -47,8 +46,7 @@ import { isBusinessMatch } from './utils';
 // Constants & Configuration
 // ==========================================
 
-const MAX_LOCATION_RETRIES = 5;         // 끈질긴 재시도 (5회)
-const DISTANCE_THRESHOLD_METERS = 150;  // 허용 오차 150m (대형 상권 중심점 오차 반영)
+const MAX_RETRIES = 3;         // 네트워크 오류 시 재시도 (3회)
 
 // ==========================================
 // Shared Helpers
@@ -58,29 +56,7 @@ function delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/**
- * 📏 거리 계산 함수 (m 단위)
- * Haversine 공식의 간소화 버전 (유클리드 거리 + 위도 보정)
- * 작은 거리(수 km 이내)에서는 충분히 정확함
- */
-function calculateDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
-    const R = 6371e3; // 지구 반지름 (미터)
-    const toRad = Math.PI / 180;
 
-    // 위도 보정 계수 (한국 약 0.8)
-    const correctionFactor = Math.cos(lat1 * toRad);
-
-    const dLat = (lat2 - lat1) * toRad;
-    const dLng = (lng2 - lng1) * toRad * correctionFactor;
-
-    // 단순 피타고라스 (작은 거리 근사)
-    // 정확한 Haversine보다 계산 빠르고, 30m 판별엔 차이 없음
-    const a = (dLat * dLat) + (dLng * dLng);
-    const c = Math.sqrt(a);
-    const distance = c * R;
-
-    return distance;
-}
 
 /**
  * 리소스 차단 적용 (속도 향상 & Mocking V2 & Memory Caching)
@@ -262,8 +238,6 @@ async function scrapeOnPage(
 
     let interceptedPlaces: NaverPlaceResult[] = [];
     let isJsonHit = false;
-    let isBoundaryValid = false;
-    let isLocationError = false;
 
     page.on('response', async (response) => {
         const url = response.url();
@@ -279,36 +253,6 @@ async function scrapeOnPage(
 
                 if (items && Array.isArray(items) && items.length > 0) {
                     console.log(`[Scraper v5] 🎯 JSON HIT! Intercepted ${items.length} items.`);
-
-                    // 🗺️ Strict Location Verification
-                    const boundary = json?.result?.place?.boundary;
-
-                    if (boundary && Array.isArray(boundary) && boundary.length === 4) {
-                        const b = boundary.map(Number);
-                        const minLng = Math.min(b[0], b[2]);
-                        const maxLng = Math.max(b[0], b[2]);
-                        const minLat = Math.min(b[1], b[3]);
-                        const maxLat = Math.max(b[1], b[3]);
-
-                        // 중심점 계산
-                        const centerLat = (minLat + maxLat) / 2;
-                        const centerLng = (minLng + maxLng) / 2;
-
-                        // 거리 계산
-                        const distanceMeters = calculateDistanceMeters(lat, lng, centerLat, centerLng);
-
-                        if (distanceMeters <= DISTANCE_THRESHOLD_METERS) {
-                            console.log(`[Scraper v5] ✅ Location Verified (Dist: ${distanceMeters.toFixed(1)}m)`);
-                            isBoundaryValid = true;
-                        } else {
-                            console.log(`[Scraper v5] ⚠️ Location Mismatch! (Dist: ${distanceMeters.toFixed(1)}m > ${DISTANCE_THRESHOLD_METERS}m)`);
-                            console.log(`   Target: (${lat}, ${lng}) vs Map: (${centerLat.toFixed(6)}, ${centerLng.toFixed(6)})`);
-                            isBoundaryValid = false;
-                        }
-                    } else {
-                        console.log(`[Scraper v5] ❌ Boundary Missing! Cannot verify location.`);
-                        isBoundaryValid = false; // Boundary 없으면 실패 처리
-                    }
 
                     interceptedPlaces = items.map((item: any, index: number) => ({
                         rank: index + 1,
@@ -332,12 +276,12 @@ async function scrapeOnPage(
         let results: NaverPlaceResult[] = [];
         let retryCount = 0;
 
-        // 🔄 Main Retry Loop
-        while (retryCount <= MAX_LOCATION_RETRIES) {
+        // 🔄 Main Retry Loop (For Network/Navigation Errors)
+        while (retryCount <= MAX_RETRIES) {
 
             // 재시도 시 로그 출력
             if (retryCount > 0) {
-                console.log(`[Scraper v5] 🔄 Retry Attempt ${retryCount}/${MAX_LOCATION_RETRIES}...`);
+                console.log(`[Scraper v5] 🔄 Retry Attempt ${retryCount}/${MAX_RETRIES}...`);
             }
 
             // 1. 이동 및 검색 수행
@@ -366,7 +310,6 @@ async function scrapeOnPage(
 
                 // 데이터 초기화
                 isJsonHit = false;
-                isBoundaryValid = false;
                 interceptedPlaces = [];
 
                 console.log(`[Scraper v5] 🔎 Searching: "${keyword}"...`);
@@ -388,22 +331,12 @@ async function scrapeOnPage(
                 continue;
             }
 
-            // 2. 결과 검증
+            // 2. 결과 처리
             if (isJsonHit) {
-                if (isBoundaryValid) {
-                    // ✅ 성공
-                    console.log(`[Scraper v5] 🚀 Success! Location Verified.`);
-                    results = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
-                    break;
-                } else {
-                    // ❌ 위치 불일치
-                    retryCount++;
-                    if (retryCount > MAX_LOCATION_RETRIES) {
-                        isLocationError = true;
-                        throw new Error(`Location verification failed after ${MAX_LOCATION_RETRIES} retries.`);
-                    }
-                    continue; // 재시도
-                }
+                // ✅ 성공 (JSON 데이터를 신뢰함)
+                console.log(`[Scraper v5] 🚀 Success! Using JSON Data.`);
+                results = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
+                break;
             } else {
                 // ⚠️ JSON 실패 -> DOM Fallback
                 console.log(`[Scraper v5] ⚠️ JSON Missed. Fallback to DOM parsing...`);
