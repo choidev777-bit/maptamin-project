@@ -101,8 +101,12 @@ async function forceZoomIn(page: Page) {
  */
 async function moveToLocation(page: Page, lat: number, lng: number) {
     const searchInputSelector = 'input.input_search';
-    await page.waitForSelector(searchInputSelector, { state: 'visible', timeout: 5000 });
+    // [Robust Loading] 프록시 환경에서 검색창이 늦게 뜰 수 있으므로 30초까지 대기
+    await page.waitForSelector(searchInputSelector, { state: 'visible', timeout: 30000 });
     const searchInput = page.locator(searchInputSelector);
+
+    // 검색창이 보여도 JS가 준비 안 됐을 수 있으므로 추가 대기
+    await delay(2000);
 
     try {
         console.log(`[Scraper Ex2] 📍 Moving to (${lat}, ${lng})...`);
@@ -127,10 +131,11 @@ async function moveToLocation(page: Page, lat: number, lng: number) {
         }
 
         // 1. 명시적 포커스 & 확실한 초기화
+        // Ctrl+A는 포커스가 없으면 페이지 전체를 선택해버리므로 .fill('')이 더 안전
         await searchInput.click();
-        await page.keyboard.press('Control+A'); // 전체 선택
-        await page.keyboard.press('Backspace'); // 삭제
-        await delay(300);
+        await delay(500); // 클릭 후 안정화
+        await searchInput.fill(''); // 기존 내용 안전하게 지우기
+        await delay(500);
 
         // 2. 한 글자씩 타이핑 (Human-like)
         const locationStr = `${lat},${lng}`;
@@ -270,8 +275,10 @@ async function scrapeOnPage(
 
     try {
         // ========== Step 1 ~ 3: 이동 및 줌인 ==========
-        await page.goto('https://map.naver.com/p', { waitUntil: 'domcontentloaded' });
-        await delay(1500);
+        // [Robust Loading] 프록시 환경에서는 'load' 이벤트까지 대기 + 긴 타임아웃 필수
+        await page.goto('https://map.naver.com/p', { waitUntil: 'load', timeout: 60000 });
+        console.log('[Scraper Ex2] ⏳ Page loaded. Waiting for JS initialization...');
+        await delay(5000); // 프록시 환경에서 JS가 초기화될 시간 확보
         await forceZoomIn(page); // 1차 줌인
 
         // 좌표 이동 (필수: 서버가 IP 기반이 아닌 해당 위치 데이터를 보내게 하려면 이동해야 함)
