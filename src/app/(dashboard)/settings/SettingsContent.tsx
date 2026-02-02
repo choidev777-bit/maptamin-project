@@ -8,6 +8,7 @@ import Image from 'next/image'
 import { CompetitorManager } from '@/components/settings/CompetitorManager'
 import { MyShopManager } from '@/components/settings/MyShopManager'
 import { ScheduleManager } from '@/components/settings/ScheduleManager'
+import { DeleteAccountSection } from '@/components/settings/DeleteAccountSection'
 
 interface UserInfo {
     email: string
@@ -144,12 +145,15 @@ export function SettingsContent({ user, planStats }: Props) {
                 <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-colors disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 text-gray-600 rounded-xl font-medium hover:bg-gray-100 transition-colors disabled:opacity-50 border border-gray-200"
                 >
                     <LogOut className="w-5 h-5" />
                     {isLoggingOut ? '로그아웃 중...' : '로그아웃'}
                 </button>
             </div>
+
+            {/* Danger Zone */}
+            <DeleteAccountSection />
         </div>
     )
 }

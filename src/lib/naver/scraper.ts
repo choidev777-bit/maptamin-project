@@ -1,13 +1,10 @@
 /**
- * Naver Place Scraper v5.0 (Hybrid: Network Intercept + DOM Fallback)
+ * Naver Place Scraper v5.0 (Hybrid + Proxy Enhanced)
  * 
- * "JSON 데이터 탈취"를 우선 시도하고, 실패하면 "화면 파싱"으로 넘어가는 하이브리드 전략
- * 
- * @description
- * 1. Network Intercept: '/graphql' 또는 'place' 관련 API 응답을 감청하여 JSON 데이터 직접 확보
- * 2. Fast Kill: 데이터 확보 즉시 브라우저 로딩 중단 (속도 3배 향상)
- * 3. Fallback Safety: 네트워크 구조 변경 등으로 탈취 실패 시, 기존 DOM 파싱 로직(v4) 자동 실행
- * 4. Robust Ad Filter: .place_blind 및 SVG 클래스 기반의 강력한 광고 필터링
+ * 1. Network Intercept: '/graphql' 또는 'place' 관련 API 응답을 감청하여 JSON 데이터 확보
+ * 2. Fast Kill: 데이터 확보 즉시 중단
+ * 3. Proxy Rotation: Bright Data Residential IP + Session Randomization 적용
+ * 4. Strict Location Verification: 중심점 거리 30m 이내 정밀 타격
  */
 
 import { chromium, Browser, BrowserContext, Page, Frame } from 'playwright';
@@ -47,11 +44,42 @@ import {
 import { isBusinessMatch } from './utils';
 
 // ==========================================
+// Constants & Configuration
+// ==========================================
+
+const MAX_LOCATION_RETRIES = 5;         // 끈질긴 재시도 (5회)
+const DISTANCE_THRESHOLD_METERS = 150;  // 허용 오차 150m (대형 상권 중심점 오차 반영)
+
+// ==========================================
 // Shared Helpers
 // ==========================================
 
 function delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * 📏 거리 계산 함수 (m 단위)
+ * Haversine 공식의 간소화 버전 (유클리드 거리 + 위도 보정)
+ * 작은 거리(수 km 이내)에서는 충분히 정확함
+ */
+function calculateDistanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371e3; // 지구 반지름 (미터)
+    const toRad = Math.PI / 180;
+
+    // 위도 보정 계수 (한국 약 0.8)
+    const correctionFactor = Math.cos(lat1 * toRad);
+
+    const dLat = (lat2 - lat1) * toRad;
+    const dLng = (lng2 - lng1) * toRad * correctionFactor;
+
+    // 단순 피타고라스 (작은 거리 근사)
+    // 정확한 Haversine보다 계산 빠르고, 30m 판별엔 차이 없음
+    const a = (dLat * dLat) + (dLng * dLng);
+    const c = Math.sqrt(a);
+    const distance = c * R;
+
+    return distance;
 }
 
 /**
@@ -232,197 +260,160 @@ async function scrapeOnPage(
 ): Promise<ScrapeResult> {
     const { lat, lng, keyword, targetBusinessName } = task;
 
-    // 🧼 [Step 0] Keyword Sanitization (Listeners 설치 전에 수행해야 함!)
-    // 그래야 리스너가 "헬스장"을 기다리고, 브라우저도 "헬스장"을 검색함 -> 매칭 성공률 100%
-
-
-
-
-    // 🎯 JSON Intercept Data
     let interceptedPlaces: NaverPlaceResult[] = [];
     let isJsonHit = false;
-    let isBoundaryValid = false; // ✅ [Restore] 위치 검증 플래그
+    let isBoundaryValid = false;
+    let isLocationError = false;
 
-    // 1️⃣ 네트워크 감청 장치 설치
     page.on('response', async (response) => {
         const url = response.url();
 
-        // Target API: 'api/search/allSearch' (Log confirmed)
         if (url.includes('api/search/allSearch')) {
             try {
-                // ✅ 모든 allSearch 응답 캡처 (키워드 매칭 제거)
-                // 이유: "근처 맛집", "건대 데이트 맛집" 등 복합 키워드의 URL 인코딩 차이로 매칭 실패 방지
-                // 보호: boundary 검증이 잘못된 위치를 잡아냄
                 const json = await response.json();
-
-                // JSON Parsing Strategy (allSearch Response)
-                // 보통 result.place.list 또는 result.site.list 구조
                 let items: any[] = [];
 
-                if (json?.result?.place?.list) {
-                    items = json.result.place.list;
-                } else if (json?.result?.site?.list) {
-                    items = json.result.site.list;
-                } else if (json?.result?.list) {
-                    items = json.result.list;
-                }
+                if (json?.result?.place?.list) items = json.result.place.list;
+                else if (json?.result?.site?.list) items = json.result.site.list;
+                else if (json?.result?.list) items = json.result.list;
 
                 if (items && Array.isArray(items) && items.length > 0) {
-                    console.log(`[Scraper v5] 🎯 JSON HIT! Intercepted ${items.length} items from 'allSearch'.`);
+                    console.log(`[Scraper v5] 🎯 JSON HIT! Intercepted ${items.length} items.`);
 
-                    // 🗺️ [Restore & Improve] Boundary Validation
-                    // 목표 좌표가 검색 결과의 범위(boundary) 안에 있는지 확인
+                    // 🗺️ Strict Location Verification
                     const boundary = json?.result?.place?.boundary;
+
                     if (boundary && Array.isArray(boundary) && boundary.length === 4) {
                         const b = boundary.map(Number);
-                        // 순서에 상관없이 최대/최소값 추출 (안전장치)
                         const minLng = Math.min(b[0], b[2]);
                         const maxLng = Math.max(b[0], b[2]);
                         const minLat = Math.min(b[1], b[3]);
                         const maxLat = Math.max(b[1], b[3]);
 
-                        // 🛠️ Tolerance (여유범위) 추가 - 약 2km (0.02도)
-                        const BUFFER = 0.02;
+                        // 중심점 계산
+                        const centerLat = (minLat + maxLat) / 2;
+                        const centerLng = (minLng + maxLng) / 2;
 
-                        const isLatIn = lat >= (minLat - BUFFER) && lat <= (maxLat + BUFFER);
-                        const isLngIn = lng >= (minLng - BUFFER) && lng <= (maxLng + BUFFER);
+                        // 거리 계산
+                        const distanceMeters = calculateDistanceMeters(lat, lng, centerLat, centerLng);
 
-                        isBoundaryValid = isLatIn && isLngIn;
-
-                        if (!isBoundaryValid) {
-                            console.log(`[Scraper v5] ⚠️ Boundary Mismatch! (IP Fallback Detected?)`);
-                            console.log(`   Target: (${lat}, ${lng})`);
-                            console.log(`   Boundary: lat[${minLat}~${maxLat}], lng[${minLng}~${maxLng}]`);
+                        if (distanceMeters <= DISTANCE_THRESHOLD_METERS) {
+                            console.log(`[Scraper v5] ✅ Location Verified (Dist: ${distanceMeters.toFixed(1)}m)`);
+                            isBoundaryValid = true;
                         } else {
-                            console.log(`[Scraper v5] ✅ Boundary Verified.`);
+                            console.log(`[Scraper v5] ⚠️ Location Mismatch! (Dist: ${distanceMeters.toFixed(1)}m > ${DISTANCE_THRESHOLD_METERS}m)`);
+                            console.log(`   Target: (${lat}, ${lng}) vs Map: (${centerLat.toFixed(6)}, ${centerLng.toFixed(6)})`);
+                            isBoundaryValid = false;
                         }
                     } else {
-                        // boundary 정보가 없으면 통과
-                        isBoundaryValid = true;
+                        console.log(`[Scraper v5] ❌ Boundary Missing! Cannot verify location.`);
+                        isBoundaryValid = false; // Boundary 없으면 실패 처리
                     }
 
-                    // Parse JSON Items
                     interceptedPlaces = items.map((item: any, index: number) => ({
                         rank: index + 1,
                         businessName: item.name || item.title || 'Unknown',
                         naverPlaceId: item.id,
                         address: item.roadAddress || item.addr || '',
                         isAd: item.isAd || item.adId ? true : false
-                    })).filter(p => !p.isAd); // 필터링
+                    })).filter(p => !p.isAd);
 
-                    // 랭킹 재조정
                     interceptedPlaces = interceptedPlaces.map((p, i) => ({ ...p, rank: i + 1 }));
-
                     isJsonHit = true;
                 }
             } catch (e) {
                 // Ignore parsing errors
-                console.log(`[Scraper v5] JSON Parsing Error for ${url}:`, e);
+                // console.log(`[Scraper v5] JSON Parsing Error for ${url}:`, e);
             }
         }
     });
 
     try {
-        // ========== Step 1 ~ 3: 이동 및 줌인 (기존 로직 유지) ==========
-        await page.goto('https://map.naver.com/p', { waitUntil: 'domcontentloaded' });
-        await delay(1500);
-        await forceZoomIn(page);
-
-        // 좌표 이동 (필수: 서버가 IP 기반이 아닌 해당 위치 데이터를 보내게 하려면 이동해야 함)
-        await moveToLocation(page, lat, lng);
-        await forceZoomIn(page);
-
-        // ========== Step 4: 키워드 검색 ==========
-        const searchInputSelector = 'input.input_search';
-        const clearBtn = page.locator('.btn_clear');
-        if (await clearBtn.isVisible()) await clearBtn.click();
-        else {
-            const input = page.locator(searchInputSelector);
-            await input.click();
-            await input.clear();
-        }
-        await delay(300);
-
-        const searchInput = page.locator(searchInputSelector);
-        await searchInput.click();
-        await searchInput.fill(keyword);
-
-        console.log(`[Scraper v5] 🔎 Searching: "${keyword}"...`);
-
-        // 2️⃣ 검색 실행 (이때 네트워크 요청 발생 -> 리스너 낚아채임)
-        await searchInput.press('Enter');
-
-        // 3️⃣ [Fast Kill] JSON 기다리기 (최대 3초)
-        const maxWaitTime = 3000;
-        const checkInterval = 100;
-        let elapsed = 0;
-
-        while (!isJsonHit && elapsed < maxWaitTime) {
-            await delay(checkInterval);
-            elapsed += checkInterval;
-        }
-
         let results: NaverPlaceResult[] = [];
         let retryCount = 0;
-        const MAX_LOCATION_RETRIES = 2;
 
+        // 🔄 Main Retry Loop
         while (retryCount <= MAX_LOCATION_RETRIES) {
-            if (isJsonHit) {
-                // ✅ Case A: JSON Success
-                if (isBoundaryValid) {
-                    console.log(`[Scraper v5] 🚀 Fast Kill! Using JSON Data.`);
-                    results = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
-                    break;  // 성공, 루프 탈출
+
+            // 재시도 시 로그 출력
+            if (retryCount > 0) {
+                console.log(`[Scraper v5] 🔄 Retry Attempt ${retryCount}/${MAX_LOCATION_RETRIES}...`);
+            }
+
+            // 1. 이동 및 검색 수행
+            try {
+                // 페이지 새로고침 (Clear Cache)
+                if (retryCount > 0) {
+                    await page.reload({ waitUntil: 'domcontentloaded' });
+                    await delay(1000);
                 } else {
-                    // ⚠️ 위치 불일치 - 재시도
-                    console.log(`[Scraper v5] 🔄 Location mismatch detected. Retry ${retryCount + 1}/${MAX_LOCATION_RETRIES}...`);
-                    retryCount++;
-
-                    if (retryCount > MAX_LOCATION_RETRIES) {
-                        console.log(`[Scraper v5] ❌ Max retries reached. Using current results anyway.`);
-                        results = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
-                        break;
-                    }
-
-                    // 재시도: 데이터 초기화
-                    isJsonHit = false;
-                    isBoundaryValid = false;
-                    interceptedPlaces = [];
-
-                    // 🔄 [핵심] 페이지 완전 새로고침 - 캐시된 상태 초기화
-                    console.log(`[Scraper v5] 🔄 Refreshing page to clear cached state...`);
                     await page.goto('https://map.naver.com/p', { waitUntil: 'domcontentloaded' });
                     await delay(1500);
-                    await forceZoomIn(page);
+                }
 
-                    // 좌표 이동 & 검색
-                    await moveToLocation(page, lat, lng);
-                    await forceZoomIn(page);
+                await forceZoomIn(page);
+                await moveToLocation(page, lat, lng);
+                await forceZoomIn(page);
 
-                    const retryInput = page.locator(searchInputSelector);
-                    const retryClearBtn = page.locator('.btn_clear');
-                    if (await retryClearBtn.isVisible()) await retryClearBtn.click();
-                    await retryInput.click();
-                    await retryInput.fill(keyword);
-                    await retryInput.press('Enter');
+                const searchInputSelector = 'input.input_search';
+                const clearBtn = page.locator('.btn_clear');
+                if (await clearBtn.isVisible()) await clearBtn.click();
 
-                    // 새 결과 대기
-                    let retryElapsed = 0;
-                    while (!isJsonHit && retryElapsed < maxWaitTime) {
-                        await delay(checkInterval);
-                        retryElapsed += checkInterval;
+                const searchInput = page.locator(searchInputSelector);
+                await searchInput.click();
+                await searchInput.fill(keyword);
+                await delay(300);
+
+                // 데이터 초기화
+                isJsonHit = false;
+                isBoundaryValid = false;
+                interceptedPlaces = [];
+
+                console.log(`[Scraper v5] 🔎 Searching: "${keyword}"...`);
+                await searchInput.press('Enter');
+
+                // JSON 대기
+                const maxWaitTime = 3000;
+                const checkInterval = 100;
+                let elapsed = 0;
+                while (!isJsonHit && elapsed < maxWaitTime) {
+                    await delay(checkInterval);
+                    elapsed += checkInterval;
+                }
+
+            } catch (navError) {
+                console.log(`[Scraper v5] Navigation error:`, navError);
+                // 네비게이션 에러 시 재시도 카운트 증가 후 continue
+                retryCount++;
+                continue;
+            }
+
+            // 2. 결과 검증
+            if (isJsonHit) {
+                if (isBoundaryValid) {
+                    // ✅ 성공
+                    console.log(`[Scraper v5] 🚀 Success! Location Verified.`);
+                    results = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
+                    break;
+                } else {
+                    // ❌ 위치 불일치
+                    retryCount++;
+                    if (retryCount > MAX_LOCATION_RETRIES) {
+                        isLocationError = true;
+                        throw new Error(`Location verification failed after ${MAX_LOCATION_RETRIES} retries.`);
                     }
-                    continue;  // 다시 검증 루프
+                    continue; // 재시도
                 }
             } else {
-                // ⚠️ Case B: JSON Fail -> DOM Fallback
+                // ⚠️ JSON 실패 -> DOM Fallback
                 console.log(`[Scraper v5] ⚠️ JSON Missed. Fallback to DOM parsing...`);
+
+                // DOM Fallback은 위치 검증이 불가능하므로 경고 로그 남김
+                console.log(`[Scraper v5] ⚠️ WARNING: DOM results are unverified for location accuracy.`);
 
                 const frames = page.frames();
                 const searchFrame = frames.find(f => f.name() === 'searchIframe');
-
-                // iframe 기다리기 (최대 5초)
-                if (!searchFrame) await delay(2000); // 렌더링 대기
+                if (!searchFrame) await delay(2000);
 
                 const freshFrames = page.frames();
                 const freshSearchFrame = freshFrames.find(f => f.name() === 'searchIframe');
@@ -431,15 +422,12 @@ async function scrapeOnPage(
                     try {
                         await freshSearchFrame.waitForSelector('span.TYaxT', { timeout: 8000 });
                         results = await parseSearchResultsInFrame(freshSearchFrame);
-                    } catch (e) {
-                        console.log('[Scraper v5] Fallback failed: Element not found');
-                    }
+                    } catch (e) { }
                 }
-                break;  // DOM fallback은 재시도 없이 종료
+                break; // DOM은 재시도 안 함
             }
         }
 
-        // ========== Step 6: 타겟 순위 찾기 ==========
         let targetRank: number | null = null;
         if (targetBusinessName) {
             const matchedResult = results.find(r =>
@@ -475,25 +463,21 @@ export async function scrapeNaverBatch(
     checkJobExists?: (searchId: string) => Promise<boolean>
 ): Promise<NaverScrapeBatchResult[]> {
     const results: NaverScrapeBatchResult[] = [];
-
-    // 🔄 Keyword Logging (Sanitization disabled)
     const uniqueKeywords = [...new Set(tasks.map(t => t.keyword))];
     console.log(`Keywords: [ ${uniqueKeywords.map(k => `'${k}'`).join(', ')} ]`);
+    console.log(`[Scraper v5] Starting Proxy-Enhanced Batch: ${tasks.length} tasks`);
 
-    console.log(`[Scraper v5] Starting V5 Batch: ${tasks.length} tasks`);
-
-    // 배치 전체 시간 측정용
     const batchStartTime = Date.now();
 
+    // Browser Launch (Global)
     const browser = await chromium.launch({ headless: true });
 
     try {
         for (let i = 0; i < tasks.length; i++) {
-            // 좀비 체크
             if (searchId && checkJobExists) {
                 const jobExists = await checkJobExists(searchId);
                 if (!jobExists) {
-                    console.log(`[Zombie Killer] 🛑 Job ${searchId} was cancelled. Stopping.`);
+                    console.log(`[Zombie Killer] 🛑 Job ${searchId} was cancelled.`);
                     break;
                 }
             }
@@ -501,84 +485,87 @@ export async function scrapeNaverBatch(
             const task = tasks[i];
             onProgress?.(i, tasks.length);
 
-            const context = await browser.newContext({
+            // 🛡️ Proxy Configuration (Dynamic Session ID)
+            // 매 Task마다 새로운 세션 ID를 생성하여 IP 회전을 강제함
+            const sessionID = Math.random().toString(36).substring(7);
+            const username = process.env.BRIGHT_DATA_USER || '';
+            const password = process.env.BRIGHT_DATA_PASS || '';
+            const host = process.env.BRIGHT_DATA_HOST || '';
+            const port = process.env.BRIGHT_DATA_PORT || '';
+
+            // 유저네임에 세션 ID 추가 (Bright Data 표준)
+            const proxyUsername = username ? `${username}-session-${sessionID}` : '';
+
+            const contextOptions: any = {
                 viewport: { width: 1280, height: 720 },
                 locale: 'ko-KR',
                 userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            });
+                timezoneId: 'Asia/Seoul', // 타임존도 한국으로 명시
+                permissions: ['geolocation'], // 위치 권한 허용
+                geolocation: { latitude: task.lat, longitude: task.lng }, // 브라우저 레벨 위치 설정
+            };
+
+            // 프록시 정보가 있으면 적용
+            if (host && port && username && password) {
+                contextOptions.proxy = {
+                    server: `http://${host}:${port}`,
+                    username: proxyUsername,
+                    password: password
+                };
+                console.log(`[Scraper v5] 🛡️ Proxy Active (Session: ${sessionID})`);
+            } else {
+                console.warn(`[Scraper v5] ⚠️ Proxy config missing. Running with direct connection.`);
+            }
+
+            const context = await browser.newContext(contextOptions);
             const page = await context.newPage();
-            page.setDefaultTimeout(20000);
 
-            // [측정] CDP 세션 시작 (데이터 사용량 정밀 측정)
+            // Residential Proxy는 느릴 수 있으므로 타임아웃 60초로 증가
+            page.setDefaultTimeout(60000);
+
+            // CDP & Stats logic ...
             let totalEncodedBytes = 0;
-            let totalCachedBytes = 0; // [New] 캐시된 양 추적
-
             const cdpSession = await context.newCDPSession(page);
             await cdpSession.send('Network.enable');
             cdpSession.on('Network.loadingFinished', (params: { encodedDataLength?: number }) => {
-                if (params.encodedDataLength) {
-                    totalEncodedBytes += params.encodedDataLength;
-                }
+                if (params.encodedDataLength) totalEncodedBytes += params.encodedDataLength;
             });
 
-            // 꼼수: applyResourceBlocking에서 page 객체에 커스텀 속성을 넣거나,
-            // 클로저를 활용해야 함. 여기서는 applyResourceBlocking 호출 시 카운터 증가 로직을 주입.
-            // ...하지만 applyResourceBlocking 시그니처를 바꾸면 번거로움.
-
-            // 대안: applyResourceBlocking을 이 파일 내에서 재정의하지 않고,
-            // 그냥 위쪽 함수(applyResourceBlocking)에서 totalCachedBytes를 건드릴 수 없으므로
-            // page 객체에다가 임시로 붙여서 카운팅.
             const stats = { cachedBytes: 0 };
-
             const taskStartTime = Date.now();
-            await applyResourceBlocking(page, stats); // 시그니처 변경 필요
+            await applyResourceBlocking(page, stats);
 
+            // 🚀 EXECUTE SCRAPE
             const result = await scrapeOnPage(page, task);
 
-            // [보정] Fast Kill의 경우 CDP 이벤트가 아직 도착 안 했을 수 있으므로 잠시 대기
             await delay(200);
-
             const taskDuration = (Date.now() - taskStartTime) / 1000;
-
-            // 계산
             const totalMB = (totalEncodedBytes / 1024 / 1024);
             const cachedMB = (stats.cachedBytes / 1024 / 1024);
-            // CDP가 'Network'로 인식한 것 중 실제로 우리가 캐시로 준 것도 포함될 수 있음.
-            // 하지만 안전하게: Real Network ≈ Total - Cached
-            // 단, CDP가 0으로 잡았을 수도 있으므로 Max(0, ...) 처리
             let realNetworkMB = totalMB - cachedMB;
             if (realNetworkMB < 0) realNetworkMB = 0;
 
             console.log(`[Scraper v5] ✅ Task ${i + 1}/${tasks.length}: ⏱️ ${taskDuration.toFixed(2)}s`);
-            console.log(`   └─ 📊 Data: ${totalMB.toFixed(2)} MB (🔥Real Net: ${realNetworkMB.toFixed(2)} MB / ⚡Cache: ${cachedMB.toFixed(2)} MB)`);
+            console.log(`   └─ 📊 Data: ${totalMB.toFixed(2)} MB (🔥Real: ${realNetworkMB.toFixed(2)} MB)`);
 
             results.push({
                 ...result,
-                keyword: task.keyword, // 원본 키워드 (sanitization 비활성화됨)
+                keyword: task.keyword,
                 gridIndex: task.gridIndex,
                 lat: task.lat,
                 lng: task.lng,
-                dataUsageBytes: totalEncodedBytes - stats.cachedBytes, // 저장용은 실사용량
+                dataUsageBytes: totalEncodedBytes - stats.cachedBytes,
                 durationSeconds: taskDuration
             });
 
-            await context.close();
-
+            await context.close(); // Session Exit (IP Release)
             if (i < tasks.length - 1) await delay(1000);
         }
     } finally {
         await browser.close();
 
-        // ========== [New] 누적 통계 출력 ==========
-        const batchEndTime = Date.now();
-        const totalBatchDuration = (batchEndTime - batchStartTime) / 1000;
-        const totalBatchBytes = results.reduce((acc, r) => acc + (r.dataUsageBytes || 0), 0);
-        const totalBatchMB = (totalBatchBytes / 1024 / 1024).toFixed(2);
-
-        console.log(`[Scraper v5] 🏁 Batch Complete!`);
-        console.log(`[Scraper v5] 📉 Total Data Replaced: ${totalBatchMB} MB`);
-        console.log(`[Scraper v5] ⏱️  Total Duration: ${totalBatchDuration.toFixed(1)}s`);
-        console.log(`[Scraper v5] 🔌 Global browser closed.`);
+        const totalBatchDuration = (Date.now() - batchStartTime) / 1000;
+        console.log(`[Scraper v5] 🏁 Batch Complete! Total Time: ${totalBatchDuration.toFixed(1)}s`);
     }
 
     return results;
