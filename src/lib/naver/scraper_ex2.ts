@@ -115,7 +115,10 @@ async function moveToLocation(page: Page, lat: number, lng: number) {
         await page.locator('span').filter({ hasText: /^\d+(m|km)$/ }).first().waitFor({ state: 'visible', timeout: 30000 });
         console.log('[Scraper Ex2] 🗺️ Map fully rendered (Scale indicator found)');
     } catch (e) {
-        console.log('[Scraper Ex2] ⚠️ Scale indicator not found, proceeding anyway...');
+        console.log('[Scraper Ex2] ⚠️ Scale indicator not found. Reloading page...');
+        await page.reload({ waitUntil: 'load', timeout: 60000 });
+        await delay(5000); // 새로고침 후 안정화 대기
+        console.log('[Scraper Ex2] 🔄 Page reloaded. Continuing...');
     }
 
     try {
@@ -179,7 +182,7 @@ async function moveToLocation(page: Page, lat: number, lng: number) {
                 break; // 성공 시 루프 탈출
             } catch (e) {
                 console.log(`[Scraper Ex2] ⚠️ Move Verification Failed (URL not changed). Retrying...`);
-                await delay(1000); // 잠시 대기 후 재시도
+                await delay(5000); // 더 긴 대기 후 재시도 (프록시 환경)
             }
         }
 
