@@ -488,8 +488,8 @@ export async function scrapeNaverBatch(
             // 🛡️ Proxy Configuration (Dynamic Session ID)
             // 매 Task마다 새로운 세션 ID를 생성하여 IP 회전을 강제함
             const sessionID = Math.random().toString(36).substring(7);
-            const username = process.env.BRIGHT_DATA_USER || '';
-            const password = process.env.BRIGHT_DATA_PASS || '';
+            const username = process.env.BRIGHT_DATA_USERNAME || '';
+            const password = process.env.BRIGHT_DATA_PASSWORD || '';
             const host = process.env.BRIGHT_DATA_HOST || '';
             const port = process.env.BRIGHT_DATA_PORT || '';
 
