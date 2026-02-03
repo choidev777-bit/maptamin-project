@@ -147,6 +147,14 @@ export async function POST(request: Request) {
     // 예상 소요 시간 계산
     const estimatedTime = enabledPoints * keywords.length * 3
 
+    // 🆕 Trigger queue dispatcher (non-blocking)
+    // This will start the job if slots are available
+    const baseUrl = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || ''
+    fetch(`${baseUrl}/api/queue/dispatch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    }).catch(err => console.error('[Search] Dispatcher trigger failed:', err))
+
     return NextResponse.json({
         searchId: search.id,
         status: 'pending',
