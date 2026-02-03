@@ -1,13 +1,13 @@
 -- =============================================
 -- Migration: 013_dispatch_queue.sql
--- Purpose: Sliding Window Queue System (Max 20 Concurrent Jobs)
+-- Purpose: Sliding Window Queue System (Max 5 Concurrent Jobs)
 -- =============================================
 
 -- Configuration constant
 CREATE OR REPLACE FUNCTION get_max_concurrent_jobs()
 RETURNS INTEGER AS $$
 BEGIN
-    RETURN 20;
+    RETURN 5;
 END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 

@@ -611,7 +611,8 @@ export async function scrapeNaverBatch(
                     await delay(3000);
                     console.log('[Scraper Ex2] ✅ Warmup complete.');
                 } catch (e) {
-                    console.log('[Scraper Ex2] ⚠️ Warmup failed, proceeding anyway...');
+                    console.log('[Scraper Ex2] ❌ Warmup failed! Aborting session (Fail Fast)...');
+                    throw new Error('WARMUP_FAILED: Proxy connection unstable');
                 }
 
                 // 워밍업 후 상태 초기화
@@ -654,8 +655,8 @@ export async function scrapeNaverBatch(
                     console.log('[Scraper Ex2] ⚠️ Map drag failed, proceeding anyway...');
                 }
 
-                // Step 4: Robust Search & Parsing Loop (Retry Logic)
-                const MAX_SEARCH_RETRY = 2;
+                // Step 4: Persistent Retry Loop (최대 5회 엔터 재시도)
+                const MAX_SEARCH_RETRY = 5;
                 let taskResults: NaverPlaceResult[] = [];
 
                 for (let attempt = 1; attempt <= MAX_SEARCH_RETRY; attempt++) {
@@ -687,38 +688,25 @@ export async function scrapeNaverBatch(
 
                         // 🎯 Case 1: JSON 성공
                         if (isJsonHit && interceptedPlaces.length > 0) {
-                            console.log(`[Scraper Ex2] 🎯 JSON HIT! Intercepted ${interceptedPlaces.length} items.`);
+                            console.log(`[Scraper Ex2] 🚀 Fast Kill! Using JSON Data.`);
                             taskResults = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
                             break; // 성공!
                         }
 
-                        // ⚠️ Case 2: JSON 실패 -> DOM 파싱 시도
-                        console.log(`[Scraper Ex2] ⚠️ JSON Missed. Fallback to DOM parsing...`);
-                        await delay(2000); // DOM 렌더링 대기
-
-                        const frames = page.frames();
-                        const searchFrame = frames.find(f => f.name() === 'searchIframe');
-
-                        if (searchFrame) {
-                            const domResults = await parseSearchResultsInFrame(searchFrame);
-                            if (domResults.length > 0) {
-                                console.log(`[Scraper Ex2] ✅ DOM Parsed ${domResults.length} items.`);
-                                taskResults = domResults;
-                                break; // 성공!
-                            } else {
-                                console.log(`[Scraper Ex2] ⚠️ DOM also returned 0 results.`);
-                            }
-                        } else {
-                            console.log(`[Scraper Ex2] ⚠️ searchIframe not found.`);
-                        }
-
-                        // 🔄 실패 시 재시도 준비
+                        // ⚠️ Case 2: JSON 실패 -> 재시도 (DOM 파싱 건너뜀)
                         if (attempt < MAX_SEARCH_RETRY) {
-                            console.log(`[Scraper Ex2] 🔄 Retry #${attempt + 1}...`);
-                            await resetSearchState(page);
+                            console.log(`[Scraper Ex2] ⚠️ JSON Missed. Retrying (${attempt}/${MAX_SEARCH_RETRY})...`);
+                            // 입력창 값 확인 후 재입력
+                            const inputValue = await page.locator('input.input_search').inputValue();
+                            if (!inputValue || inputValue !== keyword) {
+                                console.log(`[Scraper Ex2] 🔄 Re-typing keyword...`);
+                                const clearBtn = page.locator('.btn_clear');
+                                if (await clearBtn.isVisible()) await clearBtn.click();
+                                await page.locator('input.input_search').fill(keyword);
+                            }
                             await delay(1000);
                         } else {
-                            console.log(`[Scraper Ex2] ❌ All retries failed. Returning empty result.`);
+                            console.log(`[Scraper Ex2] ❌ All ${MAX_SEARCH_RETRY} retries failed. Returning empty result.`);
                         }
 
                     } catch (e) {

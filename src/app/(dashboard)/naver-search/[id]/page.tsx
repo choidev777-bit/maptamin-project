@@ -97,14 +97,17 @@ export default async function NaverSearchResultsPage({ params }: PageProps) {
             )}
 
             {search.status === 'failed' && (
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
-                        <span className="text-2xl">❌</span>
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
+                        <span className="text-2xl">⚠️</span>
                     </div>
-                    <h2 className="text-xl font-semibold text-red-800 mb-2">처리 실패</h2>
-                    <p className="text-red-600">네이버 검색 처리 중 오류가 발생했습니다.</p>
-                    <p className="text-red-500 text-sm mt-2">
-                        네이버 정책 변경으로 인해 일시적으로 사용이 제한될 수 있습니다.
+                    <h2 className="text-xl font-semibold text-amber-800 mb-2">검색 취소됨</h2>
+                    <p className="text-amber-700">현재 사용자가 많아 검색이 취소되었습니다.</p>
+                    <p className="text-amber-600 text-sm mt-2">
+                        사용된 포인트는 <strong>자동으로 환불</strong>되었습니다.
+                    </p>
+                    <p className="text-gray-500 text-xs mt-4">
+                        잠시 후 다시 시도해 주세요.
                     </p>
                 </div>
             )}
