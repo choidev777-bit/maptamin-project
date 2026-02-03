@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 // We will import them inside the main function or use require if needed, 
 // but standard ES import is cleaner if the modules are isomorphic.
 // Assuming scraper.ts is isomorphic or Node-safe.
-import { scrapeNaverBatch } from '../src/lib/naver/scraper_ex2';
+import { scrapeNaverBatch } from '../src/lib/naver/scraper';
 import { NaverScrapeTask } from '../src/lib/naver/types';
 
 // Initialize Admin Client (Bypass RLS)
