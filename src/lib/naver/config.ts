@@ -13,9 +13,9 @@ export const NAVER_SCRAPER_CONFIG = {
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 
     // 타임아웃 설정 (ms)
-    navigationTimeout: 30000,  // 30초
-    searchTimeout: 15000,      // 15초
-    elementTimeout: 10000,     // 10초
+    navigationTimeout: 60000,  // 60초 (Proxy 연결 안정성 확보)
+    searchTimeout: 30000,      // 30초
+    elementTimeout: 20000,     // 20초
 
     // Rate Limiting (차단 방지)
     delayBetweenRequests: 2000,  // 요청 간 2초 대기
