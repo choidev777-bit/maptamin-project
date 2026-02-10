@@ -1,7 +1,6 @@
 name: Scheduled Search
 on:
-  schedule:
-    - cron: '0 1 * * *' # Run at 10 AM KST (UTC 1:00)
+
   workflow_dispatch: # Allow manual trigger for testing
 
 jobs:

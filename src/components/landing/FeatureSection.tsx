@@ -1,0 +1,232 @@
+import {
+    CheckCircle2,
+    AlertTriangle,
+    BarChart3,
+    Map,
+    ClipboardCheck,
+    MessageCircle,
+    Zap,
+    Flame,
+} from 'lucide-react'
+
+export default function FeatureSection() {
+    return (
+        <>
+            <section className="mx-auto max-w-7xl px-6 py-20">
+                <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
+                    {/* 1. 텍스트 & 신호등 설명 */}
+                    <div className="space-y-8">
+                        <div className="space-y-4">
+                            <span className="inline-block rounded-full bg-[#00C896]/10 px-4 py-1.5 text-sm font-bold text-[#00C896]">
+                                Smart Analysis
+                            </span>
+                            <h2 className="text-3xl font-black leading-tight text-gray-900 lg:text-4xl">
+                                데이터 분석, 몰라도 괜찮습니다. <br />
+                                <span className="text-[#00C896]">초록색</span>과{' '}
+                                <span className="text-red-500">빨간색</span>만 구분하세요.
+                            </h2>
+                        </div>
+                        <div className="space-y-6">
+                            <div className="group flex gap-4">
+                                <div className="flex size-12 flex-none items-center justify-center rounded-2xl bg-[#00C896]/10 text-[#00C896] transition-all group-hover:scale-110">
+                                    <CheckCircle2 className="h-6 w-6 font-bold" />
+                                </div>
+                                <div>
+                                    <h3 className="flex items-center gap-2 text-lg font-bold">
+                                        🟢 초록불 (안전){' '}
+                                        <span className="text-sm font-normal text-slate-400">1~5위</span>
+                                    </h3>
+                                    <p className="leading-relaxed text-slate-500">
+                                        사장님이 완벽하게 장악한 &lsquo;내 구역&rsquo; 입니다. 매출이
+                                        발생하는 안전지대입니다.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="group flex gap-4">
+                                <div className="flex size-12 flex-none items-center justify-center rounded-2xl bg-yellow-400/10 text-yellow-500 transition-all group-hover:scale-110">
+                                    <AlertTriangle className="h-6 w-6 font-bold" />
+                                </div>
+                                <div>
+                                    <h3 className="flex items-center gap-2 text-lg font-bold">
+                                        🟡 노란불 (주의){' '}
+                                        <span className="text-sm font-normal text-slate-400">6~10위</span>
+                                    </h3>
+                                    <p className="leading-relaxed text-slate-500">
+                                        조금만 밀어붙이면 &lsquo;내 구역&rsquo; 이 됩니다. 가장 가성비 좋게
+                                        순위를 올릴 수 있는 기회의 좌표입니다.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="group flex gap-4">
+                                <div className="flex size-12 flex-none items-center justify-center rounded-2xl bg-red-500/10 text-red-500 transition-all group-hover:scale-110">
+                                    <Flame className="h-6 w-6 font-bold" />
+                                </div>
+                                <div>
+                                    <h3 className="flex items-center gap-2 text-lg font-bold">
+                                        🔴 빨간불 (위험){' '}
+                                        <span className="text-sm font-normal text-slate-400">10위 밖</span>
+                                    </h3>
+                                    <p className="leading-relaxed text-slate-500">
+                                        경쟁사에게 손님을 모두 뺏기고 있습니다. 지금 당장 조치가 필요한 경고
+                                        신호입니다.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2. 히트맵 시각화 카드 */}
+                    <div className="group relative">
+                        <div className="absolute -inset-4 rounded-[2.5rem] bg-gradient-to-tr from-[#00C896]/20 to-transparent blur-2xl opacity-50 transition-opacity group-hover:opacity-100" />
+                        <div className="relative overflow-hidden rounded-[2rem] border border-slate-100 bg-white p-4 shadow-2xl">
+                            <div
+                                className="pointer-events-none absolute inset-0 grayscale contrast-125 opacity-20"
+                                style={{
+                                    backgroundImage:
+                                        "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBJ7KNLS4oRktCz_k5fHA_aUS36k3EPGv5nZle05sbEWO02aHiGCY-3tZxlxC_ZkuE-35IZ9ZLC5odObfbuGHltENa-8E2KgJmR9Yq06OmfXaaXHPJ4d3oanENN8LQHD7nzjj_3QoEGwWLv4BZBjTMEq8vuTg_Q3XwbbvTo0infeVhLYT21J2QvnGA95RPU7ugmUT7LYyZdvpdTAEu43kAXTslKsA2A98ulhKxHb1th3IYSob2tLdUOmzvCPv6G0eNB3FwnG7tVT-1s')",
+                                    backgroundSize: 'cover',
+                                }}
+                            />
+                            <div className="relative space-y-4 p-6">
+                                <div className="mb-8 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="size-3 rounded-full bg-red-500" />
+                                        <div className="size-3 rounded-full bg-yellow-400" />
+                                        <div className="size-3 rounded-full bg-[#00C896]" />
+                                    </div>
+                                    <div className="rounded-full bg-slate-50 px-4 py-1.5 text-xs font-semibold text-slate-400">
+                                        Live Analysis Tracking
+                                    </div>
+                                </div>
+                                {/* 7x7 Grid */}
+                                <div className="grid aspect-square grid-cols-7 gap-2">
+                                    {[...Array(49)].map((_, i) => {
+                                        // 가상의 데이터 분포 (중심부는 초록, 외곽은 빨강/노랑)
+                                        let colorClass = 'bg-red-500/40' // 기본 빨강 (외곽)
+                                        if (i === 24)
+                                            colorClass =
+                                                'bg-[#00C896] ring-4 ring-white shadow-xl animate-pulse' // 중심 (내 가게)
+                                        else if (
+                                            [16, 17, 18, 23, 25, 30, 31, 32].includes(i)
+                                        )
+                                            colorClass = 'bg-[#00C896]/60' // 주변 초록
+                                        else if (
+                                            [
+                                                8, 9, 10, 11, 12, 15, 19, 22, 26, 29, 33, 36, 37, 38,
+                                                39, 40,
+                                            ].includes(i)
+                                        )
+                                            colorClass = 'bg-yellow-400/60' // 중간 노랑
+                                        else if ([0, 6, 42, 48].includes(i))
+                                            colorClass = 'bg-red-500/80' // 모서리 진한 빨강 (위험)
+
+                                        return (
+                                            <div key={i} className="flex items-center justify-center">
+                                                <div className={`size-4 rounded-full ${colorClass}`} />
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* 3. 장점 3가지 카드 */}
+            <section className="bg-[#f5f8f8] py-24">
+                <div className="mx-auto max-w-7xl px-6">
+                    <div className="mb-16 text-center">
+                        <h2 className="mb-4 text-3xl font-bold">왜 맵타민이어야 할까요?</h2>
+
+                    </div>
+                    <div className="grid gap-8 md:grid-cols-3">
+                        {[
+                            {
+                                icon: BarChart3,
+                                title: '이해하기 쉬운 신호등 시스템',
+                                desc: '초록불, 노란불, 빨간불로 내 가게의 위치별 진짜 순위를 한눈에 파악하세요.',
+                            },
+                            {
+                                icon: ClipboardCheck, // 팩트체크
+                                title: '팩트 체크',
+                                desc: '마케팅 대행사가 일을 제대로 하는지 감시하세요. 성과가 나타나면 지도의 색깔이 실시간으로 바뀝니다. 투명한 마케팅 성과를 확인하세요.',
+                            },
+                            {
+                                icon: Map, // 지도
+                                title: '경쟁사 땅따먹기',
+                                desc: '주변 경쟁 업체의 강점 지역과 약점 지역을 파악하여 전략적인 마케팅 포인트를 잡으세요. 비어있는 시장을 공략할 수 있습니다.',
+                            },
+                        ].map((feature, idx) => (
+                            <div
+                                key={idx}
+                                className="transition-all hover:-translate-y-2 rounded-2xl border border-slate-100 bg-white p-10 shadow-sm hover:shadow-xl"
+                            >
+                                <div className="mb-6 flex size-14 items-center justify-center rounded-2xl bg-[#00C896]/10 text-[#00C896]">
+                                    <feature.icon className="h-8 w-8" />
+                                </div>
+                                <h3 className="mb-4 text-xl font-bold">{feature.title}</h3>
+                                <p className="leading-relaxed text-slate-500">{feature.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* 4. 알림 서비스 */}
+            <section className="mx-auto max-w-7xl px-6 py-24">
+                <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
+                    {/* 왼쪽 요소: 텍스트 */}
+                    <div className="text-left">
+                        <h2 className="text-3xl font-bold leading-tight text-gray-900 lg:text-4xl">
+                            매일 접속하지 않으셔도 됩니다.
+                        </h2>
+                        <p className="mt-4 text-lg text-slate-500">
+                            바쁜 사장님을 위해 맵타민이 직접 찾아갑니다.
+                        </p>
+                    </div>
+
+                    {/* 오른쪽 요소: 카드 리스트 */}
+                    <div className="space-y-6">
+                        <div className="group flex cursor-pointer items-center gap-6 rounded-2xl border border-slate-100 bg-slate-50 p-6 transition-all hover:bg-white hover:shadow-lg">
+                            <div className="flex size-16 flex-none items-center justify-center rounded-2xl bg-white text-[#00C896] shadow-sm transition-transform group-hover:rotate-12">
+                                <MessageCircle className="h-8 w-8" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="mb-1 text-lg font-bold">
+                                    띵동! 배달 왔습니다{' '}
+                                    <span className="text-sm font-normal text-[#00C896]">
+                                        (주간 보고서)
+                                    </span>
+                                </h3>
+                                <p className="leading-relaxed text-sm text-slate-500">
+                                    사장님이 가장 한가한 시간을 알려주세요. 맵타민이 알아서
+                                    <br className="hidden lg:block" />
+                                    매주 카톡으로 &lsquo;플레이스 순위 지도&rsquo;를 보내드립니다.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="group flex cursor-pointer items-center gap-6 rounded-2xl border border-slate-100 bg-slate-50 p-6 transition-all hover:bg-white hover:shadow-lg">
+                            <div className="flex size-16 flex-none items-center justify-center rounded-2xl bg-white text-yellow-500 shadow-sm transition-transform group-hover:rotate-12">
+                                <Zap className="h-8 w-8" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="mb-1 text-lg font-bold">
+                                    지금 당장 확인하고 싶다면?{' '}
+                                    <span className="text-sm font-normal text-yellow-500">
+                                        (실시간 티켓)
+                                    </span>
+                                </h3>
+                                <p className="leading-relaxed text-sm text-slate-500">
+                                    궁금할 때 참지 마세요. &lsquo;실시간 진단 티켓&rsquo;으로 지금
+                                    이 순간의 순위를 즉시 조회할 수 있습니다.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </>
+    )
+}
