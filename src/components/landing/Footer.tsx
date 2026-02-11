@@ -40,7 +40,7 @@ export default function Footer() {
                     <h3 className="mb-2 text-sm font-bold text-gray-900">아카식 허브</h3>
                     <div className="space-y-1 text-xs text-gray-500">
                         <p>대표: 최연준 | 사업자등록번호: 186-35-01741 | 통신판매업신고: 제 2026-고양일산서-0229 호</p>
-                        <p>주소: 경기도 고양시 일산서구 대산로 142, 305동 | 개인정보관리책임자: 최연준</p>
+                        <p>주소: 경기도 고양시 일산서구 대산로 142, 305동 802호 | 개인정보관리책임자: 최연준</p>
                     </div>
                 </div>
 
