@@ -45,12 +45,12 @@ const PLANS: Plan[] = [
     },
     {
         name: '프로',
-        tagline: '대행사 검증 & 경쟁사 분석용',
+        tagline: '마케팅 성과 심층 분석용',
         monthly: '29,000원',
         yearly: '26,600원',
         yearlyTotal: '연 319,000원 결제',
         featured: true,
-        badge: '회원 83%가 구독 중',
+        badge: '회원 64%가 구독 중',
         features: [
             { text: '네이버 지도 진단', included: true },
             { text: '5×5 (25개 좌표) 분석', included: true },
@@ -73,7 +73,7 @@ const PLANS: Plan[] = [
             { text: '네이버 + 구글 지도 진단', included: true },
             { text: '7×7 (49개 좌표) 분석', included: true },
             { text: '관리 키워드 10개', included: true },
-            { text: '실시간 진단 티켓 월 30회', included: true },
+            { text: '실시간 진단 티켓 월 15회', included: true },
             { text: '주간 보고서 자동 발송', included: true },
             { text: '경쟁사 10곳 심층 분석', included: true },
             { text: '연결 가게 무제한 변경', included: true },
@@ -92,7 +92,7 @@ export default function PricingSection() {
                 {/* 섹션 타이틀 */}
                 <div className="text-center">
                     <h2 className="break-keep text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl lg:text-4xl">
-                        하루 900원대로 사장님의 플레이스 순위를 지키세요.
+                        <strong className="text-[#00C896]">하루 900원대</strong>로 사장님의 플레이스 순위를 지키세요.
                     </h2>
                     <p className="mt-4 break-keep text-base text-gray-600 sm:text-lg">
                         불필요한 기능은 빼고 &lsquo;순위 지도&rsquo; 하나에 집중했습니다.
@@ -134,11 +134,11 @@ export default function PricingSection() {
                 </div>
 
                 {/* 가격 카드 3개 */}
-                <div className="mt-12 grid items-center gap-6 lg:grid-cols-3">
+                <div className="mt-12 grid items-stretch gap-6 lg:grid-cols-3">
                     {PLANS.map((plan) => (
                         <div
                             key={plan.name}
-                            className={`relative rounded-3xl border p-7 transition-all duration-300 sm:p-8 ${plan.featured
+                            className={`relative flex flex-col rounded-3xl border p-7 transition-all duration-300 sm:p-8 ${plan.featured
                                 ? 'scale-[1.03] border-[#00C896] bg-white shadow-2xl shadow-[#00C896]/10 lg:scale-105 hover:-translate-y-1'
                                 : 'border-gray-200 bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg'
                                 }`}
@@ -173,7 +173,7 @@ export default function PricingSection() {
                             </div>
 
                             {/* 기능 목록 */}
-                            <ul className="mt-6 space-y-3">
+                            <ul className="mt-6 flex-1 space-y-3">
                                 {plan.features.map((feature) => (
                                     <li
                                         key={feature.text}
