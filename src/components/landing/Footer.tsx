@@ -1,6 +1,5 @@
-import Image from 'next/image'
 import Link from 'next/link'
-import logo from '@/assets/logo_v3.png'
+import { MaptaminLogo } from './MaptaminLogo'
 
 export default function Footer() {
     return (
@@ -9,11 +8,7 @@ export default function Footer() {
                 <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
                     {/* 로고 + 서비스 설명 */}
                     <div className="flex flex-col items-center gap-3 sm:items-start">
-                        <Image
-                            src={logo}
-                            alt="맵타민"
-                            className="h-8 w-auto object-contain"
-                        />
+                        <MaptaminLogo />
                         <p className="text-sm text-gray-500">
                             우리 가게 지도 건강검진 서비스
                         </p>

@@ -7,7 +7,17 @@ import {
     MessageCircle,
     Zap,
     Flame,
+    ArrowRight,
 } from 'lucide-react'
+
+/* 5×5 경쟁사 비교 그리드 데이터 (중앙은 '나') */
+const COMPARISON_GRID = [
+    ['win', 'win', 'lose', 'lose', 'lose'],
+    ['win', 'win', 'win', 'lose', 'lose'],
+    ['win', 'win', 'my', 'win', 'win'],
+    ['lose', 'lose', 'win', 'win', 'win'],
+    ['lose', 'lose', 'win', 'win', 'win'],
+] as const
 
 export default function FeatureSection() {
     return (
@@ -21,9 +31,8 @@ export default function FeatureSection() {
                                 Smart Analysis
                             </span>
                             <h2 className="text-3xl font-black leading-tight text-gray-900 lg:text-4xl">
-                                데이터 분석, 몰라도 괜찮습니다. <br />
-                                <span className="text-[#00C896]">초록색</span>과{' '}
-                                <span className="text-red-500">빨간색</span>만 구분하세요.
+                                맵타민이 진단하는<br />
+                                우리 매장 건강 상태
                             </h2>
                         </div>
                         <div className="space-y-6">
@@ -37,8 +46,8 @@ export default function FeatureSection() {
                                         <span className="text-sm font-normal text-slate-400">1~5위</span>
                                     </h3>
                                     <p className="leading-relaxed text-slate-500">
-                                        사장님이 완벽하게 장악한 &lsquo;내 구역&rsquo; 입니다. 매출이
-                                        발생하는 안전지대입니다.
+                                        사장님이 완벽하게 장악한 &lsquo;내 구역&rsquo; 입니다.<br />
+                                        매출이 발생하는 안전지대입니다.
                                     </p>
                                 </div>
                             </div>
@@ -52,8 +61,8 @@ export default function FeatureSection() {
                                         <span className="text-sm font-normal text-slate-400">6~10위</span>
                                     </h3>
                                     <p className="leading-relaxed text-slate-500">
-                                        조금만 밀어붙이면 &lsquo;내 구역&rsquo; 이 됩니다. 가장 가성비 좋게
-                                        순위를 올릴 수 있는 기회의 좌표입니다.
+                                        조금만 밀어붙이면 &lsquo;내 구역&rsquo; 이 됩니다.<br />
+                                        가성비 좋게 순위를 올릴 수 있는 기회의 좌표입니다.
                                     </p>
                                 </div>
                             </div>
@@ -67,8 +76,8 @@ export default function FeatureSection() {
                                         <span className="text-sm font-normal text-slate-400">10위 밖</span>
                                     </h3>
                                     <p className="leading-relaxed text-slate-500">
-                                        경쟁사에게 손님을 모두 뺏기고 있습니다. 지금 당장 조치가 필요한 경고
-                                        신호입니다.
+                                        경쟁사에게 손님을 모두 뺏기고 있습니다.<br />
+                                        지금 당장 조치가 필요한 경고 신호입니다.
                                     </p>
                                 </div>
                             </div>
@@ -133,7 +142,102 @@ export default function FeatureSection() {
                 </div>
             </section>
 
-            {/* 3. 장점 3가지 카드 */}
+            {/* 경쟁사 비교 분석 섹션 (SocialProof에서 이동) */}
+            <section id="competitor-analysis" className="bg-[#f8fafc] py-24">
+                <div className="mx-auto max-w-7xl px-6">
+                    <div className="grid items-center gap-16 lg:grid-cols-2">
+                        {/* 왼쪽: 텍스트 및 특징 설명 */}
+                        <div>
+                            <h2 className="mb-6 text-3xl font-bold leading-tight text-gray-900 lg:text-4xl">
+                                똑똑한 사장님들은 &lsquo;<span className="text-[#00C896]">맵타민</span>&rsquo;으로<br />
+                                한 주를 시작하고 있습니다.
+                            </h2>
+                            <ul className="space-y-4">
+                                {[
+                                    '상세 구역별 승/패 분석',
+                                ].map((feature, idx) => (
+                                    <li key={idx} className="flex items-center gap-3 text-slate-600">
+                                        <CheckCircle2 className="h-5 w-5 text-[#00C896]" />
+                                        <span className="font-medium">{feature}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                            <div className="mt-10">
+                                <button className="group flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-gray-900 transition-all hover:border-[#00C896]/50 hover:bg-[#00C896]/5">
+                                    경쟁사 분석 시작하기
+                                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* 오른쪽: 경쟁사 비교 비주얼 카드 */}
+                        <div className="group relative">
+                            <div className="absolute -inset-2 rounded-3xl bg-gradient-to-r from-slate-200 to-slate-100 blur-xl opacity-70" />
+                            <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-xl">
+                                {/* 카드 헤더 */}
+                                <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
+                                    <div className="flex items-center gap-4">
+                                        <h3 className="text-lg font-bold text-gray-900">경쟁사 비교 분석</h3>
+                                        <div className="flex rounded-lg bg-slate-100 p-1 text-xs font-bold">
+                                            <div className="rounded bg-white px-3 py-1 text-[#00C896] shadow-sm">
+                                                내 가게
+                                            </div>
+                                            <div className="px-3 py-1 text-slate-400">경쟁사 A</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
+                                        <span className="size-2 rounded-full bg-[#00C896]" /> 승(Win)
+                                        <span className="ml-2 size-2 rounded-full bg-red-500" /> 패(Loss)
+                                    </div>
+                                </div>
+
+                                {/* 5×5 비교 그리드 */}
+                                <div className="aspect-square rounded-xl border border-slate-100 bg-slate-50 p-4">
+                                    <div className="grid h-full grid-cols-5 gap-2">
+                                        {COMPARISON_GRID.flat().map((status, idx) => {
+                                            if (status === 'my') {
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        className="relative z-10 flex items-center justify-center"
+                                                    >
+                                                        <div className="flex size-12 items-center justify-center rounded-full border-4 border-white bg-[#00C896] text-base font-bold text-white shadow-xl">
+                                                            나
+                                                        </div>
+                                                    </div>
+                                                )
+                                            }
+
+                                            const isWin = status === 'win'
+                                            const bgColor = isWin ? 'bg-[#00C896]' : 'bg-red-500'
+                                            const shadowColor = isWin
+                                                ? 'shadow-[#00C896]/20'
+                                                : 'shadow-red-500/20'
+                                            const label = isWin ? '승' : '패'
+
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className="flex items-center justify-center"
+                                                >
+                                                    <div
+                                                        className={`flex size-10 transform cursor-default items-center justify-center rounded-full ${bgColor} text-sm font-bold text-white shadow-md ${shadowColor} transition-transform hover:scale-110`}
+                                                    >
+                                                        {label}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* 3. 장점 3가지 카드 — 주석 처리 (사용자 요청) */}
+            {/*
             <section className="bg-[#f5f8f8] py-24">
                 <div className="mx-auto max-w-7xl px-6">
                     <div className="mb-16 text-center">
@@ -148,12 +252,12 @@ export default function FeatureSection() {
                                 desc: '초록불, 노란불, 빨간불로 내 가게의 위치별 진짜 순위를 한눈에 파악하세요.',
                             },
                             {
-                                icon: ClipboardCheck, // 팩트체크
+                                icon: ClipboardCheck,
                                 title: '팩트 체크',
                                 desc: '마케팅 대행사가 일을 제대로 하는지 감시하세요. 성과가 나타나면 지도의 색깔이 실시간으로 바뀝니다. 투명한 마케팅 성과를 확인하세요.',
                             },
                             {
-                                icon: Map, // 지도
+                                icon: Map,
                                 title: '경쟁사 땅따먹기',
                                 desc: '주변 경쟁 업체의 강점 지역과 약점 지역을 파악하여 전략적인 마케팅 포인트를 잡으세요. 비어있는 시장을 공략할 수 있습니다.',
                             },
@@ -172,22 +276,13 @@ export default function FeatureSection() {
                     </div>
                 </div>
             </section>
+            */}
 
             {/* 4. 알림 서비스 */}
             <section className="mx-auto max-w-7xl px-6 py-24">
                 <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
-                    {/* 왼쪽 요소: 텍스트 */}
-                    <div className="text-left">
-                        <h2 className="text-3xl font-bold leading-tight text-gray-900 lg:text-4xl">
-                            매일 접속하지 않으셔도 됩니다.
-                        </h2>
-                        <p className="mt-4 text-lg text-slate-500">
-                            바쁜 사장님을 위해 맵타민이 직접 찾아갑니다.
-                        </p>
-                    </div>
-
-                    {/* 오른쪽 요소: 카드 리스트 */}
-                    <div className="space-y-6">
+                    {/* 왼쪽 요소: 카드 리스트 */}
+                    <div className="order-2 space-y-6 lg:order-1">
                         <div className="group flex cursor-pointer items-center gap-6 rounded-2xl border border-slate-100 bg-slate-50 p-6 transition-all hover:bg-white hover:shadow-lg">
                             <div className="flex size-16 flex-none items-center justify-center rounded-2xl bg-white text-[#00C896] shadow-sm transition-transform group-hover:rotate-12">
                                 <MessageCircle className="h-8 w-8" />
@@ -224,6 +319,16 @@ export default function FeatureSection() {
                                 </p>
                             </div>
                         </div>
+                    </div>
+
+                    {/* 오른쪽 요소: 텍스트 */}
+                    <div className="order-1 text-left lg:order-2">
+                        <h2 className="text-3xl font-bold leading-tight text-gray-900 lg:text-4xl">
+                            매일 접속하지 않으셔도 됩니다.
+                        </h2>
+                        <p className="mt-4 text-lg text-slate-500">
+                            바쁜 사장님을 위해 맵타민이 직접 찾아갑니다.
+                        </p>
                     </div>
                 </div>
             </section>

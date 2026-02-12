@@ -45,38 +45,24 @@ export default function HeroSection() {
                                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#00C896] opacity-75" />
                                 <span className="relative inline-flex h-2 w-2 rounded-full bg-[#00C896]" />
                             </span>
-                            우리 가게 지도 건강검진, 맵타민
+                            국내 최초 [플레이스 순위 지도] 도입
                         </div>
 
                         {/* 타이틀 — SVG 밑줄 장식 */}
-                        <h1 className="break-keep text-3xl font-extrabold leading-[1.25] tracking-tight text-gray-900 sm:text-4xl lg:text-[2.75rem] xl:text-5xl">
-                            우리 가게
+                        <h1 className="break-keep text-2xl font-extrabold leading-[1.25] tracking-tight text-gray-900 sm:text-3xl lg:text-4xl xl:text-[2.75rem]">
+                            데이터 분석, 몰라도 됩니다.
                             <br />
-                            <span className="text-[#00C896]">&lsquo;진짜 순위&rsquo;</span>를 알아야
-                            <br />
-                            <span className="relative inline-block">
-                                &lsquo;진짜 매출&rsquo;
-                                <svg
-                                    className="absolute -bottom-1 left-0 h-3 w-full text-[#00C896]/30"
-                                    preserveAspectRatio="none"
-                                    viewBox="0 0 100 10"
-                                >
-                                    <path
-                                        d="M0 5 Q 50 10 100 5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        strokeWidth="8"
-                                    />
-                                </svg>
-                            </span>
-                            이 오릅니다.
+                            <span className="text-red-500">빨간색</span>만{' '}
+                            <span className="text-[#00C896]">초록색</span>으로 바꾸세요.
                         </h1>
 
                         {/* 서브 텍스트 */}
                         <p className="mx-auto max-w-xl text-base leading-relaxed text-gray-500 sm:text-lg lg:mx-0 lg:text-xl">
-                            <strong className="text-gray-700">[플레이스 순위 지도]</strong>로 지도 위 <span className="font-semibold text-red-500">&lsquo;빨간불&rsquo;</span>을 찾으세요.
+                            초록색은 내 구역, 빨간색은 놓친 구역.
                             <br />
-                            <span className="font-semibold text-[#00C896]">초록불</span>로 바꾸는 순간, 놓치던 매출이 내 것이 됩니다.
+                            매주 카톡으로 배달되는 [플레이스 순위 지도]로
+                            <br />
+                            사장님의 <strong className="text-gray-700">진짜 상권 순위</strong>를 팩트 체크하세요.
                         </p>
 
                         {/* CTA 버튼 */}

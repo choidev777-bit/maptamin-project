@@ -92,15 +92,12 @@ export default function PricingSection() {
                 {/* 섹션 타이틀 */}
                 <div className="text-center">
                     <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl lg:text-4xl">
-                        마케팅 대행사 &amp; 분석 앱 비용의{' '}
-                        <span className="inline-flex items-center text-[#00C896] align-bottom">
-                            <FractionOneFifty className="h-[1.5em] w-[1.5em] stroke-2" />
-                            <span className="ml-1">가격</span>
-                        </span>
-                        <span className="mt-2 block sm:mt-4">&lsquo;핵심&rsquo;만 남겼습니다.</span>
+                        하루 900원대로 사장님의 플레이스 순위를 지키세요.
                     </h2>
                     <p className="mt-4 text-base text-gray-600 sm:text-lg">
-                        하루 900원대로 사장님의 플레이스 순위를 지키세요.
+                        불필요한 기능은 빼고 &lsquo;순위 지도&rsquo; 하나에 집중했습니다.
+                        <br />
+                        마케팅 의사결정의 기준을 바꾸세요.
                     </p>
                 </div>
 
@@ -142,7 +139,7 @@ export default function PricingSection() {
                         <div
                             key={plan.name}
                             className={`relative rounded-3xl border p-7 transition-all duration-300 sm:p-8 ${plan.featured
-                                ? 'scale-[1.03] border-[#00C896] bg-white shadow-2xl shadow-[#00C896]/10 lg:scale-105'
+                                ? 'scale-[1.03] border-[#00C896] bg-white shadow-2xl shadow-[#00C896]/10 lg:scale-105 hover:-translate-y-1'
                                 : 'border-gray-200 bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg'
                                 }`}
                         >
