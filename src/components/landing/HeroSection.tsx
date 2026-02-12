@@ -57,7 +57,7 @@ export default function HeroSection() {
                         </h1>
 
                         {/* 서브 텍스트 */}
-                        <p className="mx-auto max-w-xl text-base leading-relaxed text-gray-500 sm:text-lg lg:mx-0 lg:text-xl">
+                        <p className="mx-auto max-w-xl break-keep text-base leading-relaxed text-gray-500 sm:text-lg lg:mx-0 lg:text-xl">
                             초록색은 내 구역, 빨간색은 놓친 구역.
                             <br />
                             매주 카톡으로 배달되는 [플레이스 순위 지도]로

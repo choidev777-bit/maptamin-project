@@ -30,7 +30,7 @@ export default function FeatureSection() {
                             <span className="inline-block rounded-full bg-[#00C896]/10 px-4 py-1.5 text-sm font-bold text-[#00C896]">
                                 Smart Analysis
                             </span>
-                            <h2 className="text-3xl font-black leading-tight text-gray-900 lg:text-4xl">
+                            <h2 className="break-keep text-2xl font-black leading-tight text-gray-900 sm:text-3xl lg:text-4xl">
                                 맵타민이 진단하는<br />
                                 우리 매장 건강 상태
                             </h2>
@@ -45,7 +45,7 @@ export default function FeatureSection() {
                                         🟢 초록불 (안전){' '}
                                         <span className="text-sm font-normal text-slate-400">1~5위</span>
                                     </h3>
-                                    <p className="leading-relaxed text-slate-500">
+                                    <p className="break-keep text-sm leading-relaxed text-slate-500 sm:text-base">
                                         사장님이 완벽하게 장악한 &lsquo;내 구역&rsquo; 입니다.<br />
                                         매출이 발생하는 안전지대입니다.
                                     </p>
@@ -60,7 +60,7 @@ export default function FeatureSection() {
                                         🟡 노란불 (주의){' '}
                                         <span className="text-sm font-normal text-slate-400">6~10위</span>
                                     </h3>
-                                    <p className="leading-relaxed text-slate-500">
+                                    <p className="break-keep text-sm leading-relaxed text-slate-500 sm:text-base">
                                         조금만 밀어붙이면 &lsquo;내 구역&rsquo; 이 됩니다.<br />
                                         가성비 좋게 순위를 올릴 수 있는 기회의 좌표입니다.
                                     </p>
@@ -75,7 +75,7 @@ export default function FeatureSection() {
                                         🔴 빨간불 (위험){' '}
                                         <span className="text-sm font-normal text-slate-400">10위 밖</span>
                                     </h3>
-                                    <p className="leading-relaxed text-slate-500">
+                                    <p className="break-keep text-sm leading-relaxed text-slate-500 sm:text-base">
                                         경쟁사에게 손님을 모두 뺏기고 있습니다.<br />
                                         지금 당장 조치가 필요한 경고 신호입니다.
                                     </p>
@@ -148,7 +148,7 @@ export default function FeatureSection() {
                     <div className="grid items-center gap-16 lg:grid-cols-2">
                         {/* 왼쪽: 텍스트 및 특징 설명 */}
                         <div>
-                            <h2 className="mb-6 text-3xl font-bold leading-tight text-gray-900 lg:text-4xl">
+                            <h2 className="mb-6 break-keep text-2xl font-bold leading-tight text-gray-900 sm:text-3xl lg:text-4xl">
                                 똑똑한 사장님들은 &lsquo;<span className="text-[#00C896]">맵타민</span>&rsquo;으로<br />
                                 한 주를 시작하고 있습니다.
                             </h2>
@@ -288,13 +288,13 @@ export default function FeatureSection() {
                                 <MessageCircle className="h-8 w-8" />
                             </div>
                             <div className="flex-1">
-                                <h3 className="mb-1 text-lg font-bold">
-                                    띵동! 배달 왔습니다{' '}
-                                    <span className="text-sm font-normal text-[#00C896]">
+                                <h3 className="mb-1 break-keep text-base font-bold sm:text-lg">
+                                    띵동! 배달 왔습니다
+                                    <span className="block text-sm font-normal text-[#00C896] sm:inline sm:ml-1">
                                         (주간 보고서)
                                     </span>
                                 </h3>
-                                <p className="leading-relaxed text-sm text-slate-500">
+                                <p className="break-keep text-xs leading-relaxed text-slate-500 sm:text-sm">
                                     사장님이 가장 한가한 시간을 알려주세요. 맵타민이 알아서
                                     <br className="hidden lg:block" />
                                     매주 카톡으로 &lsquo;플레이스 순위 지도&rsquo;를 보내드립니다.
@@ -307,13 +307,13 @@ export default function FeatureSection() {
                                 <Zap className="h-8 w-8" />
                             </div>
                             <div className="flex-1">
-                                <h3 className="mb-1 text-lg font-bold">
-                                    지금 당장 확인하고 싶다면?{' '}
-                                    <span className="text-sm font-normal text-yellow-500">
+                                <h3 className="mb-1 break-keep text-base font-bold sm:text-lg">
+                                    지금 당장 확인하고 싶다면?
+                                    <span className="block text-sm font-normal text-yellow-500 sm:inline sm:ml-1">
                                         (실시간 티켓)
                                     </span>
                                 </h3>
-                                <p className="leading-relaxed text-sm text-slate-500">
+                                <p className="break-keep text-xs leading-relaxed text-slate-500 sm:text-sm">
                                     궁금할 때 참지 마세요. &lsquo;실시간 진단 티켓&rsquo;으로 지금
                                     이 순간의 순위를 즉시 조회할 수 있습니다.
                                 </p>
@@ -323,10 +323,10 @@ export default function FeatureSection() {
 
                     {/* 오른쪽 요소: 텍스트 */}
                     <div className="order-1 text-left lg:order-2">
-                        <h2 className="text-3xl font-bold leading-tight text-gray-900 lg:text-4xl">
+                        <h2 className="break-keep text-2xl font-bold leading-tight text-gray-900 sm:text-3xl lg:text-4xl">
                             매일 접속하지 않으셔도 됩니다.
                         </h2>
-                        <p className="mt-4 text-lg text-slate-500">
+                        <p className="mt-4 break-keep text-base text-slate-500 sm:text-lg">
                             바쁜 사장님을 위해 맵타민이 직접 찾아갑니다.
                         </p>
                     </div>

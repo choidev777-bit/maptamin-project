@@ -12,7 +12,7 @@ export default function LogoStripSection() {
     return (
         <section className="border-y border-gray-100 bg-gray-50/80 py-8">
             <div className="mx-auto max-w-5xl px-4">
-                <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 md:gap-16">
+                <div className="mx-auto grid max-w-xs grid-cols-2 items-center gap-8 sm:max-w-none sm:gap-12 md:flex md:justify-center md:gap-16">
                     {PLATFORMS.map((platform) => {
                         const Icon = platform.icon
                         return (

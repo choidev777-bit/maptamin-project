@@ -16,7 +16,7 @@ export default function BridgeSection1() {
                     있습니다.
                 </p>
                 <p className="mx-auto mt-4 max-w-lg break-keep text-base leading-relaxed text-gray-500 sm:text-lg">
-                    하지만 그러려면 먼저
+                    그러려면 먼저
                     <br className="hidden sm:block" />
                     {' '}내 가게의 <strong className="text-gray-700">&lsquo;진짜 상태&rsquo;</strong>부터 알아야 합니다.
                 </p>

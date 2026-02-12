@@ -91,10 +91,10 @@ export default function PricingSection() {
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 {/* 섹션 타이틀 */}
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl lg:text-4xl">
+                    <h2 className="break-keep text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl lg:text-4xl">
                         하루 900원대로 사장님의 플레이스 순위를 지키세요.
                     </h2>
-                    <p className="mt-4 text-base text-gray-600 sm:text-lg">
+                    <p className="mt-4 break-keep text-base text-gray-600 sm:text-lg">
                         불필요한 기능은 빼고 &lsquo;순위 지도&rsquo; 하나에 집중했습니다.
                         <br />
                         마케팅 의사결정의 기준을 바꾸세요.
@@ -104,7 +104,7 @@ export default function PricingSection() {
                 {/* 토글 스위치 */}
                 <div className="mt-10 flex items-center justify-center gap-3">
                     <span
-                        className={`text-sm font-medium transition-colors ${!isYearly ? 'text-gray-900' : 'text-gray-400'
+                        className={`min-w-[4.5rem] text-right text-sm font-medium transition-colors ${!isYearly ? 'text-gray-900' : 'text-gray-400'
                             }`}
                     >
                         월간
@@ -123,7 +123,7 @@ export default function PricingSection() {
                         />
                     </button>
                     <span
-                        className={`text-sm font-medium transition-colors ${isYearly ? 'text-gray-900' : 'text-gray-400'
+                        className={`min-w-[4.5rem] text-sm font-medium transition-colors ${isYearly ? 'text-gray-900' : 'text-gray-400'
                             }`}
                     >
                         연간{' '}
