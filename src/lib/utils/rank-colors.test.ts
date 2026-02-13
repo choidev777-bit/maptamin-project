@@ -6,65 +6,75 @@ import {
 } from './rank-colors'
 
 describe('rank-colors', () => {
-    describe('getRankColor', () => {
-        it('should return gray for null rank', () => {
-            expect(getRankColor(null)).toBe('#888888')
+    describe('getRankColor (naver - default)', () => {
+        it('should return red for null rank', () => {
+            expect(getRankColor(null)).toBe('#ef4444')
         })
 
-        it('should return green for rank 1-3', () => {
+        it('should return green for rank 1-5', () => {
             expect(getRankColor(1)).toBe('#22c55e')
-            expect(getRankColor(2)).toBe('#22c55e')
             expect(getRankColor(3)).toBe('#22c55e')
+            expect(getRankColor(5)).toBe('#22c55e')
         })
 
-        it('should return light green for rank 4-6', () => {
-            expect(getRankColor(4)).toBe('#84cc16')
-            expect(getRankColor(6)).toBe('#84cc16')
+        it('should return yellow for rank 6-10', () => {
+            expect(getRankColor(6)).toBe('#eab308')
+            expect(getRankColor(10)).toBe('#eab308')
         })
 
-        it('should return orange for rank 7-10', () => {
-            expect(getRankColor(7)).toBe('#f97316')
-            expect(getRankColor(10)).toBe('#f97316')
-        })
-
-        it('should return red for rank 11-15', () => {
+        it('should return red for rank > 10', () => {
             expect(getRankColor(11)).toBe('#ef4444')
-            expect(getRankColor(15)).toBe('#ef4444')
-        })
-
-        it('should return dark red for rank > 15', () => {
-            expect(getRankColor(16)).toBe('#991b1b')
-            expect(getRankColor(100)).toBe('#991b1b')
+            expect(getRankColor(100)).toBe('#ef4444')
         })
     })
 
-    describe('getRankBgClass', () => {
-        it('should return gray for null rank', () => {
-            expect(getRankBgClass(null)).toBe('bg-gray-400')
+    describe('getRankColor (google)', () => {
+        it('should return green for rank 1-3', () => {
+            expect(getRankColor(1, 'google')).toBe('#22c55e')
+            expect(getRankColor(3, 'google')).toBe('#22c55e')
         })
 
-        it('should return green class for top ranks', () => {
+        it('should return yellow for rank 4-10', () => {
+            expect(getRankColor(4, 'google')).toBe('#eab308')
+            expect(getRankColor(5, 'google')).toBe('#eab308')
+            expect(getRankColor(10, 'google')).toBe('#eab308')
+        })
+
+        it('should return red for rank > 10', () => {
+            expect(getRankColor(11, 'google')).toBe('#ef4444')
+            expect(getRankColor(100, 'google')).toBe('#ef4444')
+        })
+    })
+
+    describe('getRankBgClass (naver - default)', () => {
+        it('should return red for null rank', () => {
+            expect(getRankBgClass(null)).toBe('bg-red-500')
+        })
+
+        it('should return green class for ranks 1-5', () => {
             expect(getRankBgClass(1)).toBe('bg-green-500')
-            expect(getRankBgClass(3)).toBe('bg-green-500')
+            expect(getRankBgClass(5)).toBe('bg-green-500')
         })
 
-        it('should return lime class for ranks 4-6', () => {
-            expect(getRankBgClass(4)).toBe('bg-lime-500')
-            expect(getRankBgClass(6)).toBe('bg-lime-500')
+        it('should return yellow class for ranks 6-10', () => {
+            expect(getRankBgClass(6)).toBe('bg-yellow-500')
+            expect(getRankBgClass(10)).toBe('bg-yellow-500')
         })
 
-        it('should return orange class for ranks 7-10', () => {
-            expect(getRankBgClass(7)).toBe('bg-orange-500')
-            expect(getRankBgClass(10)).toBe('bg-orange-500')
-        })
-
-        it('should return red class for ranks 11-15', () => {
+        it('should return red class for ranks > 10', () => {
             expect(getRankBgClass(11)).toBe('bg-red-500')
-            expect(getRankBgClass(15)).toBe('bg-red-500')
+        })
+    })
+
+    describe('getRankBgClass (google)', () => {
+        it('should return green class for ranks 1-3', () => {
+            expect(getRankBgClass(1, 'google')).toBe('bg-green-500')
+            expect(getRankBgClass(3, 'google')).toBe('bg-green-500')
         })
 
-        it('should return dark red class for ranks > 15', () => {
-            expect(getRankBgClass(16)).toBe('bg-red-800')
+        it('should return yellow class for ranks 4-10', () => {
+            expect(getRankBgClass(4, 'google')).toBe('bg-yellow-500')
+            expect(getRankBgClass(10, 'google')).toBe('bg-yellow-500')
         })
     })
 
@@ -80,34 +90,39 @@ describe('rank-colors', () => {
         })
     })
 
-    describe('getRankCategory', () => {
+    describe('getRankCategory (naver - default)', () => {
         it('should return "순위권 외" for null rank', () => {
             expect(getRankCategory(null)).toBe('순위권 외')
         })
 
-        it('should return "최상위" for ranks 1-3', () => {
-            expect(getRankCategory(1)).toBe('최상위')
-            expect(getRankCategory(3)).toBe('최상위')
+        it('should return "상위" for ranks 1-5', () => {
+            expect(getRankCategory(1)).toBe('상위')
+            expect(getRankCategory(5)).toBe('상위')
         })
 
-        it('should return "상위" for ranks 4-6', () => {
-            expect(getRankCategory(4)).toBe('상위')
-            expect(getRankCategory(6)).toBe('상위')
-        })
-
-        it('should return "중위" for ranks 7-10', () => {
-            expect(getRankCategory(7)).toBe('중위')
+        it('should return "중위" for ranks 6-10', () => {
+            expect(getRankCategory(6)).toBe('중위')
             expect(getRankCategory(10)).toBe('중위')
         })
 
-        it('should return "하위" for ranks 11-15', () => {
+        it('should return "하위" for ranks > 10', () => {
             expect(getRankCategory(11)).toBe('하위')
-            expect(getRankCategory(15)).toBe('하위')
+        })
+    })
+
+    describe('getRankCategory (google)', () => {
+        it('should return "상위" for ranks 1-3', () => {
+            expect(getRankCategory(1, 'google')).toBe('상위')
+            expect(getRankCategory(3, 'google')).toBe('상위')
         })
 
-        it('should return "최하위" for ranks > 15', () => {
-            expect(getRankCategory(16)).toBe('최하위')
-            expect(getRankCategory(100)).toBe('최하위')
+        it('should return "중위" for ranks 4-10', () => {
+            expect(getRankCategory(4, 'google')).toBe('중위')
+            expect(getRankCategory(10, 'google')).toBe('중위')
+        })
+
+        it('should return "하위" for ranks > 10', () => {
+            expect(getRankCategory(11, 'google')).toBe('하위')
         })
     })
 })

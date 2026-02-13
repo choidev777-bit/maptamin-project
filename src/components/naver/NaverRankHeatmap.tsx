@@ -176,12 +176,10 @@ export function NaverRankHeatmap({ center, results, selectedKeyword }: Props) {
             {/* Legend */}
             <div className="mt-4 flex flex-wrap gap-3 justify-center">
                 {[
-                    { label: '1-3위', color: '#22c55e' },
-                    { label: '4-6위', color: '#84cc16' },
-                    { label: '7-10위', color: '#f97316' },
-                    { label: '11-15위', color: '#ef4444' },
-                    { label: '16+위', color: '#991b1b' },
-                    { label: '순위권 외', color: '#888888' },
+                    { label: '1-5위', color: '#22c55e' },
+                    { label: '6-10위', color: '#eab308' },
+                    { label: '11위~', color: '#ef4444' },
+                    { label: '순위권 외', color: '#ef4444' },
                 ].map(({ label, color }) => (
                     <div key={label} className="flex items-center gap-2">
                         <div
