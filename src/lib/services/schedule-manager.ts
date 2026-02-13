@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { SearchService } from './search-service';
 import { SearchSchedule } from '@/lib/types';
+import { sendWeeklyReport } from '@/lib/kakao/messaging';
 
 export class ScheduleManager {
     /**
@@ -50,11 +51,18 @@ export class ScheduleManager {
                 // Determine Platform from schedule (fallback to 'naver' if missing)
                 const targetPlatform = job.platform || 'naver';
 
+                // Convert stored grid_config (GridPoint[]) to the new format
+                const gridPointsArray = job.grid_config as any[];
+                const maxRow = Math.max(...gridPointsArray.map((p: any) => Math.abs(p.row)));
+                const maxCol = Math.max(...gridPointsArray.map((p: any) => Math.abs(p.col)));
+                const gridSize = Math.max(maxRow, maxCol) * 2 + 1;
+                const gridDistance = (gridPointsArray[0] as any)?.distance || 1;
+
                 await SearchService.executeSearch(
                     job.user_id,
                     job.place_id,
                     job.keywords,
-                    job.grid_config,
+                    { gridSize, gridDistance },
                     targetPlatform
                 );
 
@@ -66,12 +74,57 @@ export class ScheduleManager {
 
                 console.log(`[ScheduleManager] Success: Job ${job.id}`);
 
+                // ── 3. 알림 발송 처리 ──
+                try {
+                    const { data: notifSchedule } = await supabase
+                        .from('notification_schedules')
+                        .select('*')
+                        .eq('search_schedule_id', job.id)
+                        .single();
+
+                    // searchId 조회 (가장 최근 완료된 검색)
+                    const { data: latestSearch } = await supabase
+                        .from('searches')
+                        .select('id, place_name')
+                        .eq('user_id', job.user_id)
+                        .eq('status', 'completed')
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    if (latestSearch) {
+                        if (!notifSchedule || notifSchedule.is_immediate) {
+                            // 즉시 발송
+                            await sendWeeklyReport(job.user_id, latestSearch.place_name, latestSearch.id);
+
+                            await supabase.from('notification_logs').insert({
+                                user_id: job.user_id,
+                                search_id: latestSearch.id,
+                                type: 'weekly',
+                                status: 'sent',
+                                sent_via: 'solapi',
+                                sent_at: new Date().toISOString(),
+                            });
+                            console.log(`[ScheduleManager] 알림톡 즉시 발송 완료: Job ${job.id}`);
+                        } else {
+                            // 예약 발송 큐에 등록
+                            await supabase.from('notification_logs').insert({
+                                user_id: job.user_id,
+                                search_id: latestSearch.id,
+                                type: 'weekly',
+                                status: 'pending',
+                                sent_via: 'solapi',
+                            });
+                            console.log(`[ScheduleManager] 알림톡 예약 등록: Job ${job.id}`);
+                        }
+                    }
+                } catch (notifError: any) {
+                    // 알림 발송 실패해도 검색 결과는 보존
+                    console.error(`[ScheduleManager] 알림 발송 실패 (검색 결과는 보존됨): Job ${job.id}`, notifError.message);
+                }
+
             } catch (e: any) {
                 console.error(`[ScheduleManager] Failed: Job ${job.id}`, e.message);
-
-                // 3. Notification (Mock Implementation)
-                // In real world: EmailService.send(user.email, "Auto-search failed due to low balance")
-                // For now, we just log it as a critical event.
                 console.warn(`[NOTIFY USER ${job.user_id}] Auto-search failed: ${e.message}`);
             }
         }

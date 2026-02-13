@@ -2,7 +2,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { CompetitorManagementView } from '@/components/competitor/CompetitorManagementView'
 import { PLAN_CONFIG } from '@/lib/pricing/config'
-import { UserCredits } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,17 +21,15 @@ export default async function NaverCompetitorPage() {
         .order('created_at', { ascending: true })
 
     // 3. Get Plan Limits
-    const { data: userCredits } = await supabase
-        .from('user_credits')
-        .select('*')
+    const { data: subscription } = await supabase
+        .from('user_subscriptions')
+        .select('plan_id')
         .eq('user_id', user.id)
         .single()
 
-    const planId = (userCredits as UserCredits)?.plan_id || 'light'
-    const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['light']
-    // Assumption: Plan config has maxCompetitors or similar. 
-    // If not, default to 3.
-    const maxSlots = 3 // TODO: Add maxCompetitors to PLAN_CONFIG type if missing
+    const planId = subscription?.plan_id || 'starter'
+    const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['starter']
+    const maxSlots = planConfig.competitors
 
     return (
         <div className="max-w-6xl mx-auto py-8">

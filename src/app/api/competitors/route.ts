@@ -2,7 +2,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { PLAN_CONFIG } from '@/lib/pricing/config'
-import { UserCredits } from '@/lib/types'
 
 // GET: Fetch competitors for a platform (Optional, page does this directly but API good for client side refresh if needed)
 // But currently we use server components. 
@@ -24,19 +23,15 @@ export async function POST(request: Request) {
     }
 
     // 1. Check Plan Limits
-    // Fetch user credits to get plan
-    const { data: userCredits } = await supabase
-        .from('user_credits')
-        .select('*')
+    const { data: subscription } = await supabase
+        .from('user_subscriptions')
+        .select('plan_id')
         .eq('user_id', user.id)
         .single()
 
-    const planId = (userCredits as UserCredits)?.plan_id || 'light'
-    const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['light']
-    // Assumption: maxCompetitors is in config. If not, default to 3.
-    // Let's assume Config has it. If typescript error, we default.
-    const limit = (planConfig.limits as any).competitor
-    const maxSlots = limit !== undefined ? limit : 3
+    const planId = subscription?.plan_id || 'starter'
+    const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['starter']
+    const maxSlots = planConfig.competitors
 
     // Count existing competitors for this platform
     const { count } = await supabase
@@ -50,7 +45,7 @@ export async function POST(request: Request) {
         return NextResponse.json({
             error: 'SLOT_LIMIT_EXCEEDED',
             // Debug info included in message
-            message: `최대 ${maxSlots}개만 등록 가능 (현재: ${count || 0}, 플랜: ${planId}, 한도: ${limit})`
+            message: `최대 ${maxSlots}개만 등록 가능 (현재: ${count || 0}, 플랜: ${planId})`
         }, { status: 403 })
     }
 

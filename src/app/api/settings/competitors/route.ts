@@ -46,10 +46,16 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
         }
 
-        // 1. Check Plan Limits
-        // For Phase 1/2, manual PLAN_CONFIG or mock. Assuming 'free' or 'basic' based on user.
-        // Needs to fetch user's subscription first.
-        // For now, let's use a default limit or fetch from user_credits if plan_id exists.
+        // Fetch user subscription to get plan
+        const { data: subscription } = await supabase
+            .from('user_subscriptions')
+            .select('plan_id')
+            .eq('user_id', user.id)
+            .single()
+
+        const planId = subscription?.plan_id || 'starter'
+        const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['starter']
+        const maxCompetitors = planConfig.competitors;
 
         // Fetch current count
         const { count } = await supabase
@@ -57,10 +63,6 @@ export async function POST(request: Request) {
             .select('*', { count: 'exact', head: true })
             .eq('user_id', user.id)
             .eq('platform', platform);
-
-        // Fetch user plan (Mocking as Basic for now or fetch from user_credits)
-        // TODO: Proper plan fetching
-        const maxCompetitors = PLAN_CONFIG.basic.limits.competitor; // 5
 
         if ((count || 0) >= maxCompetitors) {
             return NextResponse.json({ error: `경쟁사는 최대 ${maxCompetitors}개까지 등록할 수 있습니다.` }, { status: 403 });

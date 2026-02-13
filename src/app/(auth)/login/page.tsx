@@ -1,8 +1,8 @@
-import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton'
+import { KakaoLoginButton } from '@/components/auth/KakaoLoginButton'
 
 export default function LoginPage() {
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-yellow-100">
             <div className="max-w-md w-full mx-4">
                 <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
                     {/* Logo & Title */}
@@ -13,16 +13,16 @@ export default function LoginPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                         </div>
-                        <h1 className="text-2xl font-bold text-gray-900">Local SEO Tracker</h1>
-                        <p className="mt-2 text-gray-600">Track your Google Maps rankings</p>
+                        <h1 className="text-2xl font-bold text-gray-900">맵타민</h1>
+                        <p className="mt-2 text-gray-600">플레이스 순위 지도 서비스</p>
                     </div>
 
                     {/* Login Button */}
-                    <GoogleLoginButton />
+                    <KakaoLoginButton />
 
                     {/* Terms */}
                     <p className="text-xs text-center text-gray-500">
-                        By signing in, you agree to our Terms of Service and Privacy Policy
+                        로그인 시 서비스 이용약관 및 개인정보처리방침에 동의하게 됩니다.
                     </p>
                 </div>
             </div>

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { ManagedPlace, Place } from '@/lib/types'
-import { CostCalculator } from '@/lib/pricing/cost-calculator'
 
 // Components
 import { Button } from '@/components/ui/button'
@@ -13,7 +12,7 @@ import { NaverMapGridConfigurator } from '@/components/naver/NaverMapGridConfigu
 import { GoogleMapsProvider } from '@/components/maps/GoogleMapsProvider'
 import { DaySelector } from '@/components/schedule/DaySelector'
 import { TimeSelector } from '@/components/schedule/TimeSelector'
-import { CostPreviewCard } from '@/components/schedule/CostPreviewCard'
+
 import { PlaceSelectionModal } from '@/components/dashboard/PlaceSelectionModal'
 import { CalendarClock, ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
@@ -145,17 +144,14 @@ export default function SchedulePage() {
         router.back()
     }
 
-    // Cost Calculation
-    const costPerRun = CostCalculator.calculate(keywords, gridPoints as any)
-    const monthlyRunCount = Math.round(days.length * 4.3)
-    const monthlyCost = costPerRun * monthlyRunCount
+
 
     const handleSubmit = async () => {
         if (!selectedShop) return alert('장소를 선택해주세요.')
         if (keywords.length === 0) return alert('키워드를 입력해주세요.')
         if (days.length === 0) return alert('요일을 하나 이상 선택해주세요.')
 
-        if (!confirm(`${time}에 자동 검색을 예약하시겠습니까?\n월 예상 비용: ${monthlyCost.toLocaleString()} 포인트`)) {
+        if (!confirm(`${time}에 자동 검색을 예약하시겠습니까?`)) {
             return
         }
 
@@ -319,7 +315,7 @@ export default function SchedulePage() {
 
                         {/* Right Column: Cost Preview (Sticky) */}
                         <div className="lg:sticky lg:top-24 lg:self-start space-y-4">
-                            <CostPreviewCard costPerRun={costPerRun} monthlyCost={monthlyCost} />
+
 
                             <Button
                                 onClick={handleSubmit}

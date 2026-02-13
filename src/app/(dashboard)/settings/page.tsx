@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { SettingsContent } from './SettingsContent'
 import { PLAN_CONFIG } from '@/lib/pricing/config'
-import { UserCredits } from '@/lib/types'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -19,20 +18,19 @@ export default async function SettingsPage() {
         createdAt: user.created_at,
     }
 
-    // Fetch User Credits
-    const { data: userCredits } = await supabase
-        .from('user_credits')
-        .select('*')
+    // Fetch User Subscription
+    const { data: subscription } = await supabase
+        .from('user_subscriptions')
+        .select('plan_id')
         .eq('user_id', user.id)
         .single()
 
-    const planId = (userCredits as UserCredits)?.plan_id || 'light'
-    const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['light']
+    const planId = subscription?.plan_id || 'starter'
+    const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['starter']
 
-    // planConfig.limits.competitor (singular) is correct per config.ts
     const planStats = {
-        plan: planId as 'light' | 'basic' | 'pro',
-        limitCompetitor: planConfig.limits.competitor,
+        plan: planId as 'starter' | 'pro' | 'premium',
+        limitCompetitor: planConfig.competitors,
         maxSearchesPerDay: 1,
     }
 

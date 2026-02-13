@@ -1,29 +1,61 @@
-import { Plan } from '@/lib/types';
+import { PlanV2 } from '@/lib/types';
 
-export const PLAN_CONFIG: Record<string, Omit<Plan, 'id' | 'name' | 'monthly_points' | 'max_grid_size' | 'limits'> & {
-    price: number,
-    points: number,
-    limits: { place: number, competitor: number, gridSize: number }
+/**
+ * v2 요금제 설정 (티켓 기반: starter / pro / premium)
+ * @see Docs/update_plan.md
+ */
+export const PLAN_CONFIG: Record<string, {
+    price: number;
+    gridSize: number;
+    ticketsNaver: number;
+    ticketsGoogle: number;
+    keywordsNaver: number;
+    keywordsGoogle: number;
+    competitors: number;
+    channels: 'naver' | 'naver+google';
 }> = {
-    light: {
-        price: 19900,
-        points: 1000,
-        limits: { place: 1, competitor: 0, gridSize: 3 }
-    },
-    basic: {
-        price: 59000,
-        points: 5000,
-        limits: { place: 1, competitor: 3, gridSize: 5 }
+    starter: {
+        price: 9900,
+        gridSize: 3,
+        ticketsNaver: 2,
+        ticketsGoogle: 0,
+        keywordsNaver: 2,
+        keywordsGoogle: 0,
+        competitors: 0,
+        channels: 'naver',
     },
     pro: {
+        price: 29000,
+        gridSize: 5,
+        ticketsNaver: 10,
+        ticketsGoogle: 0,
+        keywordsNaver: 5,
+        keywordsGoogle: 0,
+        competitors: 1,
+        channels: 'naver',
+    },
+    premium: {
         price: 99000,
-        points: 12000,
-        limits: { place: 3, competitor: 10, gridSize: 7 }
-    }
+        gridSize: 7,
+        ticketsNaver: 15,
+        ticketsGoogle: 15,
+        keywordsNaver: 5,
+        keywordsGoogle: 5,
+        competitors: 10,
+        channels: 'naver+google',
+    },
 };
 
-// Helper to get limit safely
-export function getPlanLimit(planId: string = 'light') {
-    const plan = PLAN_CONFIG[planId] || PLAN_CONFIG['light'];
-    return plan.limits;
+/** 플랜 제한값 조회 (기본값: starter) */
+export function getPlanLimit(planId: string = 'starter') {
+    const plan = PLAN_CONFIG[planId] || PLAN_CONFIG['starter'];
+    return {
+        gridSize: plan.gridSize,
+        competitors: plan.competitors,
+        keywordsNaver: plan.keywordsNaver,
+        keywordsGoogle: plan.keywordsGoogle,
+        ticketsNaver: plan.ticketsNaver,
+        ticketsGoogle: plan.ticketsGoogle,
+        channels: plan.channels,
+    };
 }

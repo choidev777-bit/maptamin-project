@@ -48,13 +48,13 @@ export async function DELETE(request: Request) {
             supabaseAdmin.from('managed_competitors').delete().eq('user_id', user.id),
             supabaseAdmin.from('searches').delete().eq('user_id', user.id),
             supabaseAdmin.from('schedules').delete().eq('user_id', user.id),
-            supabaseAdmin.from('user_credits').delete().eq('user_id', user.id)
+            supabaseAdmin.from('user_subscriptions').delete().eq('user_id', user.id)
         ]);
 
         // Log failures for manual inspection if needed
         cleanupResults.forEach((result, index) => {
             if (result.status === 'rejected') {
-                const tableName = ['managed_places', 'managed_competitors', 'searches', 'schedules', 'user_credits'][index];
+                const tableName = ['managed_places', 'managed_competitors', 'searches', 'schedules', 'user_subscriptions'][index];
                 console.error(`Cleanup failed for ${tableName}:`, result.reason);
             }
         });

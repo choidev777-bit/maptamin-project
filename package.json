@@ -33,6 +33,7 @@
     "react-icons": "^5.5.0",
     "react-naver-maps": "^0.1.4",
     "recharts": "^3.7.0",
+    "solapi": "^5.5.4",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7"
   },

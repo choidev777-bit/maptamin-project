@@ -8,7 +8,7 @@ import { DistanceSettings } from '@/components/search/DistanceSettings'
 import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
 import { Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { UserCredits, Place } from '@/lib/types'
+import { Place } from '@/lib/types'
 import { PlaceSelectionModal } from '@/components/dashboard/PlaceSelectionModal'
 
 interface GridPointSelection {
@@ -41,7 +41,7 @@ export default function NewNaverSearchPage() {
     const [isPlaceModalOpen, setIsPlaceModalOpen] = useState(false)
 
     // User Data
-    const [userCredits, setUserCredits] = useState<UserCredits | null>(null)
+    const [remainingTickets, setRemainingTickets] = useState<number>(0)
 
     // Place Data (auto-filled from dashboard or modal)
     const [placeName, setPlaceName] = useState('')
@@ -56,22 +56,22 @@ export default function NewNaverSearchPage() {
     const [distanceUnit, setDistanceUnit] = useState<'km' | 'mile'>('km')
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // Fetch credits on mount
+    // Fetch subscription on mount
     useEffect(() => {
-        const fetchCredits = async () => {
+        const fetchSubscription = async () => {
             const supabase = createClient()
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
             const { data } = await supabase
-                .from('user_credits')
-                .select('*')
+                .from('user_subscriptions')
+                .select('remaining_tickets_naver')
                 .eq('user_id', user.id)
                 .single()
 
-            if (data) setUserCredits(data as UserCredits)
+            if (data) setRemainingTickets(data.remaining_tickets_naver || 0)
         }
-        fetchCredits()
+        fetchSubscription()
     }, [])
 
     // Fetch shop data - show modal if not found
@@ -152,13 +152,7 @@ export default function NewNaverSearchPage() {
         return gridPoints.filter(p => p.enabled).length
     }, [gridPoints])
 
-    const totalCost = useMemo(() => {
-        const activeKeywords = keywords.filter(k => k.trim().length > 0).length
-        return activeKeywords * enabledGridCount
-    }, [keywords, enabledGridCount])
-
-    const totalBalance = (userCredits?.subscription_balance || 0) + (userCredits?.cash_balance || 0)
-    const hasSufficientBalance = totalBalance >= totalCost
+    const hasTicket = remainingTickets > 0
 
     const canProceed = () => {
         switch (step) {
@@ -167,7 +161,7 @@ export default function NewNaverSearchPage() {
             case 2:
                 return enabledGridCount > 0
             case 3:
-                return hasSufficientBalance
+                return hasTicket
             default:
                 return false
         }
@@ -223,7 +217,7 @@ export default function NewNaverSearchPage() {
                 if (createResponse.status === 429) {
                     alert('네이버 일일 검색 한도에 도달했습니다. 내일 다시 시도해주세요.')
                 } else if (createResponse.status === 402) {
-                    alert(error.message || '포인트가 부족합니다.')
+                    alert(error.message || '티켓이 부족합니다.')
                 } else if (createResponse.status === 403) {
                     alert(error.message || '플랜 한도를 초과했습니다.')
                 } else {
@@ -385,9 +379,9 @@ export default function NewNaverSearchPage() {
                         {step === 3 && (
                             <div className="space-y-6">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">결제 및 확인</h2>
+                                    <h2 className="text-2xl font-bold text-gray-900">확인 및 시작</h2>
                                     <p className="mt-2 text-gray-600">
-                                        예상 비용을 확인하고 검색을 시작하세요.
+                                        설정을 확인하고 검색을 시작하세요.
                                     </p>
                                 </div>
 
@@ -409,26 +403,26 @@ export default function NewNaverSearchPage() {
                                         </div>
                                     </div>
 
-                                    {/* Cost Summary */}
+                                    {/* Ticket Summary */}
                                     <div className="bg-gray-50 p-6 border-t border-gray-200">
                                         <div className="flex justify-between items-center mb-2">
-                                            <span className="text-gray-600">보유 포인트</span>
-                                            <span className="font-medium">{totalBalance.toLocaleString()} P</span>
+                                            <span className="text-gray-600">남은 티켓</span>
+                                            <span className="font-medium">{remainingTickets}장</span>
                                         </div>
                                         <div className="flex justify-between items-center mb-4">
-                                            <span className="text-gray-600">차감 예정 포인트</span>
-                                            <span className="text-xl font-bold text-red-600">-{totalCost.toLocaleString()} P</span>
+                                            <span className="text-gray-600">차감 티켓</span>
+                                            <span className="text-xl font-bold text-red-600">-1장</span>
                                         </div>
                                         <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
-                                            <span className="font-medium text-gray-900">잔액 예상</span>
-                                            <span className={`text-lg font-bold ${hasSufficientBalance ? 'text-emerald-600' : 'text-red-600'}`}>
-                                                {(totalBalance - totalCost).toLocaleString()} P
+                                            <span className="font-medium text-gray-900">진단 후 잔여</span>
+                                            <span className={`text-lg font-bold ${hasTicket ? 'text-emerald-600' : 'text-red-600'}`}>
+                                                {Math.max(0, remainingTickets - 1)}장
                                             </span>
                                         </div>
-                                        {!hasSufficientBalance && (
+                                        {!hasTicket && (
                                             <div className="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-center gap-2">
                                                 <AlertTriangle className="w-4 h-4" />
-                                                포인트가 부족하여 검색을 시작할 수 없습니다.
+                                                이번 달 진단 티켓이 모두 소진되어 검색을 시작할 수 없습니다.
                                             </div>
                                         )}
                                     </div>
@@ -436,7 +430,7 @@ export default function NewNaverSearchPage() {
 
                                 <div className="p-4 bg-amber-50 rounded-lg">
                                     <p className="text-sm text-amber-800">
-                                        ⚠️ 검색 시작 시 포인트가 즉시 차감됩니다. (실패 시 자동 환불)
+                                        ⚠️ 검색 시작 시 티켓 1장이 즉시 차감됩니다. (실패 시 자동 환불)
                                     </p>
                                 </div>
                             </div>
@@ -472,7 +466,7 @@ export default function NewNaverSearchPage() {
                         ) : (
                             <button
                                 onClick={handleSubmit}
-                                disabled={isSubmitting || !hasSufficientBalance}
+                                disabled={isSubmitting || !hasTicket}
                                 className="flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {isSubmitting ? (
@@ -483,7 +477,7 @@ export default function NewNaverSearchPage() {
                                 ) : (
                                     <>
                                         <Check className="w-5 h-5" />
-                                        {hasSufficientBalance ? '결제 및 시작' : '잔액 부족'}
+                                        {hasTicket ? '진단 시작 (티켓 1장)' : '티켓 부족'}
                                     </>
                                 )}
                             </button>

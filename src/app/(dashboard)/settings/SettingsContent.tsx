@@ -20,7 +20,7 @@ interface UserInfo {
 interface Props {
     user: UserInfo
     planStats: {
-        plan: 'light' | 'basic' | 'pro'
+        plan: 'starter' | 'pro' | 'premium'
         limitCompetitor: number
         maxSearchesPerDay: number
     }
@@ -95,18 +95,18 @@ export function SettingsContent({ user, planStats }: Props) {
 
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl mb-4">
                     <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${planStats.plan === 'pro'
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${planStats.plan === 'premium'
                             ? 'bg-gradient-to-r from-yellow-400 to-orange-500'
-                            : planStats.plan === 'basic'
+                            : planStats.plan === 'pro'
                                 ? 'bg-blue-600'
                                 : 'bg-gray-200'
                             }`}>
-                            <Crown className={`w-5 h-5 ${planStats.plan === 'light' ? 'text-gray-500' : 'text-white'}`} />
+                            <Crown className={`w-5 h-5 ${planStats.plan === 'starter' ? 'text-gray-500' : 'text-white'}`} />
                         </div>
                         <div>
                             <h3 className="font-semibold text-gray-900">
-                                {planStats.plan === 'light' ? 'Free Plan' :
-                                    planStats.plan === 'basic' ? 'Basic Plan' : 'Pro Plan'}
+                                {planStats.plan === 'starter' ? 'Starter' :
+                                    planStats.plan === 'pro' ? 'Pro' : 'Premium'}
                             </h3>
                             <p className="text-sm text-gray-500">
                                 경쟁사 최대 {planStats.limitCompetitor}개 등록 가능
@@ -114,7 +114,7 @@ export function SettingsContent({ user, planStats }: Props) {
                         </div>
                     </div>
 
-                    {planStats.plan === 'light' && (
+                    {planStats.plan === 'starter' && (
                         <button className="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all">
                             업그레이드
                             <ChevronRight className="w-4 h-4" />

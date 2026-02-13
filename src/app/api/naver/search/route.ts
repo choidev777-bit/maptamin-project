@@ -8,7 +8,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { PLAN_CONFIG } from '@/lib/pricing/config'
-import { UserCredits } from '@/lib/types'
 
 export async function POST(request: Request) {
     const supabase = await createClient()
@@ -41,16 +40,15 @@ export async function POST(request: Request) {
     const body = await bodyPromise
     const { placeName, placeAddress, placeLat, placeLng, keywords, gridPoints, distance, distanceUnit, placeId } = body
 
-    // 1. Plan & Credit Check
-    const { data: userCredits } = await supabase
-        .from('user_credits')
-        .select('*')
+    // 1. Plan & Subscription Check
+    const { data: subscription } = await supabase
+        .from('user_subscriptions')
+        .select('plan_id, remaining_tickets_naver')
         .eq('user_id', user.id)
         .single()
 
-    // Default to 'light' if no plan found (though should exist)
-    const planId = (userCredits as UserCredits)?.plan_id || 'light'
-    const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['light']
+    const planId = subscription?.plan_id || 'starter'
+    const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['starter']
 
     // 2. Validate Grid Size (Plan Limit)
     // gridPoints is an array. We need to check if the template size matches the limit.
@@ -67,49 +65,31 @@ export async function POST(request: Request) {
     const maxCol = Math.max(...(gridPoints as any[]).map(p => Math.abs(p.col)))
     const gridSize = Math.max(maxRow, maxCol) * 2 + 1 // e.g., maxRow=1 -> 3x3
 
-    if (gridSize > planConfig.limits.gridSize) {
+    if (gridSize > planConfig.gridSize) {
         return NextResponse.json({
             error: 'PLAN_LIMIT_EXCEEDED',
-            message: `현재 플랜(${planConfig.price.toLocaleString()}원)에서는 ${planConfig.limits.gridSize}x${planConfig.limits.gridSize} 그리드까지만 사용할 수 있습니다.`,
+            message: `현재 플랜(${planConfig.price.toLocaleString()}원)에서는 ${planConfig.gridSize}x${planConfig.gridSize} 그리드까지만 사용할 수 있습니다.`,
         }, { status: 403 })
     }
 
-    // 3. Calculate Cost
-    const enabledPoints = gridPoints.filter((p: { enabled: boolean }) => p.enabled).length
-    const cost = enabledPoints * keywords.length // 1 Point per keyword per grid point
-
-    // 4. Process Payment (Atomic RPC)
-    // We use the new RPC: deduct_credits_and_track_usage(user_id, cost, platform, date)
-    const todayDate = new Date().toISOString().split('T')[0]
-
-    // Note: RPC might throw error if insufficient funds
-    const { data: paymentResult, error: paymentError } = await supabase
-        .rpc('deduct_credits_and_track_usage', {
-            p_user_id: user.id,
-            p_cost: cost,
-            p_platform: 'naver',
-            p_date: todayDate
-        })
-
-    if (paymentError) {
-        console.error('Payment failed:', paymentError)
-        // Check if it's strictly insufficient balance or other error
-        if (paymentError.message?.includes('Insufficient balance')) {
-            return NextResponse.json({
-                error: 'INSUFFICIENT_BALANCE',
-                message: '보유 포인트가 부족합니다. 충전 후 이용해주세요.',
-            }, { status: 402 })
-        }
-        return NextResponse.json({ error: 'Payment processing failed' }, { status: 500 })
+    // 3. Ticket Check
+    const remainingTickets = subscription?.remaining_tickets_naver || 0
+    if (remainingTickets <= 0) {
+        return NextResponse.json({
+            error: 'NO_TICKETS',
+            message: '이번 달 실시간 진단 티켓이 모두 소진되었습니다.',
+        }, { status: 402 })
     }
 
-    // Double check success in result jsonb if RPC returns it (it returns JSONB)
-    // RPC returns: { success: true, ... } or { success: false, ... }
-    // Supabase .rpc returns `data` as the return value.
-    if (paymentResult && !paymentResult.success) {
+    // 4. Deduct Ticket (Atomic RPC)
+    const { error: deductError } = await supabase
+        .rpc('deduct_ticket', { p_platform: 'naver' })
+
+    if (deductError) {
+        console.error('Ticket deduction failed:', deductError)
         return NextResponse.json({
-            error: 'PAYMENT_FAILED',
-            message: paymentResult.error || '결제 처리에 실패했습니다.',
+            error: 'TICKET_DEDUCTION_FAILED',
+            message: '티켓 차감에 실패했습니다.',
         }, { status: 500 })
     }
 
@@ -129,7 +109,7 @@ export async function POST(request: Request) {
             distance_unit: distanceUnit,
             status: 'pending',
             platform: 'naver',
-            cost: cost // Store cost for record
+            report_type: 'realtime'
         })
         .select()
         .single()
@@ -145,7 +125,8 @@ export async function POST(request: Request) {
     }
 
     // 예상 소요 시간 계산
-    const estimatedTime = enabledPoints * keywords.length * 3
+    const enabledCount = gridPoints.filter((p: { enabled: boolean }) => p.enabled).length
+    const estimatedTime = enabledCount * keywords.length * 3
 
     // 🆕 Trigger queue dispatcher (non-blocking)
     // This will start the job if slots are available
