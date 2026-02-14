@@ -641,24 +641,9 @@ export async function scrapeNaverBatch(
             if (i === 0) {
                 console.log('[Scraper Ex2] 🔥 Warmup run for Task 1 (result will be discarded)...');
                 try {
-                    // 워밍업: 이동, 줌인, 드래그, 검색 (결과는 버림)
+                    // 워밍업: 이동, 줌인, 검색 (결과는 버림)
                     await moveToLocation(page, lat, lng);
                     await forceZoomIn(page);
-
-                    // 드래그
-                    const viewport = page.viewportSize();
-                    if (viewport) {
-                        const centerX = viewport.width / 2;
-                        const centerY = viewport.height / 2;
-                        await page.mouse.move(centerX, centerY);
-                        await page.mouse.down();
-                        await delay(100);
-                        await page.mouse.move(centerX + 100, centerY, { steps: 10 });
-                        await delay(100);
-                        await page.mouse.move(centerX, centerY, { steps: 10 });
-                        await page.mouse.up();
-                        await delay(500);
-                    }
 
                     // 검색
                     const warmupClearBtn = page.locator('.btn_clear');
@@ -695,40 +680,7 @@ export async function scrapeNaverBatch(
                 // Step 2: 줌인
                 await forceZoomIn(page);
 
-                // Step 3: 드래그 (위치 컨텍스트 고정)
-                try {
-                    console.log('[Scraper Ex2] 🖐️ Dragging map to lock location context...');
-                    const viewport = page.viewportSize();
-                    if (viewport) {
-                        const centerX = viewport.width / 2;
-                        const centerY = viewport.height / 2;
-                        await page.mouse.move(centerX, centerY);
-                        await page.mouse.down();
-                        await delay(100);
-                        await page.mouse.move(centerX + 100, centerY, { steps: 10 });
-                        await delay(100);
-                        await page.mouse.move(centerX, centerY, { steps: 10 });
-                        await page.mouse.up();
-                        await delay(500);
-                        console.log('[Scraper Ex2] ✅ Map drag complete (Location locked)');
-                    }
-                } catch (e) {
-                    console.log('[Scraper Ex2] ⚠️ Map drag failed, proceeding anyway...');
-                }
-
-                // Step 3.5: 드래그 후 좌표 재이동 (위치 보정)
-                // 드래그로 /entry/ 패널이 닫히면 지도가 IP 기반 위치로 복원될 수 있음
-                // 좌표를 다시 입력하여 정확한 위치로 복원
-                try {
-                    console.log(`[Scraper Ex2] 📍 Re-centering to (${lat}, ${lng})...`);
-                    await moveToLocation(page, lat, lng);
-                    await forceZoomIn(page); // 새 검색 후 줌 리셋되므로 다시 줌인
-                    console.log('[Scraper Ex2] ✅ Re-centered to original coordinates');
-                } catch (e) {
-                    console.log('[Scraper Ex2] ⚠️ Re-center failed, proceeding with current position...');
-                }
-
-                // Step 4: Persistent Retry Loop (최대 5회 엔터 재시도)
+                // Step 3: Persistent Retry Loop (최대 5회 엔터 재시도)
                 const MAX_SEARCH_RETRY = 5;
                 let taskResults: NaverPlaceResult[] = [];
 
