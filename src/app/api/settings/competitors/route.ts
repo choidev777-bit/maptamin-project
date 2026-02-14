@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import { PLAN_CONFIG } from '@/lib/pricing/config';
+import { getPlanLimit } from '@/lib/pricing/config';
 
+// GET: 경쟁사 목록 조회
 export async function GET(request: Request) {
     try {
         const supabase = await createClient();
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
             query = query.eq('platform', platform);
         }
 
-        const { data, error } = await query;
+        const { data, error } = await query.order('created_at', { ascending: true });
 
         if (error) throw error;
 
@@ -30,6 +31,7 @@ export async function GET(request: Request) {
     }
 }
 
+// POST: 경쟁사 등록
 export async function POST(request: Request) {
     try {
         const supabase = await createClient();
@@ -46,33 +48,44 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
         }
 
-        // Fetch user subscription to get plan
-        const { data: subscription } = await supabase
+        // 1. 플랜 조회
+        const { data: sub } = await supabase
             .from('user_subscriptions')
             .select('plan_id')
             .eq('user_id', user.id)
-            .single()
+            .single();
 
-        const planId = subscription?.plan_id || 'starter'
-        const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['starter']
-        const maxCompetitors = planConfig.competitors;
+        const planId = sub?.plan_id || 'starter';
+        const limits = getPlanLimit(planId);
 
-        // Fetch current count
-        const { count } = await supabase
+        const maxForPlatform = platform === 'naver' ? limits.competitorsNaver : limits.competitorsGoogle;
+
+        if (maxForPlatform === 0) {
+            return NextResponse.json({ error: '현재 플랜에서는 경쟁사를 등록할 수 없습니다.' }, { status: 403 });
+        }
+
+        // 2. 해당 플랫폼의 현재 등록 수 확인
+        const { data: existing, error: fetchErr } = await supabase
             .from('managed_competitors')
-            .select('*', { count: 'exact', head: true })
+            .select('*')
             .eq('user_id', user.id)
             .eq('platform', platform);
 
-        if ((count || 0) >= maxCompetitors) {
-            return NextResponse.json({ error: `경쟁사는 최대 ${maxCompetitors}개까지 등록할 수 있습니다.` }, { status: 403 });
+        if (fetchErr) throw fetchErr;
+
+        if ((existing?.length || 0) >= maxForPlatform) {
+            return NextResponse.json({
+                error: `${platform === 'naver' ? '네이버' : '구글'} 경쟁사는 최대 ${maxForPlatform}곳까지 등록 가능합니다.`
+            }, { status: 400 });
         }
 
-        // 2. Add Competitor
-        const lockedUntil = new Date();
-        lockedUntil.setDate(lockedUntil.getDate() + 30);
+        // 3. 중복 체크
+        if (existing?.some(c => c.place_id === placeId)) {
+            return NextResponse.json({ error: '이미 등록된 경쟁사입니다.' }, { status: 400 });
+        }
 
-        const { error } = await supabase
+        // 4. 등록 (30일 락 없음)
+        const { error: insertErr } = await supabase
             .from('managed_competitors')
             .insert({
                 user_id: user.id,
@@ -82,23 +95,18 @@ export async function POST(request: Request) {
                 address: address || null,
                 lat: lat || null,
                 lng: lng || null,
-                locked_until: lockedUntil.toISOString()
             });
 
-        if (error) {
-            if (error.code === '23505') { // Unique violation
-                return NextResponse.json({ error: '이미 등록된 경쟁사입니다.' }, { status: 409 });
-            }
-            throw error;
-        }
+        if (insertErr) throw insertErr;
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
-        console.error('Add Competitor Error:', error);
+        console.error('Competitor Setting Error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 
+// DELETE: 경쟁사 삭제 (30일 락 없이 자유 삭제)
 export async function DELETE(request: Request) {
     try {
         const supabase = await createClient();
@@ -115,32 +123,23 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ error: 'ID is required' }, { status: 400 });
         }
 
-        // 1. Check Lock
+        // 존재 확인 + 소유자 확인
         const { data: existing } = await supabase
             .from('managed_competitors')
-            .select('*')
+            .select('id')
             .eq('id', id)
             .eq('user_id', user.id)
             .single();
 
         if (!existing) {
-            return NextResponse.json({ error: 'Competitor not found' }, { status: 404 });
+            return NextResponse.json({ error: 'Not found' }, { status: 404 });
         }
 
-        const now = new Date();
-        if (existing.locked_until && new Date(existing.locked_until) > now) {
-            return NextResponse.json({
-                error: '30일 락 기간 중에는 삭제할 수 없습니다.',
-                lockedUntil: existing.locked_until
-            }, { status: 403 });
-        }
-
-        // 2. Delete
+        // 삭제
         const { error } = await supabase
             .from('managed_competitors')
             .delete()
-            .eq('id', id)
-            .eq('user_id', user.id);
+            .eq('id', id);
 
         if (error) throw error;
 

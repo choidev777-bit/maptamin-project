@@ -11,7 +11,8 @@ export const PLAN_CONFIG: Record<string, {
     ticketsGoogle: number;
     keywordsNaver: number;
     keywordsGoogle: number;
-    competitors: number;
+    competitorsNaver: number;
+    competitorsGoogle: number;
     channels: 'naver' | 'naver+google';
 }> = {
     starter: {
@@ -21,7 +22,8 @@ export const PLAN_CONFIG: Record<string, {
         ticketsGoogle: 0,
         keywordsNaver: 2,
         keywordsGoogle: 0,
-        competitors: 0,
+        competitorsNaver: 0,
+        competitorsGoogle: 0,
         channels: 'naver',
     },
     pro: {
@@ -31,7 +33,8 @@ export const PLAN_CONFIG: Record<string, {
         ticketsGoogle: 0,
         keywordsNaver: 5,
         keywordsGoogle: 0,
-        competitors: 1,
+        competitorsNaver: 1,
+        competitorsGoogle: 0,
         channels: 'naver',
     },
     premium: {
@@ -41,7 +44,8 @@ export const PLAN_CONFIG: Record<string, {
         ticketsGoogle: 15,
         keywordsNaver: 5,
         keywordsGoogle: 5,
-        competitors: 10,
+        competitorsNaver: 10,
+        competitorsGoogle: 10,
         channels: 'naver+google',
     },
 };
@@ -51,7 +55,8 @@ export function getPlanLimit(planId: string = 'starter') {
     const plan = PLAN_CONFIG[planId] || PLAN_CONFIG['starter'];
     return {
         gridSize: plan.gridSize,
-        competitors: plan.competitors,
+        competitorsNaver: plan.competitorsNaver,
+        competitorsGoogle: plan.competitorsGoogle,
         keywordsNaver: plan.keywordsNaver,
         keywordsGoogle: plan.keywordsGoogle,
         ticketsNaver: plan.ticketsNaver,

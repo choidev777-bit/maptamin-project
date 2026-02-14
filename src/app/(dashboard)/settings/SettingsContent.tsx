@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User, Mail, Calendar, Crown, LogOut, Settings, ChevronRight, Zap } from 'lucide-react'
 import Image from 'next/image'
-import { CompetitorManager } from '@/components/settings/CompetitorManager'
 import { MyShopManager } from '@/components/settings/MyShopManager'
-import { ScheduleManager } from '@/components/settings/ScheduleManager'
+import { CompetitorManager } from '@/components/settings/CompetitorManager'
 import { DeleteAccountSection } from '@/components/settings/DeleteAccountSection'
 
 interface UserInfo {
@@ -21,7 +20,8 @@ interface Props {
     user: UserInfo
     planStats: {
         plan: 'starter' | 'pro' | 'premium'
-        limitCompetitor: number
+        limitCompetitorNaver: number
+        limitCompetitorGoogle: number
         maxSearchesPerDay: number
     }
 }
@@ -109,7 +109,7 @@ export function SettingsContent({ user, planStats }: Props) {
                                     planStats.plan === 'pro' ? 'Pro' : 'Premium'}
                             </h3>
                             <p className="text-sm text-gray-500">
-                                경쟁사 최대 {planStats.limitCompetitor}개 등록 가능
+                                경쟁사 최대 {planStats.limitCompetitorNaver + planStats.limitCompetitorGoogle}개 등록 가능
                             </p>
                         </div>
                     </div>
@@ -128,16 +128,10 @@ export function SettingsContent({ user, planStats }: Props) {
                 <MyShopManager />
             </div>
 
-            {/* Schedule Management */}
+            {/* Competitor Management (Pro/Premium only) */}
             <div className="mb-6">
-                <ScheduleManager />
+                <CompetitorManager planId={planStats.plan} maxNaverCompetitors={planStats.limitCompetitorNaver} maxGoogleCompetitors={planStats.limitCompetitorGoogle} />
             </div>
-
-            {/* Competitor Management */}
-            <div className="mb-6">
-                <CompetitorManager />
-            </div>
-
             {/* Actions Section */}
             <div className="bg-white rounded-2xl border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">계정</h2>

@@ -30,7 +30,8 @@ export default async function SettingsPage() {
 
     const planStats = {
         plan: planId as 'starter' | 'pro' | 'premium',
-        limitCompetitor: planConfig.competitors,
+        limitCompetitorNaver: planConfig.competitorsNaver,
+        limitCompetitorGoogle: planConfig.competitorsGoogle,
         maxSearchesPerDay: 1,
     }
 

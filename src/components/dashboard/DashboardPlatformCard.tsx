@@ -3,12 +3,13 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { MapPin, Search, Lock } from 'lucide-react'
+import { MapPin, Search, Lock, Swords } from 'lucide-react'
 import { PlaceSelectionModal } from './PlaceSelectionModal'
 
 import { useState } from 'react'
 import { Place } from '@/lib/types'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface ManagedPlaceData {
     id: string
@@ -26,9 +27,11 @@ interface ManagedPlaceData {
 interface Props {
     platform: 'naver' | 'google'
     data: ManagedPlaceData | null
+    competitorCount?: number
+    firstCompetitorName?: string
 }
 
-export function DashboardPlatformCard({ platform, data }: Props) {
+export function DashboardPlatformCard({ platform, data, competitorCount = 0, firstCompetitorName }: Props) {
     const router = useRouter()
     const [isModalOpen, setIsModalOpen] = useState(false)
 
@@ -122,7 +125,29 @@ export function DashboardPlatformCard({ platform, data }: Props) {
                             </div>
                         ) : null}
 
-                        <div className="mt-6">
+                        {/* Competitor Info */}
+                        <div className="flex items-center gap-2 mt-4 p-3 bg-gray-50 rounded-lg">
+                            <Swords className="w-4 h-4 text-gray-400 shrink-0" />
+                            {competitorCount === 0 ? (
+                                <div className="flex items-center justify-between w-full">
+                                    <span className="text-sm text-gray-500">경쟁사 미등록</span>
+                                    <Link href="/settings" className="text-xs text-emerald-600 hover:text-emerald-700 font-medium">
+                                        등록하기 →
+                                    </Link>
+                                </div>
+                            ) : competitorCount === 1 ? (
+                                <span className="text-sm font-medium text-gray-700">vs {firstCompetitorName}</span>
+                            ) : (
+                                <div className="flex items-center justify-between w-full">
+                                    <span className="text-sm font-medium text-gray-700">경쟁사 {competitorCount}곳 등록됨</span>
+                                    <Link href="/settings" className="text-xs text-gray-500 hover:text-gray-700">
+                                        관리 →
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-4">
                             <Button
                                 className={`w-full flex items-center justify-center gap-2 ${platform === 'naver' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-600 hover:bg-blue-700'}`}
                                 onClick={() => router.push(platform === 'naver' ? '/naver-search/new?mode=my-shop' : '/search/new?mode=my-shop')}

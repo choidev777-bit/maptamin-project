@@ -19,8 +19,8 @@ export default async function SearchResultsPage({ params }: PageProps) {
 
     const supabase = await createClient()
 
-    // Parallel fetch: search record and results (async-parallel pattern)
-    const [searchResult, resultsResult] = await Promise.all([
+    // Parallel fetch: search record, results, competitors, plan (async-parallel pattern)
+    const [searchResult, resultsResult, competitorsResult, subscriptionResult] = await Promise.all([
         supabase
             .from('searches')
             .select('*')
@@ -30,11 +30,22 @@ export default async function SearchResultsPage({ params }: PageProps) {
         supabase
             .from('search_results')
             .select('*')
-            .eq('search_id', id)
+            .eq('search_id', id),
+        supabase
+            .from('managed_competitors')
+            .select('*')
+            .eq('user_id', user.id),
+        supabase
+            .from('user_subscriptions')
+            .select('plan_id')
+            .eq('user_id', user.id)
+            .single(),
     ])
 
     const { data: search, error: searchError } = searchResult
     const { data: results } = resultsResult
+    const { data: competitors } = competitorsResult
+    const planId = subscriptionResult.data?.plan_id || 'starter'
 
     if (searchError || !search) {
         notFound()
@@ -91,7 +102,7 @@ export default async function SearchResultsPage({ params }: PageProps) {
 
             {search.status === 'completed' && results && results.length > 0 && (
                 <Suspense fallback={<div>로딩 중...</div>}>
-                    <ResultsContent search={search} results={results} />
+                    <ResultsContent search={search} results={results} competitors={competitors || []} planId={planId} />
                 </Suspense>
             )}
 

@@ -27,8 +27,17 @@ export default async function DashboardPage() {
         .select('*')
         .eq('user_id', user?.id)
 
+    // Fetch managed competitors
+    const { data: competitors } = await supabase
+        .from('managed_competitors')
+        .select('*')
+        .eq('user_id', user?.id)
+
     const naverShop = managedPlaces?.find(p => p.platform === 'naver') || null
     const googleShop = managedPlaces?.find(p => p.platform === 'google') || null
+
+    const naverCompetitors = competitors?.filter(c => c.platform === 'naver') || []
+    const googleCompetitors = competitors?.filter(c => c.platform === 'google') || []
 
     // Fetch today's usage
 
@@ -45,8 +54,8 @@ export default async function DashboardPage() {
 
             {/* My Shop Cards (New) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <DashboardPlatformCard platform="naver" data={naverShop} />
-                <DashboardPlatformCard platform="google" data={googleShop} />
+                <DashboardPlatformCard platform="naver" data={naverShop} competitorCount={naverCompetitors.length} firstCompetitorName={naverCompetitors[0]?.place_name} />
+                <DashboardPlatformCard platform="google" data={googleShop} competitorCount={googleCompetitors.length} firstCompetitorName={googleCompetitors[0]?.place_name} />
             </div>
 
 

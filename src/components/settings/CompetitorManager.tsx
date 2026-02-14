@@ -1,18 +1,28 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Trash2, Lock, MapPin, Search } from 'lucide-react'
+import { Plus, Trash2, Users } from 'lucide-react'
 import { PlaceSelectionModal } from '@/components/dashboard/PlaceSelectionModal'
 import { ManagedCompetitor, Place } from '@/lib/types'
 
-export function CompetitorManager() {
+interface Props {
+    planId: 'starter' | 'pro' | 'premium'
+    maxNaverCompetitors: number
+    maxGoogleCompetitors: number
+}
+
+export function CompetitorManager({ planId, maxNaverCompetitors, maxGoogleCompetitors }: Props) {
     const [competitors, setCompetitors] = useState<ManagedCompetitor[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [selectedPlatform, setSelectedPlatform] = useState<'naver' | 'google'>('naver')
     const [isDeleting, setIsDeleting] = useState<string | null>(null)
 
+    const isPremium = planId === 'premium'
+    const maxForPlatform = selectedPlatform === 'naver' ? maxNaverCompetitors : maxGoogleCompetitors
+
     const fetchCompetitors = useCallback(async () => {
+        setIsLoading(true)
         try {
             const res = await fetch(`/api/settings/competitors?platform=${selectedPlatform}`)
             const { data } = await res.json()
@@ -28,7 +38,7 @@ export function CompetitorManager() {
         fetchCompetitors()
     }, [fetchCompetitors])
 
-    const handleAddCompetitor = async (place: Place) => {
+    const handleRegisterCompetitor = async (place: Place) => {
         try {
             const res = await fetch('/api/settings/competitors', {
                 method: 'POST',
@@ -39,7 +49,7 @@ export function CompetitorManager() {
                     placeName: place.name,
                     address: place.address,
                     lat: place.lat,
-                    lng: place.lng
+                    lng: place.lng,
                 }),
             })
 
@@ -57,12 +67,7 @@ export function CompetitorManager() {
         }
     }
 
-    const handleDelete = async (id: string, lockedUntil: string | null | undefined) => {
-        if (lockedUntil && new Date(lockedUntil) > new Date()) {
-            alert('30일 락 기간 중에는 삭제할 수 없습니다.')
-            return
-        }
-
+    const handleDelete = async (id: string) => {
         if (!confirm('정말 삭제하시겠습니까?')) return
 
         setIsDeleting(id)
@@ -86,104 +91,119 @@ export function CompetitorManager() {
         }
     }
 
+    // Starter 플랜은 렌더링 안 함
+    if (planId === 'starter') return null
+
     return (
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h2 className="text-lg font-semibold text-gray-900">경쟁사 관리</h2>
                     <p className="text-sm text-gray-500 mt-1">
-                        경쟁 업체의 순위를 추적하세요. (등록 후 30일간 변경 불가)
+                        비교 분석할 경쟁 가게를 등록하세요.
                     </p>
                 </div>
-                <div className="flex bg-gray-100 rounded-lg p-1">
-                    <button
-                        onClick={() => setSelectedPlatform('naver')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${selectedPlatform === 'naver'
-                            ? 'bg-white text-emerald-600 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-900'
-                            }`}
-                    >
-                        네이버
-                    </button>
-                    <button
-                        onClick={() => setSelectedPlatform('google')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${selectedPlatform === 'google'
-                            ? 'bg-white text-blue-600 shadow-sm'
-                            : 'text-gray-500 hover:text-gray-900'
-                            }`}
-                    >
-                        구글
-                    </button>
-                </div>
+
+                {/* 플랫폼 탭 (Premium만 구글 탭 표시) */}
+                {isPremium ? (
+                    <div className="flex bg-gray-100 rounded-lg p-1">
+                        <button
+                            onClick={() => setSelectedPlatform('naver')}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${selectedPlatform === 'naver'
+                                ? 'bg-white text-emerald-600 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-900'
+                                }`}
+                        >
+                            네이버
+                        </button>
+                        <button
+                            onClick={() => setSelectedPlatform('google')}
+                            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${selectedPlatform === 'google'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-gray-500 hover:text-gray-900'
+                                }`}
+                        >
+                            구글
+                        </button>
+                    </div>
+                ) : (
+                    <span className="text-sm text-gray-400 font-medium">
+                        {competitors.length}/{maxForPlatform}
+                    </span>
+                )}
             </div>
 
-            {/* List */}
-            <div className="space-y-4 mb-6">
+            {/* 슬롯 카운터 (Premium에서 탭 아래) */}
+            {isPremium && (
+                <p className="text-sm text-gray-400 font-medium mb-4">
+                    등록 {competitors.length}/{maxForPlatform}
+                </p>
+            )}
+
+            {/* Content */}
+            <div className="space-y-3">
                 {isLoading ? (
                     <div className="text-center py-8 text-gray-400">로딩 중...</div>
                 ) : competitors.length === 0 ? (
                     <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                        <Search className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                        <p className="text-gray-500 text-sm">등록된 경쟁사가 없습니다.</p>
+                        <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                        <p className="text-gray-500 text-sm mb-4">등록된 경쟁사가 없습니다.</p>
+                        <button
+                            onClick={() => setIsAddModalOpen(true)}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
+                        >
+                            <Plus className="w-4 h-4" />
+                            경쟁사 등록하기
+                        </button>
                     </div>
                 ) : (
-                    competitors.map((comp) => {
-                        const isLocked = comp.locked_until && new Date(comp.locked_until) > new Date()
-                        return (
-                            <div key={comp.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors">
+                    <>
+                        {competitors.map((comp, index) => (
+                            <div
+                                key={comp.id}
+                                className="flex justify-between items-center p-4 border border-gray-100 bg-gray-50/50 rounded-xl"
+                            >
                                 <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${comp.platform === 'naver' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'
-                                        }`}>
-                                        <MapPin className="w-5 h-5" />
-                                    </div>
+                                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-red-100 text-xs font-bold text-red-600">
+                                        {index + 1}
+                                    </span>
                                     <div>
                                         <h3 className="font-medium text-gray-900">{comp.place_name}</h3>
                                         {comp.address && <p className="text-xs text-gray-500">{comp.address}</p>}
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-3">
-                                    {isLocked && (
-                                        <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
-                                            <Lock className="w-3 h-3" />
-                                            <span>
-                                                {new Date(comp.locked_until!).toLocaleDateString()}
-                                            </span>
-                                        </div>
-                                    )}
-                                    <button
-                                        onClick={() => handleDelete(comp.id, comp.locked_until)}
-                                        disabled={!!isLocked || isDeleting === comp.id}
-                                        className={`p-2 rounded-lg transition-colors ${isLocked
-                                            ? 'text-gray-300 cursor-not-allowed'
-                                            : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
-                                            }`}
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={() => handleDelete(comp.id)}
+                                    disabled={isDeleting === comp.id}
+                                    className="p-2 rounded-lg transition-colors text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50"
+                                    title="경쟁사 삭제"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
-                        )
-                    })
+                        ))}
+
+                        {/* 추가 버튼 (슬롯 남아있을 때만) */}
+                        {competitors.length < maxForPlatform && (
+                            <button
+                                onClick={() => setIsAddModalOpen(true)}
+                                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors"
+                            >
+                                <Plus className="w-4 h-4" />
+                                경쟁사 추가 ({competitors.length}/{maxForPlatform})
+                            </button>
+                        )}
+                    </>
                 )}
             </div>
-
-            {/* Add Button */}
-            <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-gray-300 rounded-xl text-gray-500 hover:text-gray-900 hover:border-gray-400 hover:bg-gray-50 transition-all"
-            >
-                <Plus className="w-4 h-4" />
-                경쟁사 추가하기
-            </button>
 
             {/* Modal */}
             <PlaceSelectionModal
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
                 platform={selectedPlatform}
-                onConfirm={handleAddCompetitor}
-                isCompetitor={true}
+                onConfirm={handleRegisterCompetitor}
             />
         </div>
     )

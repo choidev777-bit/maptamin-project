@@ -7,9 +7,10 @@ import { KeywordInput } from '@/components/search/KeywordInput'
 import { MapGridConfigurator } from '@/components/search/MapGridConfigurator'
 import { DistanceSettings } from '@/components/search/DistanceSettings'
 import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
-import { Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
+import { Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, Swords } from 'lucide-react'
 import { PlaceSelectionModal } from '@/components/dashboard/PlaceSelectionModal'
 import { Place } from '@/lib/types'
+import Link from 'next/link'
 
 // Dynamic import for heavy Google Maps component
 const GoogleMapsProvider = dynamic(
@@ -62,6 +63,7 @@ export default function NewSearchPage() {
     const [gridDistance, setGridDistance] = useState(1) // km
     const [distanceUnit, setDistanceUnit] = useState<'km' | 'mile'>('km')
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [hasCompetitor, setHasCompetitor] = useState(true) // default true to avoid flash
 
     // Fetch shop data - show modal if not found
     useEffect(() => {
@@ -98,6 +100,22 @@ export default function NewSearchPage() {
             }
         }
         fetchShopData()
+    }, [])
+
+    // Fetch competitor status
+    useEffect(() => {
+        const checkCompetitors = async () => {
+            try {
+                const res = await fetch('/api/settings/competitors?platform=google')
+                if (res.ok) {
+                    const { data } = await res.json()
+                    setHasCompetitor((data?.length || 0) > 0)
+                }
+            } catch (e) {
+                console.error('Failed to check competitors:', e)
+            }
+        }
+        checkCompetitors()
     }, [])
 
     // Handler: Register shop from modal
@@ -256,6 +274,22 @@ export default function NewSearchPage() {
                             <p className="font-semibold text-blue-900">{place.name}</p>
                             {place.address && <p className="text-sm text-blue-700">{place.address}</p>}
                         </div>
+
+                        {/* Competitor CTA Banner */}
+                        {!hasCompetitor && (
+                            <div className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg flex items-start gap-3">
+                                <Swords className="w-5 h-5 text-indigo-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                    <p className="text-sm font-medium text-indigo-800">경쟁사가 등록되지 않았습니다</p>
+                                    <p className="text-sm text-indigo-700">
+                                        등록하면 검색 결과에서 승/패 비교가 가능해요!
+                                    </p>
+                                </div>
+                                <Link href="/settings" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap">
+                                    등록하기 →
+                                </Link>
+                            </div>
+                        )}
 
                         {/* Step Indicator */}
                         <div className="flex items-center justify-center mb-10">

@@ -327,6 +327,16 @@ async function scrapeOnPage(
             console.log('[Scraper Ex2] ⚠️ Map drag failed, proceeding anyway...');
         }
 
+        // ========== Step 3.6: 좌표 재이동 (드래그 후 위치 보정) ==========
+        // 드래그로 지도 중심이 밀렸을 수 있으므로 원래 좌표로 다시 이동
+        try {
+            console.log(`[Scraper Ex2] 📍 Re-centering to (${lat}, ${lng})...`);
+            await moveToLocation(page, lat, lng);
+            console.log('[Scraper Ex2] ✅ Re-centered to original coordinates');
+        } catch (e) {
+            console.log('[Scraper Ex2] ⚠️ Re-center failed, proceeding with current position...');
+        }
+
         // ========== Step 4: 키워드 검색 ==========
         const searchInputSelector = 'input.input_search';
         const clearBtn = page.locator('.btn_clear');

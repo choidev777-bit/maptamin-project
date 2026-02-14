@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Home, Search, History, Settings, LogOut, MapPin, CalendarClock } from 'lucide-react'
+import { Menu, X, Home, Search, History, Settings, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -34,22 +34,6 @@ export function MobileNav({ user }: Props) {
             subItems: [
                 { href: '/naver-search/new?mode=my-shop', label: '네이버 지도 검색' },
                 { href: '/search/new?mode=my-shop', label: '구글 지도 검색' },
-            ]
-        },
-        {
-            label: '경쟁사 순위 검색',
-            icon: MapPin,
-            subItems: [
-                { href: '/competitor-search/naver', label: '네이버 지도 검색' },
-                { href: '/competitor-search/google', label: '구글 지도 검색' },
-            ]
-        },
-        {
-            label: '자동 검색 예약',
-            icon: CalendarClock,
-            subItems: [
-                { href: '/schedule/naver', label: '네이버 지도 검색' },
-                { href: '/schedule/google', label: '구글 지도 검색' },
             ]
         },
         { href: '/settings', label: '설정', icon: Settings },

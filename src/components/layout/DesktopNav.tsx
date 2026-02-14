@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Home, Search, Settings, MapPin, CalendarClock } from 'lucide-react'
+import { Home, Search, Settings } from 'lucide-react'
 import { WalletLabel } from './WalletLabel'
 import { NavDropdown } from './NavDropdown'
 
@@ -32,24 +32,6 @@ export function DesktopNav({ user }: Props) {
                     items={[
                         { label: '네이버 지도 검색', href: '/naver-search/new?mode=my-shop' },
                         { label: '구글 지도 검색', href: '/search/new?mode=my-shop' },
-                    ]}
-                />
-
-                <NavDropdown
-                    label="경쟁사 순위 검색"
-                    icon={MapPin}
-                    items={[
-                        { label: '네이버 지도 검색', href: '/competitor-search/naver' },
-                        { label: '구글 지도 검색', href: '/competitor-search/google' },
-                    ]}
-                />
-
-                <NavDropdown
-                    label="자동 검색 예약"
-                    icon={CalendarClock}
-                    items={[
-                        { label: '네이버 지도 검색', href: '/schedule/naver' },
-                        { label: '구글 지도 검색', href: '/schedule/google' },
                     ]}
                 />
 
