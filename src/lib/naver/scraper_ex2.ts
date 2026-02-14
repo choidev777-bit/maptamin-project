@@ -48,8 +48,9 @@ function delay(ms: number): Promise<void> {
 
 /**
  * 리소스 차단 적용 (scraper_ex.ts 버전 + Tile Mocking)
+ * @param tileCounter - 지도 타일 요청 카운트 (지도 초기화 확인용)
  */
-async function applyResourceBlocking(page: Page): Promise<void> {
+async function applyResourceBlocking(page: Page, tileCounter?: { count: number }): Promise<void> {
     await page.route('**/*', async (route) => {
         const request = route.request();
         const resourceType = request.resourceType();
@@ -57,13 +58,23 @@ async function applyResourceBlocking(page: Page): Promise<void> {
 
         // 1. 리소스 타입 체크 (이미지, 폰트 등 차단)
         const BLOCKED_TYPES = ['image', 'media', 'font', 'stylesheet', 'imageset', 'texttrack', 'beacon', 'csp_report'];
-        if (BLOCKED_TYPES.includes(resourceType)) return route.abort();
+        if (BLOCKED_TYPES.includes(resourceType)) {
+            // 🆕 지도 타일 이미지 요청 카운트 (pstatic.net = 네이버 지도 CDN)
+            if (tileCounter && url.includes('pstatic.net')) {
+                tileCounter.count++;
+            }
+            return route.abort();
+        }
 
         // 2. Tile Mocking (Mocking V2 from scraper.ts for speed)
         const isMapData = url.includes('map.pstatic.net');
         const MOCK_PATTERNS = ['.pbf', '.bin', 'vector', 'tile', 'imgIcon', 'background'];
 
         if (MOCK_PATTERNS.some(p => url.includes(p)) || isMapData) {
+            // 🆕 벡터 타일/지도 데이터 요청 카운트
+            if (tileCounter) {
+                tileCounter.count++;
+            }
             return route.fulfill({
                 status: 200,
                 contentType: 'application/octet-stream',
@@ -81,6 +92,30 @@ async function applyResourceBlocking(page: Page): Promise<void> {
 
         return route.continue();
     });
+}
+
+/**
+ * 🆕 지도 타일 렌더링 대기
+ * 지도가 타일 요청을 시작할 때까지 대기합니다.
+ * 타일 요청 = 지도 JS가 초기화되어 위치 컨텍스트를 알고 있다는 의미
+ */
+async function waitForMapTiles(tileCounter: { count: number }, maxWaitMs: number = 120000): Promise<boolean> {
+    const CHECK_INTERVAL = 5000; // 5초마다 확인
+    let elapsed = 0;
+    const startCount = tileCounter.count;
+
+    while (elapsed < maxWaitMs) {
+        if (tileCounter.count > startCount) {
+            console.log(`[Scraper Ex2] ✅ Map tiles detected! (${tileCounter.count - startCount} tile requests since check started)`);
+            return true;
+        }
+        console.log(`[Scraper Ex2] ⏳ Waiting for map tiles... (${elapsed / 1000}s / ${maxWaitMs / 1000}s, count: ${tileCounter.count})`);
+        await delay(CHECK_INTERVAL);
+        elapsed += CHECK_INTERVAL;
+    }
+
+    console.log(`[Scraper Ex2] ⚠️ Map tiles not detected after ${maxWaitMs / 1000}s`);
+    return false;
 }
 
 /**
@@ -197,11 +232,9 @@ async function moveToLocation(page: Page, lat: number, lng: number) {
 
     } catch (e) {
         console.log(`[Scraper Ex2] ⚠️ Move operation failed:`, e);
-        // 여기서 에러를 던지면 전체 프로세스가 멈추니, 일단 로그만 남기고 
-        // 잘못된 위치에서라도 검색을 시도할지, 아니면 skip할지 결정해야 함.
-        // 현재 로직상으로는 catch 후 함수 종료 -> 바로 줌인 -> 검색 단계로 넘어감.
-        // 즉, 이동 실패해도 "인천"에서 검색하게 됨. 
-        // 하지만 throw를 하면 batch 전체가 죽을 수 있으니 조심해야 함.
+        // 에러를 re-throw하여 호출자가 이 task를 skip할 수 있게 함
+        // scrapeNaverBatch의 try-catch에서 잡혀서 success=false로 기록됨
+        throw e;
     }
 }
 
@@ -327,15 +360,6 @@ async function scrapeOnPage(
             console.log('[Scraper Ex2] ⚠️ Map drag failed, proceeding anyway...');
         }
 
-        // ========== Step 3.6: 좌표 재이동 (드래그 후 위치 보정) ==========
-        // 드래그로 지도 중심이 밀렸을 수 있으므로 원래 좌표로 다시 이동
-        try {
-            console.log(`[Scraper Ex2] 📍 Re-centering to (${lat}, ${lng})...`);
-            await moveToLocation(page, lat, lng);
-            console.log('[Scraper Ex2] ✅ Re-centered to original coordinates');
-        } catch (e) {
-            console.log('[Scraper Ex2] ⚠️ Re-center failed, proceeding with current position...');
-        }
 
         // ========== Step 4: 키워드 검색 ==========
         const searchInputSelector = 'input.input_search';
@@ -488,7 +512,9 @@ export async function scrapeNaverBatch(
     const context = await browser.newContext(contextOptions);
     const page = await context.newPage();
     page.setDefaultTimeout(60000);
-    await applyResourceBlocking(page);
+    // 🆕 타일 요청 카운터 (지도 초기화 확인용)
+    const tileCounter = { count: 0 };
+    await applyResourceBlocking(page, tileCounter);
 
     // 🆕 JSON 인터셉터 변수 (루프 바깥에서 선언, 루프 안에서 초기화)
     let interceptedPlaces: NaverPlaceResult[] = [];
@@ -561,6 +587,31 @@ export async function scrapeNaverBatch(
             await delay(5000);
             console.log('[Scraper Ex2] 🔄 Page reloaded. Continuing...');
         }
+
+        // ========== 🆕 Phase 1: 초기 타일 렌더링 체크 (최대 2분) ==========
+        console.log('[Scraper Ex2] 🗺️ Phase 1: Waiting for initial map tile rendering...');
+        let mapReady = await waitForMapTiles(tileCounter, 120000);
+
+        if (!mapReady) {
+            // ========== 🆕 Phase 2: 좌표 입력 후 재확인 (최대 2분) ==========
+            console.log('[Scraper Ex2] ⚠️ Phase 1 failed. Trying with coordinate entry...');
+            try {
+                await moveToLocation(page, tasks[0].lat, tasks[0].lng);
+                await forceZoomIn(page);
+
+                console.log('[Scraper Ex2] 🗺️ Phase 2: Waiting for map tiles after coordinate entry...');
+                mapReady = await waitForMapTiles(tileCounter, 120000);
+
+                if (!mapReady) {
+                    throw new Error('MAP_INIT_FAILED: Map tiles never loaded after coordinate entry');
+                }
+            } catch (e) {
+                const errMsg = e instanceof Error ? e.message : 'Unknown';
+                console.log(`[Scraper Ex2] ❌ Map initialization failed! Error: ${errMsg}`);
+                throw new Error(`MAP_INIT_FAILED: ${errMsg}`);
+            }
+        }
+        console.log('[Scraper Ex2] ✅ Map ready! Proceeding with scraping...');
 
         await forceZoomIn(page); // 초기 줌인
 
@@ -665,15 +716,23 @@ export async function scrapeNaverBatch(
                     console.log('[Scraper Ex2] ⚠️ Map drag failed, proceeding anyway...');
                 }
 
+                // Step 3.5: 드래그 후 좌표 재이동 (위치 보정)
+                // 드래그로 /entry/ 패널이 닫히면 지도가 IP 기반 위치로 복원될 수 있음
+                // 좌표를 다시 입력하여 정확한 위치로 복원
+                try {
+                    console.log(`[Scraper Ex2] 📍 Re-centering to (${lat}, ${lng})...`);
+                    await moveToLocation(page, lat, lng);
+                    await forceZoomIn(page); // 새 검색 후 줌 리셋되므로 다시 줌인
+                    console.log('[Scraper Ex2] ✅ Re-centered to original coordinates');
+                } catch (e) {
+                    console.log('[Scraper Ex2] ⚠️ Re-center failed, proceeding with current position...');
+                }
+
                 // Step 4: Persistent Retry Loop (최대 5회 엔터 재시도)
                 const MAX_SEARCH_RETRY = 5;
                 let taskResults: NaverPlaceResult[] = [];
 
                 for (let attempt = 1; attempt <= MAX_SEARCH_RETRY; attempt++) {
-                    // JSON 인터셉터 리셋
-                    interceptedPlaces = [];
-                    isJsonHit = false;
-
                     try {
                         // 검색창 초기화 및 입력
                         const searchInputSelector = 'input.input_search';
@@ -683,6 +742,10 @@ export async function scrapeNaverBatch(
                         const searchInput = page.locator(searchInputSelector);
                         await searchInput.click();
                         await searchInput.fill(keyword);
+
+                        // JSON 인터셉터 리셋 (Enter 직전! stale response 간섭 방지)
+                        interceptedPlaces = [];
+                        isJsonHit = false;
 
                         console.log(`[Scraper Ex2] 🔎 Searching: "${keyword}" (Attempt ${attempt}/${MAX_SEARCH_RETRY})...`);
                         await searchInput.press('Enter');
