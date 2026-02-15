@@ -48,7 +48,6 @@ async function fetchListApiResults(
     keyword: string
 ): Promise<{ results: NaverPlaceResult[]; dataUsageBytes: number }> {
     const listUrl = `https://pcmap.place.naver.com/place/list?query=${encodeURIComponent(keyword)}&x=${lng}&y=${lat}&display=70&locale=ko`;
-    console.log(`[Scraper Ex2] 📡 List API 요청: ${listUrl.substring(0, 100)}...`);
 
     let newPage: Page | null = null;
     try {
@@ -215,12 +214,6 @@ export async function scrapeNaverBatch(
                 const { results: taskResults, dataUsageBytes: taskDataUsage } = await fetchListApiResults(context, lat, lng, keyword);
                 totalDataUsage += taskDataUsage;
 
-                if (taskResults.length > 0) {
-                    console.log(`[Scraper Ex2] 🚀 List API 성공! ${taskResults.length}개 결과`);
-                } else {
-                    console.log(`[Scraper Ex2] ⚠️ List API 결과 0개`);
-                }
-
                 // 타겟 순위 찾기
                 let targetRank: number | null = null;
                 if (targetBusinessName) {
@@ -228,11 +221,10 @@ export async function scrapeNaverBatch(
                         isBusinessMatch(r.businessName, targetBusinessName)
                     );
                     targetRank = matchedResult?.rank ?? null;
-                    console.log(`[Scraper Ex2] Target "${targetBusinessName}" rank: ${targetRank ?? 'Not found'}`);
                 }
 
                 const taskDuration = (Date.now() - taskStartTime) / 1000;
-                console.log(`[Scraper Ex2] ✅ Task ${i + 1}/${tasks.length}: ⏱️ ${taskDuration.toFixed(2)}s | 📊 ${(taskDataUsage / 1024).toFixed(0)} KB`);
+                console.log(`[Scraper Ex2] ✅ Task ${i + 1}/${tasks.length}: rank=${targetRank ?? '-'} | ${taskResults.length}개 | ⏱️ ${taskDuration.toFixed(2)}s | 📊 ${(taskDataUsage / 1024).toFixed(0)} KB`);
 
                 results.push({
                     success: true,
