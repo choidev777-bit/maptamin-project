@@ -521,6 +521,9 @@ export async function scrapeNaverBatch(
     let isJsonHit = false;
     let currentKeyword = ''; // 현재 검색 중인 키워드
     let currentTaskDataUsage = 0; // 🆕 Bandwidth tracking
+    let currentTargetLat = 0; // 🆕 searchCoord 검증용
+    let currentTargetLng = 0;
+    let isLocationMismatch = false; // 🆕 위치 오류 감지 플래그
 
     // 🆕 데이터 사용량 리스너 (Bandwidth Usage)
     page.on('response', async (response) => {
@@ -542,9 +545,26 @@ export async function scrapeNaverBatch(
         if (url.includes('api/search/allSearch')) {
             try {
                 if (currentKeyword && decodeURIComponent(url).includes(currentKeyword)) {
-                    console.log('[DEBUG] allSearch API URL:', decodeURIComponent(url));
+                    // 🆕 searchCoord 검증: API URL에서 좌표 추출 후 타겟과 비교
+                    try {
+                        const coordMatch = url.match(/searchCoord=([\d.]+);([\d.]+)/);
+                        if (coordMatch && currentTargetLat && currentTargetLng) {
+                            const searchLng = parseFloat(coordMatch[1]);
+                            const searchLat = parseFloat(coordMatch[2]);
+                            const dLat = (searchLat - currentTargetLat) * 111320;
+                            const dLng = (searchLng - currentTargetLng) * 111320 * Math.cos(currentTargetLat * Math.PI / 180);
+                            const distanceM = Math.sqrt(dLat * dLat + dLng * dLng);
+                            if (distanceM > 500) {
+                                console.log(`[Scraper Ex2] ⚠️ LOCATION MISMATCH! searchCoord (${searchLat.toFixed(4)}, ${searchLng.toFixed(4)}) is ${Math.round(distanceM)}m from target (${currentTargetLat.toFixed(4)}, ${currentTargetLng.toFixed(4)})`);
+                                isLocationMismatch = true;
+                                return; // 이 응답은 무시 (isJsonHit = false 유지)
+                            }
+                        }
+                    } catch (e) {
+                        // searchCoord 파싱 실패 시 검증 스킵
+                    }
+
                     const json = await response.json();
-                    console.log('[DEBUG] allSearch 1st item keys:', JSON.stringify(json?.result?.place?.list?.[0], null, 2)?.slice(0, 2000));
                     let items: any[] = [];
 
                     if (json?.result?.place?.list) items = json.result.place.list;
@@ -637,7 +657,10 @@ export async function scrapeNaverBatch(
             // 🆕 JSON 인터셉터 초기화 (매 Task)
             interceptedPlaces = [];
             isJsonHit = false;
+            isLocationMismatch = false;
             currentKeyword = keyword;
+            currentTargetLat = lat;
+            currentTargetLng = lng;
 
             // 🆕 첫 번째 Task 워밍업 (결과 버림)
             if (i === 0) {
@@ -700,6 +723,7 @@ export async function scrapeNaverBatch(
                         // JSON 인터셉터 리셋 (Enter 직전! stale response 간섭 방지)
                         interceptedPlaces = [];
                         isJsonHit = false;
+                        isLocationMismatch = false;
 
                         console.log(`[Scraper Ex2] 🔎 Searching: "${keyword}" (Attempt ${attempt}/${MAX_SEARCH_RETRY})...`);
                         await searchInput.press('Enter');
@@ -720,16 +744,24 @@ export async function scrapeNaverBatch(
                             break; // 성공!
                         }
 
-                        // ⚠️ Case 2: JSON 실패 -> 재시도 (DOM 파싱 건너뜀)
+                        // ⚠️ Case 2: JSON 실패 -> 재시도
                         if (attempt < MAX_SEARCH_RETRY) {
-                            console.log(`[Scraper Ex2] ⚠️ JSON Missed. Retrying (${attempt}/${MAX_SEARCH_RETRY})...`);
-                            // 입력창 값 확인 후 재입력
-                            const inputValue = await page.locator('input.input_search').inputValue();
-                            if (!inputValue || inputValue !== keyword) {
-                                console.log(`[Scraper Ex2] 🔄 Re-typing keyword...`);
-                                const clearBtn = page.locator('.btn_clear');
-                                if (await clearBtn.isVisible()) await clearBtn.click();
-                                await page.locator('input.input_search').fill(keyword);
+                            // 🆕 위치 오류 감지 시 좌표 재이동
+                            if (isLocationMismatch) {
+                                console.log(`[Scraper Ex2] 🔄 Location mismatch detected. Re-moving to (${lat}, ${lng})...`);
+                                await resetSearchState(page);
+                                await moveToLocation(page, lat, lng);
+                                isLocationMismatch = false;
+                            } else {
+                                console.log(`[Scraper Ex2] ⚠️ JSON Missed. Retrying (${attempt}/${MAX_SEARCH_RETRY})...`);
+                                // 입력창 값 확인 후 재입력
+                                const inputValue = await page.locator('input.input_search').inputValue();
+                                if (!inputValue || inputValue !== keyword) {
+                                    console.log(`[Scraper Ex2] 🔄 Re-typing keyword...`);
+                                    const clearBtn = page.locator('.btn_clear');
+                                    if (await clearBtn.isVisible()) await clearBtn.click();
+                                    await page.locator('input.input_search').fill(keyword);
+                                }
                             }
                             await delay(1000);
                         } else {
