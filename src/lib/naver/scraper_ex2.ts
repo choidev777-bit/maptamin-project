@@ -46,7 +46,7 @@ async function fetchListApiResults(
     lat: number,
     lng: number,
     keyword: string
-): Promise<NaverPlaceResult[]> {
+): Promise<{ results: NaverPlaceResult[]; dataUsageBytes: number }> {
     const listUrl = `https://pcmap.place.naver.com/place/list?query=${encodeURIComponent(keyword)}&x=${lng}&y=${lat}&display=70&locale=ko`;
     console.log(`[Scraper Ex2] 📡 List API 요청: ${listUrl.substring(0, 100)}...`);
 
@@ -77,29 +77,32 @@ async function fetchListApiResults(
             }
         });
 
+        // 데이터 사용량 측정 (HTML 크기)
+        const html = await newPage.content();
+        const dataUsageBytes = Buffer.byteLength(html, 'utf8');
+
         if (!apolloState) {
             // fallback: HTML에서 정규식으로 추출 시도
-            const html = await newPage.content();
             const match = html.match(/window\.__APOLLO_STATE__\s*=\s*({[\s\S]+?});\s*<\/script>/);
             if (!match) {
                 console.log('[Scraper Ex2] ❌ __APOLLO_STATE__ 없음');
-                return [];
+                return { results: [], dataUsageBytes };
             }
             try {
                 const parsed = JSON.parse(match[1]);
-                return extractPlacesFromApolloState(parsed);
+                return { results: extractPlacesFromApolloState(parsed), dataUsageBytes };
             } catch (e) {
                 console.log('[Scraper Ex2] ❌ __APOLLO_STATE__ JSON 파싱 실패');
-                return [];
+                return { results: [], dataUsageBytes };
             }
         }
 
-        return extractPlacesFromApolloState(apolloState);
+        return { results: extractPlacesFromApolloState(apolloState), dataUsageBytes };
 
     } catch (error) {
         const errMsg = error instanceof Error ? error.message : 'Unknown';
         console.log(`[Scraper Ex2] ⚠️ List API 요청 실패: ${errMsg}`);
-        return [];
+        return { results: [], dataUsageBytes: 0 };
     } finally {
         if (newPage) {
             try { await newPage.close(); } catch { /* ignore */ }
@@ -122,16 +125,10 @@ function extractPlacesFromApolloState(apolloState: Record<string, any>): NaverPl
         if (!value.name || !value.id) continue;
 
         // 🚫 광고 필터링
-        if (value.adDescription) {
-            console.log(`[Scraper Ex2] 🚫 광고 제외: ${value.name}`);
-            continue;
-        }
+        if (value.adDescription) continue;
 
         // 🚫 신규 오픈 광고 필터링
-        if (value.newOpening === true) {
-            console.log(`[Scraper Ex2] 🚫 신규오픈 제외: ${value.name}`);
-            continue;
-        }
+        if (value.newOpening === true) continue;
 
         results.push({
             rank: results.length + 1,
@@ -193,6 +190,8 @@ export async function scrapeNaverBatch(
 
     const context = await browser.newContext(contextOptions);
 
+    let totalDataUsage = 0;
+
     try {
         // ========== Task 루프 (List API 전용) ==========
         for (let i = 0; i < tasks.length; i++) {
@@ -213,7 +212,8 @@ export async function scrapeNaverBatch(
 
             try {
                 // List API 호출 (URL 조립 → HTML → __APOLLO_STATE__ 파싱)
-                const taskResults = await fetchListApiResults(context, lat, lng, keyword);
+                const { results: taskResults, dataUsageBytes: taskDataUsage } = await fetchListApiResults(context, lat, lng, keyword);
+                totalDataUsage += taskDataUsage;
 
                 if (taskResults.length > 0) {
                     console.log(`[Scraper Ex2] 🚀 List API 성공! ${taskResults.length}개 결과`);
@@ -232,7 +232,7 @@ export async function scrapeNaverBatch(
                 }
 
                 const taskDuration = (Date.now() - taskStartTime) / 1000;
-                console.log(`[Scraper Ex2] ✅ Task ${i + 1}/${tasks.length}: ⏱️ ${taskDuration.toFixed(2)}s`);
+                console.log(`[Scraper Ex2] ✅ Task ${i + 1}/${tasks.length}: ⏱️ ${taskDuration.toFixed(2)}s | 📊 ${(taskDataUsage / 1024).toFixed(0)} KB`);
 
                 results.push({
                     success: true,
@@ -243,7 +243,7 @@ export async function scrapeNaverBatch(
                     gridIndex: task.gridIndex,
                     lat: task.lat,
                     lng: task.lng,
-                    dataUsageBytes: 0,
+                    dataUsageBytes: taskDataUsage,
                     durationSeconds: taskDuration
                 });
 
@@ -269,7 +269,7 @@ export async function scrapeNaverBatch(
         await context.close();
         await browser.close();
         const totalDuration = (Date.now() - batchStartTime) / 1000;
-        console.log(`[Scraper Ex2] 🏁 Batch Complete! Total Time: ${totalDuration.toFixed(1)}s`);
+        console.log(`[Scraper Ex2] 🏁 Batch Complete! Total Time: ${totalDuration.toFixed(1)}s | 📊 Total Data: ${(totalDataUsage / 1024).toFixed(0)} KB (${(totalDataUsage / 1024 / 1024).toFixed(2)} MB)`);
     }
 
     return results;
