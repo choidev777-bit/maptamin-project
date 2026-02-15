@@ -11,6 +11,7 @@
  */
 
 import { chromium, Browser, BrowserContext, Page, Frame } from 'playwright';
+// Note: BrowserContext is used by fetchListApiResults()
 import { NAVER_SCRAPER_CONFIG } from './config';
 import {
     NaverPlaceResult,
@@ -272,6 +273,121 @@ async function parseSearchResultsInFrame(frame: Frame): Promise<NaverPlaceResult
     } catch (error) {
         console.error('[Scraper Ex2] DOM Parsing failed:', error);
     }
+    return results.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
+}
+
+
+// ==========================================
+// 🆕 List API Direct Fetch (70개 결과)
+// ==========================================
+
+/**
+ * List API를 직접 호출하여 최대 70개 검색 결과를 가져옵니다.
+ * 
+ * 원리:
+ * 1. /place/list URL을 좌표+키워드로 조립
+ * 2. Playwright 브라우저 컨텍스트에서 새 탭으로 접속 (프록시+쿠키 유지)
+ * 3. HTML 내 __APOLLO_STATE__ JSON에서 가게 데이터 추출
+ * 4. adDescription이 있는 광고 항목 제외
+ * 
+ * 네이버가 /place/list → /restaurant/list 등으로 자동 리다이렉트
+ */
+async function fetchListApiResults(
+    context: BrowserContext,
+    lat: number,
+    lng: number,
+    keyword: string
+): Promise<NaverPlaceResult[]> {
+    const listUrl = `https://pcmap.place.naver.com/place/list?query=${encodeURIComponent(keyword)}&x=${lng}&y=${lat}&display=70&locale=ko`;
+    console.log(`[Scraper Ex2] 📡 List API 요청: ${listUrl.substring(0, 100)}...`);
+
+    let newPage: Page | null = null;
+    try {
+        // 같은 브라우저 컨텍스트에서 새 탭 열기 (프록시+쿠키 공유)
+        newPage = await context.newPage();
+        newPage.setDefaultTimeout(30000);
+
+        // 리소스 차단 (CSS/JS/이미지/폰트 등 불필요한 리소스 블록)
+        await newPage.route('**/*', (route) => {
+            const resourceType = route.request().resourceType();
+            if (['stylesheet', 'image', 'media', 'font'].includes(resourceType)) {
+                return route.abort();
+            }
+            return route.continue();
+        });
+
+        // List API 페이지 로드
+        await newPage.goto(listUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+        // __APOLLO_STATE__ 추출 (브라우저 내에서 직접 접근)
+        const apolloState = await newPage.evaluate(() => {
+            try {
+                return (window as any).__APOLLO_STATE__ || null;
+            } catch {
+                return null;
+            }
+        });
+
+        if (!apolloState) {
+            // fallback: HTML에서 정규식으로 추출 시도
+            const html = await newPage.content();
+            const match = html.match(/window\.__APOLLO_STATE__\s*=\s*({[\s\S]+?});\s*<\/script>/);
+            if (!match) {
+                console.log('[Scraper Ex2] ❌ __APOLLO_STATE__ 없음');
+                return [];
+            }
+            try {
+                const parsed = JSON.parse(match[1]);
+                return extractPlacesFromApolloState(parsed);
+            } catch (e) {
+                console.log('[Scraper Ex2] ❌ __APOLLO_STATE__ JSON 파싱 실패');
+                return [];
+            }
+        }
+
+        return extractPlacesFromApolloState(apolloState);
+
+    } catch (error) {
+        const errMsg = error instanceof Error ? error.message : 'Unknown';
+        console.log(`[Scraper Ex2] ⚠️ List API 요청 실패: ${errMsg}`);
+        return [];
+    } finally {
+        if (newPage) {
+            try { await newPage.close(); } catch { /* ignore */ }
+        }
+    }
+}
+
+/**
+ * __APOLLO_STATE__ 객체에서 가게 데이터를 추출합니다.
+ * - "ListSummary:" 키 패턴으로 가게 항목 필터링
+ * - adDescription이 있으면 광고로 제외
+ */
+function extractPlacesFromApolloState(apolloState: Record<string, any>): NaverPlaceResult[] {
+    const results: NaverPlaceResult[] = [];
+
+    for (const [key, value] of Object.entries(apolloState)) {
+        // "RestaurantListSummary:", "HairshopListSummary:", "PlaceListSummary:" 등 매칭
+        if (!key.includes('ListSummary:')) continue;
+        if (!value || typeof value !== 'object') continue;
+        if (!value.name || !value.id) continue;
+
+        // 🚫 광고 필터링
+        if (value.adDescription) {
+            console.log(`[Scraper Ex2] 🚫 광고 제외: ${value.name}`);
+            continue;
+        }
+
+        results.push({
+            rank: results.length + 1,
+            businessName: value.name,
+            naverPlaceId: String(value.id),
+            category: value.category || '',
+            address: value.roadAddress || value.address || '',
+        });
+    }
+
+    console.log(`[Scraper Ex2] ✅ List API: ${results.length}개 결과 추출 (광고 제외)`);
     return results.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
 }
 
@@ -699,86 +815,109 @@ export async function scrapeNaverBatch(
             }
 
             try {
-                // Step 1: 좌표 이동
-                await moveToLocation(page, lat, lng);
-
-                // Step 2: 줌인
-                await forceZoomIn(page);
-
-                // Step 3: Persistent Retry Loop (최대 5회 엔터 재시도)
-                const MAX_SEARCH_RETRY = 5;
+                // ========================================
+                // 🆕 Phase A: List API Direct Fetch (빠름)
+                // ========================================
                 let taskResults: NaverPlaceResult[] = [];
+                let usedListApi = false;
 
-                for (let attempt = 1; attempt <= MAX_SEARCH_RETRY; attempt++) {
-                    try {
-                        // 검색창 초기화 및 입력
-                        const searchInputSelector = 'input.input_search';
-                        const clearBtn = page.locator('.btn_clear');
-                        if (await clearBtn.isVisible()) await clearBtn.click();
-
-                        const searchInput = page.locator(searchInputSelector);
-                        await searchInput.click();
-                        await searchInput.fill(keyword);
-
-                        // JSON 인터셉터 리셋 (Enter 직전! stale response 간섭 방지)
-                        interceptedPlaces = [];
-                        isJsonHit = false;
-                        isLocationMismatch = false;
-
-                        console.log(`[Scraper Ex2] 🔎 Searching: "${keyword}" (Attempt ${attempt}/${MAX_SEARCH_RETRY})...`);
-                        await searchInput.press('Enter');
-
-                        // JSON 대기 (5초)
-                        const maxWaitTime = 5000;
-                        const checkInterval = 100;
-                        let elapsed = 0;
-                        while (!isJsonHit && elapsed < maxWaitTime) {
-                            await delay(checkInterval);
-                            elapsed += checkInterval;
-                        }
-
-                        // 🎯 Case 1: JSON 성공
-                        if (isJsonHit && interceptedPlaces.length > 0) {
-                            console.log(`[Scraper Ex2] 🚀 Fast Kill! Using JSON Data.`);
-                            taskResults = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
-                            break; // 성공!
-                        }
-
-                        // ⚠️ Case 2: JSON 실패 -> 재시도
-                        if (attempt < MAX_SEARCH_RETRY) {
-                            // 🆕 위치 오류 감지 시 좌표 재이동
-                            if (isLocationMismatch) {
-                                console.log(`[Scraper Ex2] 🔄 Location mismatch detected. Re-moving to (${lat}, ${lng})...`);
-                                await resetSearchState(page);
-                                await moveToLocation(page, lat, lng);
-                                isLocationMismatch = false;
-                            } else {
-                                console.log(`[Scraper Ex2] ⚠️ JSON Missed. Retrying (${attempt}/${MAX_SEARCH_RETRY})...`);
-                                // 입력창 값 확인 후 재입력
-                                const inputValue = await page.locator('input.input_search').inputValue();
-                                if (!inputValue || inputValue !== keyword) {
-                                    console.log(`[Scraper Ex2] 🔄 Re-typing keyword...`);
-                                    const clearBtn = page.locator('.btn_clear');
-                                    if (await clearBtn.isVisible()) await clearBtn.click();
-                                    await page.locator('input.input_search').fill(keyword);
-                                }
-                            }
-                            await delay(1000);
-                        } else {
-                            console.log(`[Scraper Ex2] ❌ All ${MAX_SEARCH_RETRY} retries failed. Returning empty result.`);
-                        }
-
-                    } catch (e) {
-                        console.log(`[Scraper Ex2] ⚠️ Search execution failed: ${e}`);
-                        if (attempt < MAX_SEARCH_RETRY) {
-                            await resetSearchState(page);
-                            await delay(1000);
-                        }
+                try {
+                    const listResults = await fetchListApiResults(context, lat, lng, keyword);
+                    if (listResults.length > 0) {
+                        taskResults = listResults;
+                        usedListApi = true;
+                        console.log(`[Scraper Ex2] 🚀 List API 성공! ${listResults.length}개 결과`);
                     }
+                } catch (e) {
+                    console.log(`[Scraper Ex2] ⚠️ List API 실패, allSearch Fallback 시도...`);
                 }
 
-                if (isJsonHit) {
-                    console.log(`[Scraper Ex2] 🚀 Fast Kill! Using JSON Data.`);
+                // ========================================
+                // Phase B: allSearch Fallback (List API 실패 시)
+                // ========================================
+                if (!usedListApi) {
+                    console.log(`[Scraper Ex2] ↩️ Fallback: 기존 allSearch 방식 사용`);
+
+                    // Step 1: 좌표 이동
+                    await moveToLocation(page, lat, lng);
+
+                    // Step 2: 줌인
+                    await forceZoomIn(page);
+
+                    // Step 3: Persistent Retry Loop (최대 5회 엔터 재시도)
+                    const MAX_SEARCH_RETRY = 5;
+
+                    for (let attempt = 1; attempt <= MAX_SEARCH_RETRY; attempt++) {
+                        try {
+                            // 검색창 초기화 및 입력
+                            const searchInputSelector = 'input.input_search';
+                            const clearBtn = page.locator('.btn_clear');
+                            if (await clearBtn.isVisible()) await clearBtn.click();
+
+                            const searchInput = page.locator(searchInputSelector);
+                            await searchInput.click();
+                            await searchInput.fill(keyword);
+
+                            // JSON 인터셉터 리셋 (Enter 직전! stale response 간섭 방지)
+                            interceptedPlaces = [];
+                            isJsonHit = false;
+                            isLocationMismatch = false;
+
+                            console.log(`[Scraper Ex2] 🔎 Searching: "${keyword}" (Attempt ${attempt}/${MAX_SEARCH_RETRY})...`);
+                            await searchInput.press('Enter');
+
+                            // JSON 대기 (5초)
+                            const maxWaitTime = 5000;
+                            const checkInterval = 100;
+                            let elapsed = 0;
+                            while (!isJsonHit && elapsed < maxWaitTime) {
+                                await delay(checkInterval);
+                                elapsed += checkInterval;
+                            }
+
+                            // 🎯 Case 1: JSON 성공
+                            if (isJsonHit && interceptedPlaces.length > 0) {
+                                console.log(`[Scraper Ex2] 🚀 Fast Kill! Using JSON Data.`);
+                                taskResults = interceptedPlaces.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
+                                break; // 성공!
+                            }
+
+                            // ⚠️ Case 2: JSON 실패 -> 재시도
+                            if (attempt < MAX_SEARCH_RETRY) {
+                                // 🆕 위치 오류 감지 시 좌표 재이동
+                                if (isLocationMismatch) {
+                                    console.log(`[Scraper Ex2] 🔄 Location mismatch detected. Re-moving to (${lat}, ${lng})...`);
+                                    await resetSearchState(page);
+                                    await moveToLocation(page, lat, lng);
+                                    isLocationMismatch = false;
+                                } else {
+                                    console.log(`[Scraper Ex2] ⚠️ JSON Missed. Retrying (${attempt}/${MAX_SEARCH_RETRY})...`);
+                                    // 입력창 값 확인 후 재입력
+                                    const inputValue = await page.locator('input.input_search').inputValue();
+                                    if (!inputValue || inputValue !== keyword) {
+                                        console.log(`[Scraper Ex2] 🔄 Re-typing keyword...`);
+                                        const clearBtn = page.locator('.btn_clear');
+                                        if (await clearBtn.isVisible()) await clearBtn.click();
+                                        await page.locator('input.input_search').fill(keyword);
+                                    }
+                                }
+                                await delay(1000);
+                            } else {
+                                console.log(`[Scraper Ex2] ❌ All ${MAX_SEARCH_RETRY} retries failed. Returning empty result.`);
+                            }
+
+                        } catch (e) {
+                            console.log(`[Scraper Ex2] ⚠️ Search execution failed: ${e}`);
+                            if (attempt < MAX_SEARCH_RETRY) {
+                                await resetSearchState(page);
+                                await delay(1000);
+                            }
+                        }
+                    }
+
+                    if (isJsonHit) {
+                        console.log(`[Scraper Ex2] 🚀 allSearch Fallback 성공!`);
+                    }
                 }
 
                 // 데이터 사용량 로그

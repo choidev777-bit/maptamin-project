@@ -30,7 +30,7 @@ export const NAVER_SCRAPER_CONFIG = {
     searchUrl: 'https://m.search.naver.com/search.naver',
 
     // 검색 결과 제한
-    maxResults: 20,  // 상위 20개까지 파싱
+    maxResults: 70,  // 상위 70개까지 파싱 (List API 활용)
 } as const;
 
 // CSS 셀렉터 (네이버 UI 변경 시 이 부분만 수정)
