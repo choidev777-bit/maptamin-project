@@ -178,8 +178,8 @@ export function NaverRankHeatmap({ center, results, selectedKeyword }: Props) {
                 {[
                     { label: '1-5위', color: '#22c55e' },
                     { label: '6-10위', color: '#eab308' },
-                    { label: '11위~', color: '#ef4444' },
-                    { label: '순위권 외', color: '#ef4444' },
+                    { label: '11-20위', color: '#ef4444' },
+                    { label: '20위 밖', color: '#ef4444' },
                 ].map(({ label, color }) => (
                     <div key={label} className="flex items-center gap-2">
                         <div
