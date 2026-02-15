@@ -59,7 +59,7 @@ async function fetchListApiResults(
         // 리소스 차단 (CSS/JS/이미지/폰트 등 불필요한 리소스 블록)
         await newPage.route('**/*', (route) => {
             const resourceType = route.request().resourceType();
-            if (['stylesheet', 'image', 'media', 'font'].includes(resourceType)) {
+            if (['stylesheet', 'script', 'image', 'media', 'font'].includes(resourceType)) {
                 return route.abort();
             }
             return route.continue();
