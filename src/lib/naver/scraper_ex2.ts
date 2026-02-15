@@ -127,6 +127,12 @@ function extractPlacesFromApolloState(apolloState: Record<string, any>): NaverPl
             continue;
         }
 
+        // 🚫 신규 오픈 광고 필터링
+        if (value.newOpening === true) {
+            console.log(`[Scraper Ex2] 🚫 신규오픈 제외: ${value.name}`);
+            continue;
+        }
+
         results.push({
             rank: results.length + 1,
             businessName: value.name,
