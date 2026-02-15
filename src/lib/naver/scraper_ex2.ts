@@ -542,6 +542,7 @@ export async function scrapeNaverBatch(
         if (url.includes('api/search/allSearch')) {
             try {
                 if (currentKeyword && decodeURIComponent(url).includes(currentKeyword)) {
+                    console.log('[DEBUG] allSearch API URL:', decodeURIComponent(url));
                     const json = await response.json();
                     console.log('[DEBUG] allSearch 1st item keys:', JSON.stringify(json?.result?.place?.list?.[0], null, 2)?.slice(0, 2000));
                     let items: any[] = [];
