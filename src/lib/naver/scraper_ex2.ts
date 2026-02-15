@@ -543,6 +543,7 @@ export async function scrapeNaverBatch(
             try {
                 if (currentKeyword && decodeURIComponent(url).includes(currentKeyword)) {
                     const json = await response.json();
+                    console.log('[DEBUG] allSearch 1st item keys:', JSON.stringify(json?.result?.place?.list?.[0], null, 2)?.slice(0, 2000));
                     let items: any[] = [];
 
                     if (json?.result?.place?.list) items = json.result.place.list;

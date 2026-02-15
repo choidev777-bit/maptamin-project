@@ -69,9 +69,13 @@ export function CompetitorComparisonMap({
             const first = posResults[0]
             const myRank = first.rank
 
-            // Find competitor in the competitors array
+            // Find competitor in the competitors array (name-based matching)
+            // place_id는 등록 시(base64 pseudo-ID)와 스크래퍼(네이버 Place ID)가 달라서 매칭 불가
+            // 이름 기반 매칭 + 공백 정규화로 해결
             const competitors = (first.competitors || []) as Competitor[]
-            const competitor = competitors.find(c => c.place_id === competitorPlaceId)
+            const normalize = (s: string) => s.replace(/\s+/g, '').toLowerCase()
+            const normalizedCompetitorName = normalize(competitorName)
+            const competitor = competitors.find(c => normalize(c.name) === normalizedCompetitorName)
             const competitorRank = competitor ? competitor.rank : null
 
             points.push({
