@@ -572,7 +572,7 @@ export async function scrapeNaverBatch(
                     else if (json?.result?.list) items = json.result.list;
 
                     if (items && Array.isArray(items) && items.length > 0) {
-                        console.log(`[Scraper Ex2] 🎯 JSON HIT! Intercepted ${items.length} items.`);
+                        console.log(`[Scraper Ex2] 🎯 JSON HIT! Raw: ${items.length} items.`);
 
                         interceptedPlaces = items.map((item: any, index: number) => ({
                             rank: index + 1,
