@@ -116,11 +116,8 @@ export async function POST(request: Request) {
 
     if (createError) {
         console.error('Failed to create naver search:', createError)
-        // TODO: Refund if create fails? 
-        // Realistically, we should do this inside a single transaction or have a refund mechanism.
-        // For MVP, we log critical error. User lost points but got no search.
-        // Mitigation: We could call 'refund_credits' RPC here. 
-        // For now, we return 500.
+        // Auto Refund on Failure
+        await supabase.rpc('refund_ticket', { p_platform: 'naver' })
         return NextResponse.json({ error: createError.message }, { status: 500 })
     }
 

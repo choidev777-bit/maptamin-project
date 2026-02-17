@@ -7,10 +7,11 @@ import { KeywordInput } from '@/components/search/KeywordInput'
 import { MapGridConfigurator } from '@/components/search/MapGridConfigurator'
 import { DistanceSettings } from '@/components/search/DistanceSettings'
 import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
-import { Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, Swords } from 'lucide-react'
+import { Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, Swords, AlertTriangle } from 'lucide-react'
 import { PlaceSelectionModal } from '@/components/dashboard/PlaceSelectionModal'
 import { Place } from '@/lib/types'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
 
 // Dynamic import for heavy Google Maps component
 const GoogleMapsProvider = dynamic(
@@ -64,6 +65,27 @@ export default function NewSearchPage() {
     const [distanceUnit, setDistanceUnit] = useState<'km' | 'mile'>('km')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [hasCompetitor, setHasCompetitor] = useState(true) // default true to avoid flash
+
+    // User Data
+    const [remainingTickets, setRemainingTickets] = useState<number>(0)
+
+    // Fetch subscription on mount
+    useEffect(() => {
+        const fetchSubscription = async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            const { data } = await supabase
+                .from('user_subscriptions')
+                .select('remaining_tickets_google')
+                .eq('user_id', user.id)
+                .single()
+
+            if (data) setRemainingTickets(data.remaining_tickets_google || 0)
+        }
+        fetchSubscription()
+    }, [])
 
     // Fetch shop data - show modal if not found
     useEffect(() => {
@@ -163,6 +185,8 @@ export default function NewSearchPage() {
         return gridPoints.filter(p => p.enabled).length
     }, [gridPoints])
 
+    const hasTicket = remainingTickets > 0
+
     const canProceed = () => {
         switch (step) {
             case 1:
@@ -170,7 +194,7 @@ export default function NewSearchPage() {
             case 2:
                 return enabledGridCount > 0
             case 3:
-                return true
+                return hasTicket
             default:
                 return false
         }
@@ -219,8 +243,10 @@ export default function NewSearchPage() {
                 const error = await createResponse.json()
                 if (createResponse.status === 429) {
                     alert('오늘 일일 검색 한도에 도달했습니다. 내일 다시 시도해주세요.')
+                } else if (createResponse.status === 402) {
+                    alert(error.message || '티켓이 부족합니다.')
                 } else {
-                    alert(error.error || '검색 생성에 실패했습니다.')
+                    alert(error.message || error.error || '검색 생성에 실패했습니다.')
                 }
                 setIsSubmitting(false)
                 return
@@ -228,13 +254,10 @@ export default function NewSearchPage() {
 
             const { searchId } = await createResponse.json()
 
-            const processResponse = await fetch(`/api/search/${searchId}/process`, {
-                method: 'POST',
-            })
-
-            if (!processResponse.ok) {
-                console.error('Processing failed, but search was created')
-            }
+            // Trigger fetch not needed as API handles it, but kept if needed for specific logic
+            // const processResponse = await fetch(`/api/search/${searchId}/process`, {
+            //    method: 'POST',
+            // })
 
             router.push(`/search/${searchId}`)
         } catch (error) {
@@ -412,6 +435,36 @@ export default function NewSearchPage() {
                                                 포인트 간격: {gridDistance} {distanceUnit}
                                             </p>
                                         </div>
+
+                                        {/* Ticket Summary */}
+                                        <div className="bg-gray-50 p-6 border-t border-gray-200 rounded-xl">
+                                            <div className="flex justify-between items-center mb-2">
+                                                <span className="text-gray-600">남은 티켓 (구글)</span>
+                                                <span className="font-medium">{remainingTickets}장</span>
+                                            </div>
+                                            <div className="flex justify-between items-center mb-4">
+                                                <span className="text-gray-600">차감 티켓</span>
+                                                <span className="text-xl font-bold text-red-600">-1장</span>
+                                            </div>
+                                            <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
+                                                <span className="font-medium text-gray-900">진단 후 잔여</span>
+                                                <span className={`text-lg font-bold ${hasTicket ? 'text-blue-600' : 'text-red-600'}`}>
+                                                    {Math.max(0, remainingTickets - 1)}장
+                                                </span>
+                                            </div>
+                                            {!hasTicket && (
+                                                <div className="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-center gap-2">
+                                                    <AlertTriangle className="w-4 h-4" />
+                                                    이번 달 구글 진단 티켓이 모두 소진되어 검색을 시작할 수 없습니다.
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 bg-amber-50 rounded-lg">
+                                        <p className="text-sm text-amber-800">
+                                            ⚠️ 검색 시작 시 티켓 1장이 즉시 차감됩니다. (실패 시 자동 환불)
+                                        </p>
                                     </div>
                                 </div>
                             )}
@@ -440,7 +493,7 @@ export default function NewSearchPage() {
                                 ) : (
                                     <button
                                         onClick={handleSubmit}
-                                        disabled={isSubmitting}
+                                        disabled={isSubmitting || !hasTicket}
                                         className="flex-1 py-4 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25"
                                     >
                                         {isSubmitting ? (
@@ -451,7 +504,7 @@ export default function NewSearchPage() {
                                         ) : (
                                             <>
                                                 <Check className="w-5 h-5" />
-                                                검색 시작
+                                                {hasTicket ? '진단 시작 (티켓 1장)' : '티켓 부족'}
                                             </>
                                         )}
                                     </button>
