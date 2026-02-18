@@ -26,12 +26,15 @@ description: 구독+티켓 시스템의 구현 일관성을 검증합니다. 티
 | File | Purpose |
 |------|---------|
 | `supabase/migrations/015_v2_schema_upgrade.sql` | 티켓 시스템 DB 스키마 (deduct_ticket, refund_ticket RPC 정의) |
+| `supabase/migrations/016_add_free_plan.sql` | free 플랜 추가 및 handle_new_user 트리거 업데이트 |
 | `src/app/api/search/route.ts` | Google 검색 API (티켓 차감 로직 필요) |
 | `src/app/api/naver/search/route.ts` | Naver 검색 API (티켓 차감 로직 구현됨) |
 | `src/app/(dashboard)/search/new/page.tsx` | Google 검색 프론트엔드 (티켓 UI 필요) |
 | `src/app/(dashboard)/naver-search/new/page.tsx` | Naver 검색 프론트엔드 (티켓 UI 구현됨) |
 | `src/components/layout/WalletLabel.tsx` | 네비게이션 티켓 잔량 표시 컴포넌트 |
 | `src/lib/pricing/config.ts` | 플랜별 티켓 수량 설정 (PLAN_CONFIG) |
+| `src/lib/utils/subscription.ts` | 구독 상태 확인 유틸리티 함수들 |
+| `src/hooks/useSubscription.ts` | 클라이언트 구독 상태 훅 |
 
 ## Workflow
 
@@ -194,21 +197,23 @@ grep -in "credit\|포인트\|크레딧" src/components/layout/WalletLabel.tsx
 ### Step 8: PLAN_CONFIG와 DB 스키마 정합성
 
 **도구:** Read  
-**파일:** `src/lib/pricing/config.ts`, `supabase/migrations/015_v2_schema_upgrade.sql`
+**파일:** `src/lib/pricing/config.ts`, `supabase/migrations/015_v2_schema_upgrade.sql`, `supabase/migrations/016_add_free_plan.sql`
 
-**검사:** `PLAN_CONFIG`의 플랜 키(`starter`, `pro`, `premium`)가 DB `plans` 테이블의 `id`와 일치하는지 확인
+**검사:** `PLAN_CONFIG`의 플랜 키(`free`, `starter`, `pro`, `premium`)가 DB `plans` 테이블의 `id`와 일치하는지 확인
 
 ```bash
 grep -n "ticketsNaver\|ticketsGoogle" src/lib/pricing/config.ts
 grep -n "monthly_tickets_naver\|monthly_tickets_google" supabase/migrations/015_v2_schema_upgrade.sql
+grep -n "free" supabase/migrations/016_add_free_plan.sql
 ```
 
 **PASS 기준:**
-- PLAN_CONFIG의 각 플랜이 `ticketsNaver`, `ticketsGoogle` 필드를 포함
-- DB 마이그레이션의 `plans` 테이블에 `monthly_tickets_naver`, `monthly_tickets_google` 컬럼이 존재
-- 플랜 ID가 일치 (`starter`, `pro`, `premium`)
+- PLAN_CONFIG에 `free`, `starter`, `pro`, `premium` 4개 플랜이 모두 존재
+- free 플랜의 모든 티켓/키워드/경쟁사 값이 0
+- DB 마이그레이션에 free 플랜 INSERT 문이 존재
+- 플랜 ID가 일치 (`free`, `starter`, `pro`, `premium`)
 
-**FAIL 기준:** 플랜 ID 불일치 또는 티켓 관련 필드 누락
+**FAIL 기준:** 플랜 ID 불일치, free 플랜 누락, 또는 티켓 관련 필드 누락
 
 ---
 
@@ -236,6 +241,49 @@ if (createError) {
 }
 ```
 
+---
+
+### Step 10: Free 플랜 설정 일관성 확인
+
+**도구:** Grep  
+**파일:** `src/lib/pricing/config.ts`
+
+**검사:** `PLAN_CONFIG`에 `free` 플랜이 존재하고, 모든 제한값이 0인지 확인
+
+```bash
+grep -A 15 "free:" src/lib/pricing/config.ts
+```
+
+**PASS 기준:**
+- `free` 키가 `PLAN_CONFIG`에 존재
+- `ticketsNaver: 0`, `ticketsGoogle: 0`
+- `keywordsNaver: 0`, `keywordsGoogle: 0`
+- `competitorsNaver: 0`, `competitorsGoogle: 0`
+- `channels: 'none'`
+
+**FAIL 기준:** free 플랜이 없거나 제한값이 0이 아닌 경우
+
+---
+
+### Step 11: 구독 유틸리티 함수 일관성 확인
+
+**도구:** Grep  
+**파일:** `src/lib/utils/subscription.ts`
+
+**검사:** 구독 유틸리티가 `PLAN_CONFIG`를 올바르게 참조하고, 필수 함수들이 export 되는지 확인
+
+```bash
+grep -n "export function" src/lib/utils/subscription.ts
+grep -n "PLAN_CONFIG" src/lib/utils/subscription.ts
+```
+
+**PASS 기준:**
+- `isSubscribed`, `canAccessPlatform`, `getMaxGridSize`, `getAllowedGridSizes` 함수가 모두 export 됨
+- `PLAN_CONFIG`를 import하여 사용
+- `isSubscribed`가 `planId !== 'free'`를 반환
+
+**FAIL 기준:** 필수 함수 누락 또는 `PLAN_CONFIG` 미사용
+
 ## Output Format
 
 ```markdown
@@ -250,10 +298,12 @@ if (createError) {
 | 5 | Google 검색 티켓 UI | search/new/page.tsx | PASS/FAIL | ... |
 | 6 | Naver 검색 티켓 UI | naver-search/new/page.tsx | PASS/FAIL | ... |
 | 7 | WalletLabel | WalletLabel.tsx | PASS/FAIL | ... |
-| 8 | PLAN_CONFIG 정합성 | pricing/config.ts | PASS/FAIL | ... |
+| 8 | PLAN_CONFIG 정합성 | pricing/config.ts + migrations | PASS/FAIL | ... |
 | 9 | Refund 로직 | 검색 API 전체 | PASS/FAIL | ... |
+| 10 | Free 플랜 설정 | pricing/config.ts | PASS/FAIL | ... |
+| 11 | 구독 유틸리티 일관성 | subscription.ts | PASS/FAIL | ... |
 
-**총 검사: 9개 | PASS: N개 | FAIL: M개**
+**총 검사: 11개 | PASS: N개 | FAIL: M개**
 ```
 
 ## Exceptions

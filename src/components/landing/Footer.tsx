@@ -36,6 +36,25 @@ export default function Footer() {
                     <div className="space-y-1 text-xs text-gray-500">
                         <p>대표: 최연준 | 사업자등록번호: 186-35-01741 | 통신판매업신고: 제 2026-고양일산서-0229 호</p>
                         <p>주소: 경기도 고양시 일산서구 대산로 142, 305동 802호 | 개인정보관리책임자: 최연준</p>
+                        <p>대표번호: 070-8065-3362 | 이메일: maptaminbiz@gmail.com</p>
+                    </div>
+
+                    {/* 고객 문의 채널 */}
+                    <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:items-start sm:gap-3">
+                        <a
+                            href="https://pf.kakao.com/_exhYRX/chat"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-[#FEE500] bg-[#FEE500]/10 px-4 py-2 text-xs font-semibold text-gray-800 transition-all hover:-translate-y-0.5 hover:bg-[#FEE500]/20 hover:shadow-sm"
+                        >
+                            💬 카카오톡 문의
+                        </a>
+                        <a
+                            href="mailto:maptaminbiz@gmail.com"
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-600 transition-all hover:-translate-y-0.5 hover:bg-gray-100 hover:shadow-sm"
+                        >
+                            📧 이메일 문의
+                        </a>
                     </div>
                 </div>
 

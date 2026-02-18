@@ -65,14 +65,7 @@ export function SearchHistoryCard({ search, averageRank }: Props) {
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString)
-        const now = new Date()
-        const diff = now.getTime() - date.getTime()
-        const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-
-        if (days === 0) return '오늘'
-        if (days === 1) return '어제'
-        if (days < 7) return `${days}일 전`
-        return date.toLocaleDateString('ko-KR')
+        return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`
     }
 
     if (isDeleting) {

@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Search, Lock, Swords } from 'lucide-react'
 import { PlaceSelectionModal } from './PlaceSelectionModal'
+import { UpgradePrompt } from './UpgradePrompt'
+import { getRequiredPlanForPlatform } from '@/lib/utils/subscription'
 
 import { useState } from 'react'
 import { Place } from '@/lib/types'
@@ -29,11 +31,14 @@ interface Props {
     data: ManagedPlaceData | null
     competitorCount?: number
     firstCompetitorName?: string
+    isLocked?: boolean
+    keywords?: string[]
 }
 
-export function DashboardPlatformCard({ platform, data, competitorCount = 0, firstCompetitorName }: Props) {
+export function DashboardPlatformCard({ platform, data, competitorCount = 0, firstCompetitorName, isLocked = false, keywords = [] }: Props) {
     const router = useRouter()
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
 
     const handleRegister = async (place: Place) => {
         // API Call
@@ -62,10 +67,32 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
     const platformColor = platform === 'naver' ? 'text-emerald-600' : 'text-blue-600'
     const platformBg = platform === 'naver' ? 'bg-emerald-50' : 'bg-blue-50'
     const platformBorder = platform === 'naver' ? 'border-emerald-100' : 'border-blue-100'
+    const requiredPlan = getRequiredPlanForPlatform(platform)
 
     return (
         <>
-            <Card className={`p-6 border overflow-hidden transition-all hover:shadow-md ${data ? 'bg-white border-gray-200' : `${platformBg} ${platformBorder}`}`}>
+            <Card className={`relative p-6 border overflow-hidden transition-all hover:shadow-md ${isLocked ? 'bg-gray-50 border-gray-200' : data ? 'bg-white border-gray-200' : `${platformBg} ${platformBorder}`}`}>
+                {/* 🔒 잠금 오버레이 */}
+                {isLocked && (
+                    <div
+                        className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/80 backdrop-blur-[2px] cursor-pointer rounded-xl"
+                        onClick={() => setShowUpgradePrompt(true)}
+                    >
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 mb-3">
+                            <Lock className="w-6 h-6 text-gray-400" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-600">
+                            {platform === 'naver' ? '네이버 플레이스' : '구글 비즈니스'}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                            {requiredPlan} 플랜부터 이용 가능
+                        </p>
+                        <button className="mt-3 text-xs font-semibold text-[#00C896] hover:text-[#00B386] transition-colors">
+                            업그레이드 →
+                        </button>
+                    </div>
+                )}
+
                 <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-2">
                         <MapPin className={`w-5 h-5 ${platformColor}`} />
@@ -101,7 +128,7 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                 ) : (
                     // Selected State
                     <div>
-                        <div className="flex justify-between items-start mb-6">
+                        <div className="flex justify-between items-start mb-4">
                             <div>
                                 <h4 className="text-xl font-bold text-gray-900 mb-1">{data.place_name}</h4>
                                 <p className="text-sm text-gray-500 line-clamp-1">{data.address || '주소 정보 없음'}</p>
@@ -113,6 +140,23 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                                 변경
                             </button>
                         </div>
+
+                        {/* 키워드 표시 */}
+                        {keywords.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mb-4">
+                                {keywords.map((kw) => (
+                                    <span
+                                        key={kw}
+                                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${platform === 'naver'
+                                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                                : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                            }`}
+                                    >
+                                        {kw}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
 
                         {data.locked_until ? (
                             <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg mb-4">
@@ -166,6 +210,15 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                 platform={platform}
                 onConfirm={handleRegister}
             />
+
+            {/* 업그레이드 유도 모달 */}
+            {showUpgradePrompt && (
+                <UpgradePrompt
+                    message={`${platform === 'naver' ? '네이버 플레이스' : '구글 비즈니스'} 기능은 ${requiredPlan} 플랜부터 사용할 수 있습니다.`}
+                    requiredPlan={requiredPlan}
+                    onClose={() => setShowUpgradePrompt(false)}
+                />
+            )}
         </>
     )
 }

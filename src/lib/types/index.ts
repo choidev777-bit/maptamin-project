@@ -77,7 +77,7 @@ export interface Plan {
 
 /** v2 요금제 (티켓 기반: starter/pro/premium) */
 export interface PlanV2 {
-    id: 'starter' | 'pro' | 'premium';
+    id: 'free' | 'starter' | 'pro' | 'premium';
     name: string;
     price: number;
     max_grid_size: number;

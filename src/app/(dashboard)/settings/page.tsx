@@ -25,13 +25,15 @@ export default async function SettingsPage() {
         .eq('user_id', user.id)
         .single()
 
-    const planId = subscription?.plan_id || 'starter'
-    const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['starter']
+    const planId = subscription?.plan_id || 'free'
+    const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['free']
 
     const planStats = {
-        plan: planId as 'starter' | 'pro' | 'premium',
+        plan: planId as 'free' | 'starter' | 'pro' | 'premium',
         limitCompetitorNaver: planConfig.competitorsNaver,
         limitCompetitorGoogle: planConfig.competitorsGoogle,
+        limitKeywordsNaver: planConfig.keywordsNaver,
+        limitKeywordsGoogle: planConfig.keywordsGoogle,
         maxSearchesPerDay: 1,
     }
 

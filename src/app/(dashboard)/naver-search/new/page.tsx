@@ -2,14 +2,15 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { KeywordInput } from '@/components/search/KeywordInput'
 import { NaverMapGridConfigurator } from '@/components/naver/NaverMapGridConfigurator'
 import { DistanceSettings } from '@/components/search/DistanceSettings'
 import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
-import { Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, AlertTriangle, Swords } from 'lucide-react'
+import { Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, AlertTriangle, Swords, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Place } from '@/lib/types'
 import { PlaceSelectionModal } from '@/components/dashboard/PlaceSelectionModal'
+import { useSubscription } from '@/hooks/useSubscription'
+import { getAllowedGridSizes } from '@/lib/utils/subscription'
 import Link from 'next/link'
 
 interface GridPointSelection {
@@ -18,9 +19,14 @@ interface GridPointSelection {
     enabled: boolean
 }
 
+interface RegisteredKeyword {
+    keyword: string
+    platform: 'naver' | 'google'
+}
+
 // Simplified steps: No place selection (handled via modal)
 const STEPS = [
-    { id: 1, name: '키워드 입력', icon: Tag },
+    { id: 1, name: '키워드 선택', icon: Tag },
     { id: 2, name: '그리드 설정', icon: Grid3X3 },
     { id: 3, name: '결제 및 확인', icon: Check },
 ]
@@ -32,10 +38,26 @@ const DEFAULT_GRID_POINTS: GridPointSelection[] = [
     { row: 1, col: -1, enabled: true }, { row: 1, col: 0, enabled: true }, { row: 1, col: 1, enabled: true },
 ]
 
+// Grid templates by size
+const GRID_TEMPLATES: Record<number, GridPointSelection[]> = {
+    3: DEFAULT_GRID_POINTS,
+    5: Array.from({ length: 25 }, (_, i) => ({
+        row: Math.floor(i / 5) - 2,
+        col: (i % 5) - 2,
+        enabled: true,
+    })),
+    7: Array.from({ length: 49 }, (_, i) => ({
+        row: Math.floor(i / 7) - 3,
+        col: (i % 7) - 3,
+        enabled: true,
+    })),
+}
+
 export default function NewNaverSearchPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const mode = searchParams.get('mode')
+    const subscription = useSubscription()
 
     const [step, setStep] = useState(1)
     const [isLoading, setIsLoading] = useState(true)
@@ -51,29 +73,47 @@ export default function NewNaverSearchPage() {
     const [placeLng, setPlaceLng] = useState('')
     const [selectedPlaceId, setSelectedPlaceId] = useState<string>('')
 
-    const [keywords, setKeywords] = useState<string[]>([''])
+    // Keyword selection (from managed keywords)
+    const [registeredKeywords, setRegisteredKeywords] = useState<RegisteredKeyword[]>([])
+    const [selectedKeywords, setSelectedKeywords] = useState<Set<string>>(new Set())
+
     const [gridPoints, setGridPoints] = useState<GridPointSelection[]>(DEFAULT_GRID_POINTS)
+    const [selectedGridSize, setSelectedGridSize] = useState(3)
     const [gridDistance, setGridDistance] = useState(1) // km
     const [distanceUnit, setDistanceUnit] = useState<'km' | 'mile'>('km')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [hasCompetitor, setHasCompetitor] = useState(true) // default true to avoid flash
 
-    // Fetch subscription on mount
+    // Fetch subscription + keywords on mount
     useEffect(() => {
-        const fetchSubscription = async () => {
+        const fetchData = async () => {
             const supabase = createClient()
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
-            const { data } = await supabase
+            // Tickets
+            const { data: subData } = await supabase
                 .from('user_subscriptions')
                 .select('remaining_tickets_naver')
                 .eq('user_id', user.id)
                 .single()
 
-            if (data) setRemainingTickets(data.remaining_tickets_naver || 0)
+            if (subData) setRemainingTickets(subData.remaining_tickets_naver || 0)
+
+            // Registered keywords (naver only)
+            const { data: kwData } = await supabase
+                .from('managed_keywords')
+                .select('keyword, platform')
+                .eq('user_id', user.id)
+                .eq('platform', 'naver')
+
+            if (kwData && kwData.length > 0) {
+                setRegisteredKeywords(kwData)
+                // Default: all checked
+                setSelectedKeywords(new Set(kwData.map(k => k.keyword)))
+            }
         }
-        fetchSubscription()
+        fetchData()
     }, [])
 
     // Fetch shop data - show modal if not found
@@ -171,11 +211,28 @@ export default function NewNaverSearchPage() {
     }, [gridPoints])
 
     const hasTicket = remainingTickets > 0
+    const keywords = Array.from(selectedKeywords)
+    const allowedGridSizes = getAllowedGridSizes(subscription.planId)
+
+    const handleGridSizeChange = (size: number) => {
+        if (!allowedGridSizes.includes(size)) return
+        setSelectedGridSize(size)
+        setGridPoints(GRID_TEMPLATES[size] || DEFAULT_GRID_POINTS)
+    }
+
+    const toggleKeyword = (keyword: string) => {
+        setSelectedKeywords(prev => {
+            const next = new Set(prev)
+            if (next.has(keyword)) next.delete(keyword)
+            else next.add(keyword)
+            return next
+        })
+    }
 
     const canProceed = () => {
         switch (step) {
             case 1:
-                return keywords.some(k => k.trim().length > 0)
+                return selectedKeywords.size > 0
             case 2:
                 return enabledGridCount > 0
             case 3:
@@ -263,8 +320,27 @@ export default function NewNaverSearchPage() {
         }
     }
 
+    // Subscription check: block free users
+    if (!subscription.loading && !subscription.canAccessPlatform('naver')) {
+        return (
+            <div className="max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 mb-4">
+                    <Lock className="w-8 h-8 text-gray-400" />
+                </div>
+                <h2 className="text-lg font-bold text-gray-900 mb-2">구독이 필요합니다</h2>
+                <p className="text-gray-500 mb-6">네이버 검색은 Starter 플랜부터 이용 가능합니다.</p>
+                <button
+                    onClick={() => router.push('/dashboard/upgrade')}
+                    className="px-6 py-2.5 bg-[#00C896] text-white rounded-xl font-semibold hover:bg-[#00B386] transition-all"
+                >
+                    구독하기 →
+                </button>
+            </div>
+        )
+    }
+
     // Loading state
-    if (isLoading) {
+    if (isLoading || subscription.loading) {
         return (
             <div className="max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
                 <Loader2 className="w-10 h-10 text-emerald-600 animate-spin mb-4" />
@@ -358,22 +434,54 @@ export default function NewNaverSearchPage() {
 
                     {/* Step Content */}
                     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-                        {/* Step 1: Keyword Input */}
+                        {/* Step 1: Keyword Selection */}
                         {step === 1 && (
                             <div className="space-y-6">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">검색 키워드 입력</h2>
+                                    <h2 className="text-2xl font-bold text-gray-900">검색 키워드 선택</h2>
                                     <p className="mt-2 text-gray-600">
-                                        네이버 지도에서 검색할 키워드를 입력하세요.
+                                        등록된 키워드 중 검색할 키워드를 선택하세요.
                                     </p>
                                 </div>
 
-                                <KeywordInput
-                                    keywords={keywords}
-                                    onChange={setKeywords}
-                                    maxKeywords={3}
-                                    placeholder='키워드 입력 (예: "삼겹살맛집", "근처헬스장", "근처술집")'
-                                />
+                                {registeredKeywords.length === 0 ? (
+                                    <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                        <Tag className="w-8 h-8 text-gray-400 mx-auto mb-3" />
+                                        <p className="text-gray-500 mb-4">등록된 키워드가 없습니다</p>
+                                        <Link
+                                            href="/settings"
+                                            className="text-sm font-semibold text-[#00C896] hover:text-[#00B386]"
+                                        >
+                                            설정에서 키워드 등록하기 →
+                                        </Link>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {registeredKeywords.map((kw) => (
+                                            <label
+                                                key={kw.keyword}
+                                                className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedKeywords.has(kw.keyword)
+                                                        ? 'border-emerald-500 bg-emerald-50'
+                                                        : 'border-gray-200 bg-white hover:border-gray-300'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedKeywords.has(kw.keyword)}
+                                                    onChange={() => toggleKeyword(kw.keyword)}
+                                                    className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                                />
+                                                <span className={`font-medium ${selectedKeywords.has(kw.keyword) ? 'text-emerald-800' : 'text-gray-700'
+                                                    }`}>
+                                                    {kw.keyword}
+                                                </span>
+                                            </label>
+                                        ))}
+                                        <p className="text-xs text-gray-400 mt-2">
+                                            {selectedKeywords.size}개 선택됨 · 키워드는 설정에서 관리할 수 있습니다
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -383,8 +491,39 @@ export default function NewNaverSearchPage() {
                                 <div>
                                     <h2 className="text-2xl font-bold text-gray-900">검색 그리드 설정</h2>
                                     <p className="mt-2 text-gray-600">
-                                        검색 포인트와 간격을 설정하세요.
+                                        그리드 크기와 간격을 설정하세요.
                                     </p>
+                                </div>
+
+                                {/* Grid Size Selector */}
+                                <div>
+                                    <label className="text-sm font-medium text-gray-700 mb-2 block">그리드 크기</label>
+                                    <div className="flex gap-3">
+                                        {[3, 5, 7].map((size) => {
+                                            const allowed = allowedGridSizes.includes(size)
+                                            return (
+                                                <button
+                                                    key={size}
+                                                    onClick={() => handleGridSizeChange(size)}
+                                                    disabled={!allowed}
+                                                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition-all ${selectedGridSize === size
+                                                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                                            : allowed
+                                                                ? 'border-gray-200 text-gray-700 hover:border-gray-300'
+                                                                : 'border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50'
+                                                        }`}
+                                                >
+                                                    {size}×{size}
+                                                    <span className="block text-xs font-normal mt-0.5">
+                                                        {size * size}좌표
+                                                    </span>
+                                                    {!allowed && (
+                                                        <span className="block text-[10px] text-gray-400 mt-0.5">🔒</span>
+                                                    )}
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
                                 </div>
 
                                 <DistanceSettings

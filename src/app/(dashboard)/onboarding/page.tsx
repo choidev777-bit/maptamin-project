@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, Store, Hash, Users, Calendar, Sparkles } from 'lucide-react'
 import StepStoreRegister from '@/components/onboarding/StepStoreRegister'
 import StepKeywordRegister from '@/components/onboarding/StepKeywordRegister'
 import StepCompetitorRegister from '@/components/onboarding/StepCompetitorRegister'
 import StepScheduleSetting from '@/components/onboarding/StepScheduleSetting'
+import { createClient } from '@/lib/supabase/client'
 
 /* ---- 타입 ---- */
 
@@ -60,13 +61,42 @@ export default function OnboardingPage() {
     const router = useRouter()
 
     // TODO: 실제로는 Supabase에서 사용자의 plan_id를 가져와야 합니다
-    const planId: 'starter' | 'pro' | 'premium' = 'pro'
+    // const planId: 'starter' | 'pro' | 'premium' = 'pro'
+    // -> Converted to async data fetching via useEffect or Server Component passed props.
+    // Client Component cannot be async like this. Need to useEffect or useSubscription hook.
 
-    const steps = getSteps(planId)
+    // Using simple useEffect for client-side fetching to replace hardcoded value
+    const [planId, setPlanId] = useState<'starter' | 'pro' | 'premium'>('starter')
+    const [loading, setLoading] = useState(true)
     const [currentStepIndex, setCurrentStepIndex] = useState(0)
     const [data, setData] = useState<OnboardingData>({})
     const [isComplete, setIsComplete] = useState(false)
 
+    // Fetch user plan on mount
+    useEffect(() => {
+        const fetchPlan = async () => {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) {
+                router.replace('/login')
+                return
+            }
+
+            const { data: sub } = await supabase
+                .from('user_subscriptions')
+                .select('plan_id')
+                .eq('user_id', user.id)
+                .single()
+
+            if (sub && sub.plan_id && ['starter', 'pro', 'premium'].includes(sub.plan_id)) {
+                setPlanId(sub.plan_id as 'starter' | 'pro' | 'premium')
+            }
+            setLoading(false)
+        }
+        fetchPlan()
+    }, [router])
+
+    const steps = getSteps(planId)
     const currentStep = steps[currentStepIndex]
 
     const goNext = useCallback(() => {
@@ -110,6 +140,16 @@ export default function OnboardingPage() {
             router.push('/dashboard')
         }, 3000)
     }, [data, router])
+
+    /* ---- 로딩 화면 ---- */
+
+    if (loading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="animate-spin h-8 w-8 border-4 border-[#00C896] border-t-transparent rounded-full" />
+            </div>
+        )
+    }
 
     /* ---- 완료 화면 ---- */
 

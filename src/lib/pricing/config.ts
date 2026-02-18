@@ -13,8 +13,19 @@ export const PLAN_CONFIG: Record<string, {
     keywordsGoogle: number;
     competitorsNaver: number;
     competitorsGoogle: number;
-    channels: 'naver' | 'naver+google';
+    channels: 'none' | 'naver' | 'naver+google';
 }> = {
+    free: {
+        price: 0,
+        gridSize: 0,
+        ticketsNaver: 0,
+        ticketsGoogle: 0,
+        keywordsNaver: 0,
+        keywordsGoogle: 0,
+        competitorsNaver: 0,
+        competitorsGoogle: 0,
+        channels: 'none',
+    },
     starter: {
         price: 9900,
         gridSize: 3,

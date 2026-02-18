@@ -30,6 +30,7 @@ argument-hint: "[선택사항: 특정 verify 스킬 이름]"
 | # | 스킬 | 설명 |
 |---|------|------|
 | 1 | `verify-ticket-system` | 구독+티켓 시스템 구현 일관성 검증 |
+| 2 | `verify-subscription-gating` | 구독 기반 UI 게이팅 일관성 검증 |
 
 ## 워크플로우
 

@@ -6,7 +6,7 @@ import { PlaceSelectionModal } from '@/components/dashboard/PlaceSelectionModal'
 import { ManagedCompetitor, Place } from '@/lib/types'
 
 interface Props {
-    planId: 'starter' | 'pro' | 'premium'
+    planId: 'free' | 'starter' | 'pro' | 'premium'
     maxNaverCompetitors: number
     maxGoogleCompetitors: number
 }

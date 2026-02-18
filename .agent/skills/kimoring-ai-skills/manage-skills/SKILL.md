@@ -30,7 +30,8 @@ argument-hint: "[선택사항: 특정 스킬 이름 또는 집중할 영역]"
 
 | 스킬 | 설명 | 커버 파일 패턴 |
 |------|------|---------------|
-| `verify-ticket-system` | 구독+티켓 시스템 구현 일관성 검증 | `src/app/api/search/**`, `src/app/api/naver/search/**`, `src/app/(dashboard)/search/**`, `src/app/(dashboard)/naver-search/**`, `src/components/layout/WalletLabel.tsx`, `src/lib/pricing/config.ts`, `supabase/migrations/*` |
+| `verify-ticket-system` | 구독+티켓 시스템 구현 일관성 검증 | `src/app/api/search/**`, `src/app/api/naver/search/**`, `src/app/(dashboard)/search/**`, `src/app/(dashboard)/naver-search/**`, `src/components/layout/WalletLabel.tsx`, `src/lib/pricing/config.ts`, `src/lib/utils/subscription.ts`, `src/hooks/useSubscription.ts`, `supabase/migrations/*` |
+| `verify-subscription-gating` | 구독 기반 UI 게이팅 일관성 검증 | `src/app/(dashboard)/search/**`, `src/app/(dashboard)/naver-search/**`, `src/app/(dashboard)/dashboard/**`, `src/app/(dashboard)/settings/**`, `src/components/dashboard/*`, `src/components/settings/*`, `src/components/layout/WalletLabel.tsx`, `src/lib/utils/subscription.ts`, `src/hooks/useSubscription.ts` |
 
 ## 워크플로우
 
