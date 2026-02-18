@@ -59,22 +59,22 @@ export function getMaxCompetitors(planId: string, platform: 'naver' | 'google'):
 
 /** 업그레이드가 필요한 최소 플랜 이름 반환 */
 export function getRequiredPlanForPlatform(platform: 'naver' | 'google'): string {
-    if (platform === 'google') return 'Premium';
-    return 'Starter';
+    if (platform === 'google') return '프리미엄';
+    return '스타터';
 }
 
 /** 업그레이드가 필요한 최소 플랜 (경쟁사 기능) */
 export function getRequiredPlanForCompetitors(): string {
-    return 'Pro';
+    return '프로';
 }
 
 /** 플랜 표시 이름 */
 export function getPlanDisplayName(planId: string): string {
     const names: Record<string, string> = {
         free: '무료',
-        starter: 'Starter',
-        pro: 'Pro',
-        premium: 'Premium',
+        starter: '스타터',
+        pro: '프로',
+        premium: '프리미엄',
     };
     return names[planId] || planId;
 }
@@ -83,3 +83,11 @@ export function canUpdateKeywords(lockedUntil: string | null): boolean {
     if (!lockedUntil) return true;
     return new Date() > new Date(lockedUntil);
 }
+
+/** 구독 해지 가능 여부 (유효한 유료 플랜일 때만 해지 가능) */
+export function canCancelSubscription(planId: string): boolean {
+    const config = PLAN_CONFIG[planId];
+    if (!config) return false;
+    return isSubscribed(planId);
+}
+

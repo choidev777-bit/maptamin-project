@@ -276,7 +276,7 @@ export function KeywordManager({ planId, maxNaverKeywords, maxGoogleKeywords, ca
                             onClick={onUpgradeClick}
                             className="text-xs text-[#00C896] hover:text-[#00B386] font-medium"
                         >
-                            Premium 업그레이드 →
+                            프리미엄 업그레이드 →
                         </button>
                     )}
                 </div>
@@ -331,7 +331,7 @@ export function KeywordManager({ planId, maxNaverKeywords, maxGoogleKeywords, ca
                         onClick={onUpgradeClick}
                     >
                         <Lock className="w-5 h-5 text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-400">Premium 플랜에서 이용 가능</p>
+                        <p className="text-sm text-gray-400">프리미엄 플랜에서 이용 가능</p>
                     </div>
                 )}
             </div>

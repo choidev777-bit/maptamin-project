@@ -15,6 +15,7 @@ import {
     getRequiredPlanForPlatform,
     getRequiredPlanForCompetitors,
     getPlanDisplayName,
+    canCancelSubscription,
 } from './subscription';
 
 describe('isSubscribed', () => {
@@ -155,17 +156,17 @@ describe('getMaxCompetitors', () => {
 });
 
 describe('getRequiredPlanForPlatform', () => {
-    it('구글 → Premium', () => {
-        expect(getRequiredPlanForPlatform('google')).toBe('Premium');
+    it('구글 → 프리미엄', () => {
+        expect(getRequiredPlanForPlatform('google')).toBe('프리미엄');
     });
-    it('네이버 → Starter', () => {
-        expect(getRequiredPlanForPlatform('naver')).toBe('Starter');
+    it('네이버 → 스타터', () => {
+        expect(getRequiredPlanForPlatform('naver')).toBe('스타터');
     });
 });
 
 describe('getRequiredPlanForCompetitors', () => {
-    it('경쟁사 → Pro', () => {
-        expect(getRequiredPlanForCompetitors()).toBe('Pro');
+    it('경쟁사 → 프로', () => {
+        expect(getRequiredPlanForCompetitors()).toBe('프로');
     });
 });
 
@@ -173,13 +174,31 @@ describe('getPlanDisplayName', () => {
     it('free → 무료', () => {
         expect(getPlanDisplayName('free')).toBe('무료');
     });
-    it('starter → Starter', () => {
-        expect(getPlanDisplayName('starter')).toBe('Starter');
+    it('starter → 스타터', () => {
+        expect(getPlanDisplayName('starter')).toBe('스타터');
     });
-    it('premium → Premium', () => {
-        expect(getPlanDisplayName('premium')).toBe('Premium');
+    it('premium → 프리미엄', () => {
+        expect(getPlanDisplayName('premium')).toBe('프리미엄');
     });
     it('알 수 없는 플랜 → 원본 반환', () => {
         expect(getPlanDisplayName('unknown')).toBe('unknown');
+    });
+});
+
+describe('canCancelSubscription', () => {
+    it('free → 해지 불가', () => {
+        expect(canCancelSubscription('free')).toBe(false);
+    });
+    it('starter → 해지 가능', () => {
+        expect(canCancelSubscription('starter')).toBe(true);
+    });
+    it('pro → 해지 가능', () => {
+        expect(canCancelSubscription('pro')).toBe(true);
+    });
+    it('premium → 해지 가능', () => {
+        expect(canCancelSubscription('premium')).toBe(true);
+    });
+    it('알 수 없는 플랜 → 해지 불가', () => {
+        expect(canCancelSubscription('unknown')).toBe(false);
     });
 });

@@ -332,7 +332,7 @@ export default function NewSearchPage() {
                     <Lock className="w-8 h-8 text-gray-400" />
                 </div>
                 <h2 className="text-lg font-bold text-gray-900 mb-2">구독이 필요합니다</h2>
-                <p className="text-gray-500 mb-6">구글 검색은 Premium 플랜에서 이용 가능합니다.</p>
+                <p className="text-gray-500 mb-6">구글 검색은 프리미엄 플랜에서 이용 가능합니다.</p>
                 <button
                     onClick={() => router.push('/dashboard/upgrade')}
                     className="px-6 py-2.5 bg-[#00C896] text-white rounded-xl font-semibold hover:bg-[#00B386] transition-all"
@@ -451,8 +451,8 @@ export default function NewSearchPage() {
                                                 <label
                                                     key={kw.keyword}
                                                     className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedKeywords.has(kw.keyword)
-                                                            ? 'border-blue-500 bg-blue-50'
-                                                            : 'border-gray-200 bg-white hover:border-gray-300'
+                                                        ? 'border-blue-500 bg-blue-50'
+                                                        : 'border-gray-200 bg-white hover:border-gray-300'
                                                         }`}
                                                 >
                                                     <input
@@ -497,10 +497,10 @@ export default function NewSearchPage() {
                                                         onClick={() => handleGridSizeChange(size)}
                                                         disabled={!allowed}
                                                         className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition-all ${selectedGridSize === size
-                                                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                                                : allowed
-                                                                    ? 'border-gray-200 text-gray-700 hover:border-gray-300'
-                                                                    : 'border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50'
+                                                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                                            : allowed
+                                                                ? 'border-gray-200 text-gray-700 hover:border-gray-300'
+                                                                : 'border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50'
                                                             }`}
                                                     >
                                                         {size}×{size}

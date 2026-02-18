@@ -10,6 +10,7 @@ import { CompetitorManager } from '@/components/settings/CompetitorManager'
 import { KeywordManager } from '@/components/settings/KeywordManager'
 import { DeleteAccountSection } from '@/components/settings/DeleteAccountSection'
 import { UpgradePrompt } from '@/components/dashboard/UpgradePrompt'
+import { CancelSubscriptionSection } from '@/components/settings/CancelSubscriptionSection'
 import { isSubscribed, canManageCompetitors, canAccessPlatform, getRequiredPlanForCompetitors } from '@/lib/utils/subscription'
 
 interface UserInfo {
@@ -57,9 +58,9 @@ export function SettingsContent({ user, planStats }: Props) {
 
     const planDisplayName = {
         free: '무료',
-        starter: 'Starter',
-        pro: 'Pro',
-        premium: 'Premium',
+        starter: '스타터',
+        pro: '프로',
+        premium: '프리미엄',
     }[planStats.plan]
 
     const planBgClass = {
@@ -150,6 +151,11 @@ export function SettingsContent({ user, planStats }: Props) {
                         </button>
                     )}
                 </div>
+
+                {/* 구독 해지 (유료 사용자만 표시) */}
+                {subscribed && (
+                    <CancelSubscriptionSection planDisplayName={planDisplayName} />
+                )}
             </div>
 
             {/* My Shop Management */}
@@ -159,7 +165,7 @@ export function SettingsContent({ user, planStats }: Props) {
                 ) : (
                     <div
                         className="relative bg-white rounded-2xl border border-gray-200 p-6 cursor-pointer"
-                        onClick={() => setUpgradePrompt({ message: '매장 관리는 구독 후 이용할 수 있습니다.', requiredPlan: 'Starter' })}
+                        onClick={() => setUpgradePrompt({ message: '매장 관리는 구독 후 이용할 수 있습니다.', requiredPlan: '스타터' })}
                     >
                         <div className="flex items-center gap-2 mb-4">
                             <h2 className="text-lg font-semibold text-gray-400">내 매장 관리</h2>
@@ -178,12 +184,12 @@ export function SettingsContent({ user, planStats }: Props) {
                         maxNaverKeywords={planStats.limitKeywordsNaver}
                         maxGoogleKeywords={planStats.limitKeywordsGoogle}
                         canGoogle={canGoogle}
-                        onUpgradeClick={() => setUpgradePrompt({ message: '구글 키워드 관리는 Premium 플랜에서 이용 가능합니다.', requiredPlan: 'Premium' })}
+                        onUpgradeClick={() => setUpgradePrompt({ message: '구글 키워드 관리는 프리미엄 플랜에서 이용 가능합니다.', requiredPlan: '프리미엄' })}
                     />
                 ) : (
                     <div
                         className="relative bg-white rounded-2xl border border-gray-200 p-6 cursor-pointer"
-                        onClick={() => setUpgradePrompt({ message: '키워드 관리는 구독 후 이용할 수 있습니다.', requiredPlan: 'Starter' })}
+                        onClick={() => setUpgradePrompt({ message: '키워드 관리는 구독 후 이용할 수 있습니다.', requiredPlan: '스타터' })}
                     >
                         <div className="flex items-center gap-2 mb-4">
                             <h2 className="text-lg font-semibold text-gray-400">키워드 관리</h2>
@@ -201,13 +207,13 @@ export function SettingsContent({ user, planStats }: Props) {
                 ) : (
                     <div
                         className="relative bg-white rounded-2xl border border-gray-200 p-6 cursor-pointer"
-                        onClick={() => setUpgradePrompt({ message: '경쟁사 분석은 Pro 플랜부터 이용 가능합니다.', requiredPlan: getRequiredPlanForCompetitors() })}
+                        onClick={() => setUpgradePrompt({ message: '경쟁사 분석은 프로 플랜부터 이용 가능합니다.', requiredPlan: getRequiredPlanForCompetitors() })}
                     >
                         <div className="flex items-center gap-2 mb-4">
                             <h2 className="text-lg font-semibold text-gray-400">경쟁사 관리</h2>
                             <Lock className="w-4 h-4 text-gray-400" />
                         </div>
-                        <p className="text-sm text-gray-400">Pro 플랜부터 경쟁사를 등록하고 비교할 수 있습니다</p>
+                        <p className="text-sm text-gray-400">프로 플랜부터 경쟁사를 등록하고 비교할 수 있습니다</p>
                     </div>
                 )}
             </div>
