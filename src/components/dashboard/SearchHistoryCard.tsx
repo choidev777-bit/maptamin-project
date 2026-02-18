@@ -65,7 +65,10 @@ export function SearchHistoryCard({ search, averageRank }: Props) {
 
     const formatDate = (dateString: string) => {
         const date = new Date(dateString)
-        return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`
+        const ampm = date.getHours() < 12 ? '오전' : '오후'
+        const hours = date.getHours() % 12 || 12
+        const minutes = date.getMinutes()
+        return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 · ${ampm} ${hours}시 ${minutes}분`
     }
 
     if (isDeleting) {

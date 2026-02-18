@@ -67,20 +67,19 @@ export default async function NaverSearchResultsPage({ params }: PageProps) {
                         </span>
                     )}
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900">{search.place_name}</h1>
+                <p className="text-sm text-gray-500 mt-1">
+                    {(() => {
+                        const d = new Date(search.created_at)
+                        const ampm = d.getHours() < 12 ? '오전' : '오후'
+                        const h = d.getHours() % 12 || 12
+                        const m = d.getMinutes()
+                        return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 · ${ampm} ${h}시 ${m}분`
+                    })()}
+                </p>
+                <h1 className="text-2xl font-bold text-gray-900 mt-1">{search.place_name}</h1>
                 {search.place_address && (
                     <p className="text-gray-500">{search.place_address}</p>
                 )}
-                <div className="flex gap-2 mt-2">
-                    {search.keywords.map((keyword: string) => (
-                        <span
-                            key={keyword}
-                            className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm"
-                        >
-                            {keyword}
-                        </span>
-                    ))}
-                </div>
             </div>
 
             {/* Status-based content */}
