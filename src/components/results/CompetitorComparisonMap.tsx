@@ -151,16 +151,10 @@ export function CompetitorComparisonMap({
                     streetViewControl={false}
                     fullscreenControl={true}
                 >
-                    {/* Center marker */}
-                    <AdvancedMarker position={center}>
-                        <div className="w-10 h-10 bg-blue-600 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
-                            <div className="w-3 h-3 bg-white rounded-full" />
-                        </div>
-                    </AdvancedMarker>
-
                     {/* Win/Lose markers */}
                     {comparisonPoints.map((point) => {
                         const style = VERDICT_STYLE[point.verdict]
+                        const atCenter = Math.abs(point.lat - center.lat) < 0.0001 && Math.abs(point.lng - center.lng) < 0.0001
                         return (
                             <AdvancedMarker
                                 key={point.key}
@@ -168,7 +162,7 @@ export function CompetitorComparisonMap({
                                 onClick={() => handleMarkerClick(point)}
                             >
                                 <div
-                                    className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold cursor-pointer transition-transform hover:scale-110 shadow-lg border-2 border-white"
+                                    className={`rounded-full flex items-center justify-center text-white text-sm font-bold cursor-pointer transition-transform hover:scale-110 shadow-lg ${atCenter ? 'w-9 h-9 border-[3px] border-blue-600' : 'w-8 h-8 border-2 border-white'}`}
                                     style={{ backgroundColor: style.color }}
                                 >
                                     {style.text}

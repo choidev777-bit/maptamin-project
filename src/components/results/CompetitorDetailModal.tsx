@@ -58,10 +58,10 @@ export function CompetitorDetailModal({
                     <div className="flex justify-between items-start">
                         <div>
                             <h3 className="font-bold text-lg">{keyword}</h3>
-                            <p className="text-white/80 text-sm flex items-center gap-1 mt-1">
+                            {/* <p className="text-white/80 text-sm flex items-center gap-1 mt-1">
                                 <MapPin className="w-4 h-4" />
                                 {gridLat.toFixed(4)}, {gridLng.toFixed(4)}
-                            </p>
+                            </p> */}
                         </div>
                         <button
                             onClick={onClose}

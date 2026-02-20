@@ -38,10 +38,10 @@ export function RankDetailModal({ isOpen, onClose, result }: Props) {
                     <div className="flex justify-between items-start">
                         <div>
                             <h3 className="font-bold text-lg">{result.keyword}</h3>
-                            <p className="text-blue-100 text-sm flex items-center gap-1 mt-1">
+                            {/* <p className="text-blue-100 text-sm flex items-center gap-1 mt-1">
                                 <MapPin className="w-4 h-4" />
                                 {result.grid_lat.toFixed(6)}, {result.grid_lng.toFixed(6)}
-                            </p>
+                            </p> */}
                         </div>
                         <button
                             onClick={onClose}

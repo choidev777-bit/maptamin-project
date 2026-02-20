@@ -86,28 +86,24 @@ export function RankHeatmap({ center, results, selectedKeyword }: Props) {
                     streetViewControl={false}
                     fullscreenControl={true}
                 >
-                    {/* Center marker (business location) */}
-                    <AdvancedMarker position={center}>
-                        <div className="w-10 h-10 bg-blue-600 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
-                            <div className="w-3 h-3 bg-white rounded-full" />
-                        </div>
-                    </AdvancedMarker>
-
                     {/* Rank markers */}
-                    {uniquePositions.map((pos) => (
-                        <AdvancedMarker
-                            key={pos.key}
-                            position={{ lat: pos.lat, lng: pos.lng }}
-                            onClick={() => pos.results[0] && handleMarkerClick(pos.results[0])}
-                        >
-                            <div
-                                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold cursor-pointer transition-transform hover:scale-110 shadow-lg border-2 border-white"
-                                style={{ backgroundColor: getRankColor(pos.rank, 'google') }}
+                    {uniquePositions.map((pos) => {
+                        const atCenter = Math.abs(pos.lat - center.lat) < 0.0001 && Math.abs(pos.lng - center.lng) < 0.0001
+                        return (
+                            <AdvancedMarker
+                                key={pos.key}
+                                position={{ lat: pos.lat, lng: pos.lng }}
+                                onClick={() => pos.results[0] && handleMarkerClick(pos.results[0])}
                             >
-                                {getRankLabel(pos.rank)}
-                            </div>
-                        </AdvancedMarker>
-                    ))}
+                                <div
+                                    className={`rounded-full flex items-center justify-center text-white text-sm font-bold cursor-pointer transition-transform hover:scale-110 shadow-lg ${atCenter ? 'w-9 h-9 border-[3px] border-blue-600' : 'w-8 h-8 border-2 border-white'}`}
+                                    style={{ backgroundColor: getRankColor(pos.rank, 'google') }}
+                                >
+                                    {getRankLabel(pos.rank)}
+                                </div>
+                            </AdvancedMarker>
+                        )
+                    })}
                 </Map>
             </div>
 
@@ -127,6 +123,10 @@ export function RankHeatmap({ center, results, selectedKeyword }: Props) {
                         <span className="text-sm text-gray-600">{label}</span>
                     </div>
                 ))}
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full bg-gray-300 border-2 border-blue-600" />
+                    <span className="text-sm text-gray-600">내 매장</span>
+                </div>
             </div>
 
             {/* Detail Modal */}

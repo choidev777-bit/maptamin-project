@@ -22,6 +22,10 @@ interface PositionData {
 }
 
 // Inner map content component (uses hooks)
+function isCenter(lat: number, lng: number, center: { lat: number; lng: number }) {
+    return Math.abs(lat - center.lat) < 0.0001 && Math.abs(lng - center.lng) < 0.0001
+}
+
 interface MapContentProps {
     center: { lat: number; lng: number }
     uniquePositions: PositionData[]
@@ -41,41 +45,23 @@ function MapContent({ center, uniquePositions, onMarkerClick }: MapContentProps)
             }}
             scaleControl={true}
         >
-            {/* Center marker (business location) */}
-            <Marker
-                position={new navermaps.LatLng(center.lat, center.lng)}
-                icon={{
-                    content: `
-                        <div style="
-                            width: 40px;
-                            height: 40px;
-                            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-                            border: 4px solid white;
-                            border-radius: 50%;
-                            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.5);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                        ">
-                            <div style="width: 12px; height: 12px; background: white; border-radius: 50%;"></div>
-                        </div>
-                    `,
-                    anchor: new navermaps.Point(20, 20)
-                }}
-            />
-
             {/* Rank markers */}
-            {uniquePositions.map((pos) => (
-                <Marker
-                    key={pos.key}
-                    position={new navermaps.LatLng(pos.lat, pos.lng)}
-                    icon={{
-                        content: `
+            {uniquePositions.map((pos) => {
+                const atCenter = isCenter(pos.lat, pos.lng, center)
+                const borderStyle = atCenter ? '3px solid #2563eb' : '2px solid white'
+                const size = atCenter ? 36 : 32
+                const anchor = atCenter ? 18 : 16
+                return (
+                    <Marker
+                        key={pos.key}
+                        position={new navermaps.LatLng(pos.lat, pos.lng)}
+                        icon={{
+                            content: `
                             <div style="
-                                width: 32px;
-                                height: 32px;
+                                width: ${size}px;
+                                height: ${size}px;
                                 background-color: ${getRankColor(pos.rank)};
-                                border: 2px solid white;
+                                border: ${borderStyle};
                                 border-radius: 50%;
                                 box-shadow: 0 2px 8px rgba(0,0,0,0.3);
                                 display: flex;
@@ -89,11 +75,12 @@ function MapContent({ center, uniquePositions, onMarkerClick }: MapContentProps)
                                 ${getRankLabel(pos.rank)}
                             </div>
                         `,
-                        anchor: new navermaps.Point(16, 16)
-                    }}
-                    onClick={() => pos.results[0] && onMarkerClick(pos.results[0])}
-                />
-            ))}
+                            anchor: new navermaps.Point(anchor, anchor)
+                        }}
+                        onClick={() => pos.results[0] && onMarkerClick(pos.results[0])}
+                    />
+                )
+            })}
         </NaverMap>
     )
 }
@@ -181,6 +168,10 @@ export function NaverRankHeatmap({ center, results, selectedKeyword }: Props) {
                     <div className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded-full bg-red-500"></div>
                         11위 이상
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-gray-300 border-2 border-blue-600"></div>
+                        내 매장
                     </div>
                 </div>
             </div>

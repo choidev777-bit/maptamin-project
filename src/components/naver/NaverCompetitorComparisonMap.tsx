@@ -60,32 +60,13 @@ function MapContent({ center, comparisonPoints, onMarkerClick }: MapContentProps
             }}
             scaleControl={true}
         >
-            {/* Center marker */}
-            <Marker
-                position={new navermaps.LatLng(center.lat, center.lng)}
-                icon={{
-                    content: `
-                        <div style="
-                            width: 40px;
-                            height: 40px;
-                            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-                            border: 4px solid white;
-                            border-radius: 50%;
-                            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.5);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                        ">
-                            <div style="width: 12px; height: 12px; background: white; border-radius: 50%;"></div>
-                        </div>
-                    `,
-                    anchor: new navermaps.Point(20, 20)
-                }}
-            />
-
             {/* Win/Lose markers */}
             {comparisonPoints.map((point) => {
                 const style = VERDICT_STYLE[point.verdict]
+                const atCenter = Math.abs(point.lat - center.lat) < 0.0001 && Math.abs(point.lng - center.lng) < 0.0001
+                const borderStyle = atCenter ? '3px solid #2563eb' : '2px solid white'
+                const size = atCenter ? 36 : 32
+                const anchorPt = atCenter ? 18 : 16
                 return (
                     <Marker
                         key={point.key}
@@ -93,10 +74,10 @@ function MapContent({ center, comparisonPoints, onMarkerClick }: MapContentProps
                         icon={{
                             content: `
                                 <div style="
-                                    width: 32px;
-                                    height: 32px;
+                                    width: ${size}px;
+                                    height: ${size}px;
                                     background-color: ${style.color};
-                                    border: 2px solid white;
+                                    border: ${borderStyle};
                                     border-radius: 50%;
                                     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
                                     display: flex;
@@ -110,7 +91,7 @@ function MapContent({ center, comparisonPoints, onMarkerClick }: MapContentProps
                                     ${style.text}
                                 </div>
                             `,
-                            anchor: new navermaps.Point(16, 16)
+                            anchor: new navermaps.Point(anchorPt, anchorPt)
                         }}
                         onClick={() => onMarkerClick(point)}
                     />
