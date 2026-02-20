@@ -218,9 +218,9 @@ export function NaverCompetitorComparisonMap({
                 </div>
             </div>
 
-            <div className="relative w-full h-[500px] bg-slate-100 dark:bg-slate-900 flex-grow">
+            <div className="relative w-full bg-slate-100 dark:bg-slate-900 flex-grow">
                 <NavermapsProvider ncpKeyId={clientId}>
-                    <MapDiv style={{ width: '100%', height: '100%' }}>
+                    <MapDiv style={{ width: '100%', height: '500px' }}>
                         <MapContent
                             center={center}
                             comparisonPoints={comparisonPoints}

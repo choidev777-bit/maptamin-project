@@ -189,9 +189,9 @@ export function NaverRankHeatmap({ center, results, selectedKeyword }: Props) {
                 </div>
             </div>
 
-            <div className="relative w-full h-[500px] bg-slate-100 dark:bg-slate-900 group">
+            <div className="relative w-full bg-slate-100 dark:bg-slate-900 group">
                 <NavermapsProvider ncpKeyId={clientId}>
-                    <MapDiv style={{ width: '100%', height: '100%' }}>
+                    <MapDiv style={{ width: '100%', height: '500px' }}>
                         <MapContent
                             center={center}
                             uniquePositions={uniquePositions}
