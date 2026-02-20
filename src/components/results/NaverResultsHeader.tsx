@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -14,7 +15,13 @@ interface Props {
 }
 
 export function NaverResultsHeader({ search }: Props) {
-    const formattedDate = format(new Date(search.created_at), 'yyyy년 M월 d일 • a h시 mm분', { locale: ko });
+    const [formattedDate, setFormattedDate] = useState('');
+
+    useEffect(() => {
+        setFormattedDate(
+            format(new Date(search.created_at), 'yyyy년 M월 d일 • a h시 mm분', { locale: ko })
+        );
+    }, [search.created_at]);
 
     return (
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
