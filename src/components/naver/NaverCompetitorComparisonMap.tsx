@@ -50,19 +50,21 @@ interface MapContentProps {
 function MapContent({ center, comparisonPoints, onMarkerClick }: MapContentProps) {
     const navermaps = useNavermaps()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mapRef = useRef<any>(null)
+    const [map, setMap] = useState<any>(null)
+    const initializedRef = useRef(false)
 
-    // Force correct zoom/center after map mounts
+    // Force correct zoom/center once after map first loads
     useEffect(() => {
-        if (mapRef.current) {
-            mapRef.current.setCenter(new navermaps.LatLng(center.lat, center.lng))
-            mapRef.current.setZoom(14)
+        if (map && !initializedRef.current) {
+            initializedRef.current = true
+            map.setCenter(new navermaps.LatLng(center.lat, center.lng))
+            map.setZoom(14)
         }
-    }, [navermaps, center])
+    }, [map, navermaps, center])
 
     return (
         <NaverMap
-            ref={mapRef}
+            ref={setMap}
             defaultCenter={new navermaps.LatLng(center.lat, center.lng)}
             defaultZoom={14}
             zoomControl={true}
