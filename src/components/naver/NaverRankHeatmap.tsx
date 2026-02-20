@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { NavermapsProvider, Container as MapDiv, NaverMap, Marker, useNavermaps } from 'react-naver-maps'
 import { SearchResult } from '@/lib/types'
 import { getRankColor, getRankLabel } from '@/lib/utils/rank-colors'
@@ -34,9 +34,20 @@ interface MapContentProps {
 
 function MapContent({ center, uniquePositions, onMarkerClick }: MapContentProps) {
     const navermaps = useNavermaps()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mapRef = useRef<any>(null)
+
+    // Force correct zoom/center after map mounts (prevents zoom-out on hydration re-mount)
+    useEffect(() => {
+        if (mapRef.current) {
+            mapRef.current.setCenter(new navermaps.LatLng(center.lat, center.lng))
+            mapRef.current.setZoom(14)
+        }
+    }, [navermaps, center])
 
     return (
         <NaverMap
+            ref={mapRef}
             defaultCenter={new navermaps.LatLng(center.lat, center.lng)}
             defaultZoom={14}
             zoomControl={true}

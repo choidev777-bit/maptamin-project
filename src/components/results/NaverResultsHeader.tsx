@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 
@@ -15,13 +14,7 @@ interface Props {
 }
 
 export function NaverResultsHeader({ search }: Props) {
-    const [formattedDate, setFormattedDate] = useState('');
-
-    useEffect(() => {
-        setFormattedDate(
-            format(new Date(search.created_at), 'yyyy년 M월 d일 • a h시 mm분', { locale: ko })
-        );
-    }, [search.created_at]);
+    const formattedDate = format(new Date(search.created_at), 'yyyy년 M월 d일 • a h시 mm분', { locale: ko });
 
     return (
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
@@ -35,8 +28,8 @@ export function NaverResultsHeader({ search }: Props) {
                         네이버 지도
                     </span>
 
-                    {/* Timestamp */}
-                    <span className="text-gray-500 dark:text-gray-400 text-sm font-medium">
+                    {/* Timestamp - suppressHydrationWarning prevents mismatch from timezone differences */}
+                    <span className="text-gray-500 dark:text-gray-400 text-sm font-medium" suppressHydrationWarning>
                         검색일시: {formattedDate}
                     </span>
                 </div>
