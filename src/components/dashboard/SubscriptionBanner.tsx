@@ -25,7 +25,7 @@ export function SubscriptionBanner() {
                     </div>
                 </div>
                 <button
-                    onClick={() => router.push('/dashboard/upgrade')}
+                    onClick={() => router.push('/dashboard/subscription')}
                     className="shrink-0 rounded-xl bg-[#00C896] px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#00C896]/25 hover:bg-[#00B386] transition-all hover:-translate-y-0.5"
                 >
                     구독하기

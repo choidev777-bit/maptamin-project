@@ -1,0 +1,76 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e5]:
+        - link "Maptamin" [ref=e6] [cursor=pointer]:
+          - /url: /dashboard
+          - generic [ref=e7]:
+            - img [ref=e8]
+            - generic [ref=e18]: Maptamin
+        - generic [ref=e20]:
+          - navigation [ref=e21]:
+            - link "대시보드" [ref=e22] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e23]
+              - text: 대시보드
+            - button "내 순위 검색" [ref=e27]:
+              - img [ref=e28]
+              - text: 내 순위 검색
+              - img [ref=e31]
+            - link "설정" [ref=e33] [cursor=pointer]:
+              - /url: /settings
+              - img [ref=e34]
+              - text: 설정
+          - generic [ref=e37]:
+            - button "구독 필요" [ref=e38]:
+              - img [ref=e39]
+              - generic [ref=e42]: 구독 필요
+            - generic [ref=e43]: sub-mgmt-1771476715606@example.com
+    - main [ref=e44]:
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - heading "구독 및 결제 관리" [level=2] [ref=e47]
+          - paragraph [ref=e48]: 요금제 현황을 확인하고 결제 수단을 관리하세요.
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - heading "내 구독 정보" [level=3] [ref=e51]
+            - generic [ref=e52]:
+              - generic [ref=e53]:
+                - heading "현재 이용 중인 플랜" [level=3] [ref=e54]
+                - paragraph [ref=e55]: 무료 플랜을 이용 중입니다.
+              - generic [ref=e57]:
+                - generic [ref=e58]:
+                  - heading "Free Plan" [level=3] [ref=e59]
+                  - paragraph [ref=e60]: 기본 기능만 제공됩니다. 더 많은 기능을 원하시면 업그레이드하세요.
+                - button "플랜 업그레이드" [ref=e61]
+          - generic [ref=e62]:
+            - heading "결제 수단" [level=3] [ref=e63]
+            - generic [ref=e64]:
+              - generic [ref=e65]:
+                - heading "결제 수단 관리" [level=3] [ref=e66]
+                - paragraph [ref=e67]: 정기 구독 결제에 사용할 카드를 등록하거나 변경합니다.
+              - generic [ref=e69]:
+                - generic [ref=e70]:
+                  - img [ref=e72]
+                  - generic [ref=e74]:
+                    - paragraph [ref=e75]: 등록된 카드 없음
+                    - paragraph [ref=e76]: 정기 결제를 위해 카드를 등록해주세요
+                - button "카드 등록하기" [ref=e77]
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e82] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e83]:
+      - img [ref=e84]
+    - generic [ref=e87]:
+      - button "Open issues overlay" [ref=e88]:
+        - generic [ref=e89]:
+          - generic [ref=e90]: "0"
+          - generic [ref=e91]: "1"
+        - generic [ref=e92]: Issue
+      - button "Collapse issues badge" [ref=e93]:
+        - img [ref=e94]
+  - alert [ref=e96]
+```

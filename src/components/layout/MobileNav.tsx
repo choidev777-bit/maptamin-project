@@ -6,7 +6,7 @@ import { Menu, X, Home, Search, History, Settings, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { WalletLabel } from './WalletLabel'
+import { WalletLabel, SubscriptionInfo } from './WalletLabel'
 
 interface Props {
     user: {
@@ -14,9 +14,10 @@ interface Props {
         name: string
         avatarUrl: string | null
     }
+    subscription: SubscriptionInfo | null
 }
 
-export function MobileNav({ user }: Props) {
+export function MobileNav({ user, subscription }: Props) {
     const [isOpen, setIsOpen] = useState(false)
     const router = useRouter()
 
@@ -99,7 +100,7 @@ export function MobileNav({ user }: Props) {
                         </div>
                     </div>
                     <div className="mt-3">
-                        <WalletLabel />
+                        <WalletLabel subscription={subscription} />
                     </div>
                 </div>
 

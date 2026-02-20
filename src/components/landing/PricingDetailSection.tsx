@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Check, X, HelpCircle, Shield, AlertTriangle } from 'lucide-react'
+import Link from 'next/link'
 
 /* ---- 비교 테이블 데이터 ---- */
 
@@ -88,6 +89,7 @@ interface PlanFeature {
 
 interface PlanCard {
     name: string
+    planId: string
     tagline: string
     monthly: string
     yearly: string
@@ -102,6 +104,7 @@ interface PlanCard {
 const PLANS: PlanCard[] = [
     {
         name: '스타터',
+        planId: 'starter',
         tagline: '1인 매장 사장님용',
         monthly: '9,900원',
         yearly: '9,075원',
@@ -120,6 +123,7 @@ const PLANS: PlanCard[] = [
     },
     {
         name: '프로',
+        planId: 'pro',
         tagline: '마케팅 성과 심층 분석용',
         monthly: '29,000원',
         yearly: '26,600원',
@@ -139,6 +143,7 @@ const PLANS: PlanCard[] = [
     },
     {
         name: '프리미엄',
+        planId: 'premium',
         tagline: '상권 장악에 진심인 사장님용',
         monthly: '99,000원',
         yearly: '90,750원',
@@ -270,15 +275,15 @@ export default function PricingDetailSection() {
                                     🚀 결제 즉시 웰컴 리포트 발송
                                 </p>
 
-                                <button
-                                    type="button"
-                                    className={`mt-5 w-full rounded-xl py-3.5 text-sm font-bold transition-all duration-300 ${plan.ctaStyle === 'solid'
+                                <Link
+                                    href={`/login?plan=${plan.planId}${isYearly ? '&billing=yearly' : ''}`}
+                                    className={`mt-5 block w-full rounded-xl py-3.5 text-center text-sm font-bold transition-all duration-300 ${plan.ctaStyle === 'solid'
                                         ? 'bg-[#00C896] text-white shadow-lg shadow-[#00C896]/25 hover:-translate-y-0.5 hover:bg-[#00B386] hover:shadow-xl'
                                         : 'border-2 border-gray-200 bg-white text-gray-700 hover:-translate-y-0.5 hover:border-[#00C896] hover:text-[#00C896]'
                                         }`}
                                 >
                                     {plan.cta}
-                                </button>
+                                </Link>
                             </div>
                         ))}
                     </div>

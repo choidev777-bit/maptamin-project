@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Home, Search, Settings } from 'lucide-react'
-import { WalletLabel } from './WalletLabel'
+import { WalletLabel, SubscriptionInfo } from './WalletLabel'
 import { NavDropdown } from './NavDropdown'
 
 interface Props {
@@ -11,9 +11,10 @@ interface Props {
         name: string
         avatarUrl: string | null
     }
+    subscription: SubscriptionInfo | null
 }
 
-export function DesktopNav({ user }: Props) {
+export function DesktopNav({ user, subscription }: Props) {
     return (
         <div className="flex items-center gap-6">
             {/* Navigation Links */}
@@ -47,8 +48,8 @@ export function DesktopNav({ user }: Props) {
 
             {/* User Info */}
             <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
-                <WalletLabel />
-                <span className="text-sm text-gray-600">{user.email}</span>
+                <WalletLabel subscription={subscription} />
+                <span className="text-sm text-gray-600">{user.name} 님</span>
             </div>
         </div>
     )

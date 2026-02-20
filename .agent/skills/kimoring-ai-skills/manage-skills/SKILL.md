@@ -1,8 +1,6 @@
 ---
 name: manage-skills
-description: 세션 변경사항을 분석하여 검증 스킬 누락을 탐지합니다. 기존 스킬을 동적으로 탐색하고, 새 스킬을 생성하거나 기존 스킬을 업데이트한 뒤 CLAUDE.md를 관리합니다.
-disable-model-invocation: true
-argument-hint: "[선택사항: 특정 스킬 이름 또는 집중할 영역]"
+description: 세션 변경사항을 분석하여 검증 스킬 누락을 탐지합니다. 기존 스킬을 동적으로 탐색하고, 새 스킬을 생성하거나 기존 스킬을 업데이트합니다.
 ---
 
 # 세션 기반 스킬 유지보수
@@ -32,6 +30,7 @@ argument-hint: "[선택사항: 특정 스킬 이름 또는 집중할 영역]"
 |------|------|---------------|
 | `verify-ticket-system` | 구독+티켓 시스템 구현 일관성 검증 | `src/app/api/search/**`, `src/app/api/naver/search/**`, `src/app/(dashboard)/search/**`, `src/app/(dashboard)/naver-search/**`, `src/components/layout/WalletLabel.tsx`, `src/lib/pricing/config.ts`, `src/lib/utils/subscription.ts`, `src/hooks/useSubscription.ts`, `supabase/migrations/*` |
 | `verify-subscription-gating` | 구독 기반 UI 게이팅 일관성 검증 | `src/app/(dashboard)/search/**`, `src/app/(dashboard)/naver-search/**`, `src/app/(dashboard)/dashboard/**`, `src/app/(dashboard)/settings/**`, `src/components/dashboard/*`, `src/components/settings/*`, `src/components/layout/WalletLabel.tsx`, `src/lib/utils/subscription.ts`, `src/hooks/useSubscription.ts` |
+| `verify-ticket-shop` | 티켓 상점 시스템 구현 검증 | `src/app/(dashboard)/dashboard/shop/**`, `src/components/dashboard/TicketShopContent.tsx`, `src/lib/pricing/ticket-price.ts`, `src/components/layout/WalletLabel.tsx` |
 
 ## 워크플로우
 
@@ -77,7 +76,7 @@ git diff main...HEAD --name-only 2>/dev/null
 
 등록된 스킬이 0개인 경우, Step 4 (CREATE vs UPDATE 결정)로 바로 이동합니다. 모든 변경 파일이 "UNCOVERED"로 처리됩니다.
 
-등록된 스킬이 1개 이상인 경우, 각 스킬의 `.claude/skills/verify-<name>/SKILL.md`를 읽고 다음에서 추가 파일 경로 패턴을 추출합니다:
+등록된 스킬이 1개 이상인 경우, 각 스킬의 `.agent/skills/kimoring-ai-skills/verify-<name>/SKILL.md`를 읽고 다음에서 추가 파일 경로 패턴을 추출합니다:
 
 1. **Related Files** 섹션 — 테이블을 파싱하여 파일 경로 및 glob 패턴 추출
 2. **Workflow** 섹션 — grep/glob/read 명령어에서 파일 경로 추출
@@ -156,7 +155,7 @@ Step 1에서 수집한 각 변경 파일에 대해, 등록된 스킬의 패턴�
 - `README.md` — 문서, 면제
 ```
 
-`AskUserQuestion`을 사용하여 확인합니다:
+사용자에게 확인합니다:
 - 어떤 기존 스킬을 업데이트할지
 - 제안된 새 스킬을 생성할지
 - 전체 건너뛰기 옵션
@@ -208,16 +207,14 @@ grep -n "pattern" path/to/file.ts
 
 1. **탐색** — 관련 변경 파일을 읽어 패턴을 깊이 이해합니다
 
-2. **사용자에게 스킬 이름 확인** — `AskUserQuestion`을 사용합니다:
-
-   스킬이 커버할 패턴/도메인을 제시하고, 사용자에게 이름을 제공하거나 확인하도록 요청합니다.
+2. **사용자에게 스킬 이름 확인** — 스킬이 커버할 패턴/도메인을 제시하고, 사용자에게 이름을 제공하거나 확인하도록 요청합니다.
 
    **이름 규칙:**
    - 이름은 반드시 `verify-`로 시작해야 합니다 (예: `verify-auth`, `verify-api`, `verify-caching`)
    - 사용자가 `verify-` 접두사 없이 이름을 제공하면 자동으로 앞에 추가하고 사용자에게 알립니다
    - kebab-case를 사용합니다 (예: `verify-error-handling`, `verify_error_handling` 아님)
 
-3. **생성** — `.claude/skills/verify-<name>/SKILL.md`를 다음 템플릿에 따라 생성합니다:
+3. **생성** — `.agent/skills/kimoring-ai-skills/verify-<name>/SKILL.md`를 다음 템플릿에 따라 생성합니다:
 
 ```yaml
 ---
@@ -238,7 +235,7 @@ description: <한 줄 설명>. <트리거 조건> 후 사용.
 - **Output Format** — 결과를 위한 마크다운 테이블
 - **Exceptions** — 최소 2-3개의 현실적인 "위반이 아닌" 케이스
 
-4. **연관 스킬 파일 업데이트** — 새 스킬 생성 후 반드시 아래 3개 파일을 업데이트합니다:
+4. **연관 스킬 파일 업데이트** — 새 스킬 생성 후 반드시 아래 2개 파일을 업데이트합니다:
 
    **4a. 이 파일 자체 (`manage-skills/SKILL.md`) 업데이트:**
    - **등록된 검증 스킬** 섹션의 테이블에 새 스킬 행을 추가합니다
@@ -249,10 +246,6 @@ description: <한 줄 설명>. <트리거 조건> 후 사용.
    - **실행 대상 스킬** 섹션의 테이블에 새 스킬 행을 추가합니다
    - 첫 번째 스킬 추가 시 "(아직 등록된 검증 스킬이 없습니다)" 텍스트와 HTML 주석을 제거하고 테이블로 교체합니다
    - 형식: `| <번호> | verify-<name> | <설명> |`
-
-   **4c. `CLAUDE.md` 업데이트:**
-   - `## Skills` 테이블에 새 스킬 행을 추가합니다
-   - 형식: `| verify-<name> | <한 줄 설명> |`
 
 ### Step 7: 검증
 
@@ -288,7 +281,6 @@ ls <file-path> 2>/dev/null || echo "MISSING: <file-path>"
 ### 업데이트된 연관 파일:
 - `manage-skills/SKILL.md`: 등록된 검증 스킬 테이블 업데이트
 - `verify-implementation/SKILL.md`: 실행 대상 스킬 테이블 업데이트
-- `CLAUDE.md`: Skills 테이블 업데이트
 
 ### 영향없는 스킬: Z개
 - (관련 변경사항 없음)
@@ -315,9 +307,8 @@ ls <file-path> 2>/dev/null || echo "MISSING: <file-path>"
 
 | File | Purpose |
 |------|---------|
-| `.claude/skills/verify-implementation/SKILL.md` | 통합 검증 스킬 (이 스킬이 실행 대상 목록을 관리) |
-| `.claude/skills/manage-skills/SKILL.md` | 이 파일 자체 (등록된 검증 스킬 목록을 관리) |
-| `CLAUDE.md` | 프로젝트 지침 (이 스킬이 Skills 섹션을 관리) |
+| `.agent/skills/kimoring-ai-skills/verify-implementation/SKILL.md` | 통합 검증 스킬 (이 스킬이 실행 대상 목록을 관리) |
+| `.agent/skills/kimoring-ai-skills/manage-skills/SKILL.md` | 이 파일 자체 (등록된 검증 스킬 목록을 관리) |
 
 ## 예외사항
 
@@ -328,6 +319,6 @@ ls <file-path> 2>/dev/null || echo "MISSING: <file-path>"
 3. **문서 파일** — `README.md`, `CHANGELOG.md`, `LICENSE` 등은 검증이 필요한 코드 패턴이 아님
 4. **테스트 픽스처 파일** — 테스트 픽스처로 사용되는 디렉토리의 파일(예: `fixtures/`, `__fixtures__/`, `test-data/`)은 프로덕션 코드가 아님
 5. **영향받지 않은 스킬** — UNAFFECTED로 표시된 스킬은 검토 불필요; 대부분의 세션에서 대부분의 스킬이 이에 해당
-6. **CLAUDE.md 자체** — CLAUDE.md의 변경은 문서 업데이트이며, 검증이 필요한 코드 패턴이 아님
+6. **프로젝트 규칙 파일** — `.agent/rules/` 내의 파일 변경은 문서 업데이트이며, 검증이 필요한 코드 패턴이 아님
 7. **벤더/서드파티 코드** — `vendor/`, `node_modules/` 또는 복사된 라이브러리 디렉토리의 파일은 외부 규칙을 따름
 8. **CI/CD 설정** — `.github/`, `.gitlab-ci.yml`, `Dockerfile` 등은 인프라이며, 검증 스킬이 필요한 애플리케이션 패턴이 아님

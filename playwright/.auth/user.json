@@ -1,0 +1,25 @@
+{
+  "cookies": [
+    {
+      "name": "sb-mwgzdtwafidfnqilqflp-auth-token",
+      "value": "{\"access_token\":\"eyJhbGciOiJFUzI1NiIsImtpZCI6IjUzN2Y1MTE3LWZmZjMtNDFiNC04MjcwLWIwM2I1NjM1NDVhZCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL213Z3pkdHdhZmlkZm5xaWxxZmxwLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiIxOTJiNzg3Zi0yMmRmLTQ3NDgtYmYxYS0xOGI3YzE1MzI2MWMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzcxNDgwMzE0LCJpYXQiOjE3NzE0NzY3MTQsImVtYWlsIjoiZTJlLWdsb2JhbC0xNzcxNDc2NzA5MjM5QGV4YW1wbGUuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbF92ZXJpZmllZCI6dHJ1ZX0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NzE0NzY3MTR9XSwic2Vzc2lvbl9pZCI6ImU0YjUwNmVkLTRiYmMtNDViMC1iNzFhLTI5YWJmYzk3Njg1NSIsImlzX2Fub255bW91cyI6ZmFsc2V9.hVyTTcKh_lEg46EAZvy6o-T04kmxhX5iuG6row9OmyFfQZdC9HQtOUme5xq4HXMiAjvewT0ZqwrpGziP3NS-eA\",\"token_type\":\"bearer\",\"expires_in\":3600,\"expires_at\":1771480314,\"refresh_token\":\"vpxobu7bx5f4\",\"user\":{\"id\":\"192b787f-22df-4748-bf1a-18b7c153261c\",\"aud\":\"authenticated\",\"role\":\"authenticated\",\"email\":\"e2e-global-1771476709239@example.com\",\"email_confirmed_at\":\"2026-02-19T04:51:53.935205Z\",\"phone\":\"\",\"confirmed_at\":\"2026-02-19T04:51:53.935205Z\",\"last_sign_in_at\":\"2026-02-19T04:51:54.704854064Z\",\"app_metadata\":{\"provider\":\"email\",\"providers\":[\"email\"]},\"user_metadata\":{\"email_verified\":true},\"identities\":[{\"identity_id\":\"8aee3b9b-f01b-4dc6-9a4f-229eef24576f\",\"id\":\"192b787f-22df-4748-bf1a-18b7c153261c\",\"user_id\":\"192b787f-22df-4748-bf1a-18b7c153261c\",\"identity_data\":{\"email\":\"e2e-global-1771476709239@example.com\",\"email_verified\":false,\"phone_verified\":false,\"sub\":\"192b787f-22df-4748-bf1a-18b7c153261c\"},\"provider\":\"email\",\"last_sign_in_at\":\"2026-02-19T04:51:53.92002Z\",\"created_at\":\"2026-02-19T04:51:53.920077Z\",\"updated_at\":\"2026-02-19T04:51:53.920077Z\",\"email\":\"e2e-global-1771476709239@example.com\"}],\"created_at\":\"2026-02-19T04:51:53.869842Z\",\"updated_at\":\"2026-02-19T04:51:54.725109Z\",\"is_anonymous\":false},\"weak_password\":null}",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "sb-mwgzdtwafidfnqilqflp-auth-token",
+          "value": "{\"access_token\":\"eyJhbGciOiJFUzI1NiIsImtpZCI6IjUzN2Y1MTE3LWZmZjMtNDFiNC04MjcwLWIwM2I1NjM1NDVhZCIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL213Z3pkdHdhZmlkZm5xaWxxZmxwLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiIxOTJiNzg3Zi0yMmRmLTQ3NDgtYmYxYS0xOGI3YzE1MzI2MWMiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzcxNDgwMzE0LCJpYXQiOjE3NzE0NzY3MTQsImVtYWlsIjoiZTJlLWdsb2JhbC0xNzcxNDc2NzA5MjM5QGV4YW1wbGUuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbF92ZXJpZmllZCI6dHJ1ZX0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NzE0NzY3MTR9XSwic2Vzc2lvbl9pZCI6ImU0YjUwNmVkLTRiYmMtNDViMC1iNzFhLTI5YWJmYzk3Njg1NSIsImlzX2Fub255bW91cyI6ZmFsc2V9.hVyTTcKh_lEg46EAZvy6o-T04kmxhX5iuG6row9OmyFfQZdC9HQtOUme5xq4HXMiAjvewT0ZqwrpGziP3NS-eA\",\"token_type\":\"bearer\",\"expires_in\":3600,\"expires_at\":1771480314,\"refresh_token\":\"vpxobu7bx5f4\",\"user\":{\"id\":\"192b787f-22df-4748-bf1a-18b7c153261c\",\"aud\":\"authenticated\",\"role\":\"authenticated\",\"email\":\"e2e-global-1771476709239@example.com\",\"email_confirmed_at\":\"2026-02-19T04:51:53.935205Z\",\"phone\":\"\",\"confirmed_at\":\"2026-02-19T04:51:53.935205Z\",\"last_sign_in_at\":\"2026-02-19T04:51:54.704854064Z\",\"app_metadata\":{\"provider\":\"email\",\"providers\":[\"email\"]},\"user_metadata\":{\"email_verified\":true},\"identities\":[{\"identity_id\":\"8aee3b9b-f01b-4dc6-9a4f-229eef24576f\",\"id\":\"192b787f-22df-4748-bf1a-18b7c153261c\",\"user_id\":\"192b787f-22df-4748-bf1a-18b7c153261c\",\"identity_data\":{\"email\":\"e2e-global-1771476709239@example.com\",\"email_verified\":false,\"phone_verified\":false,\"sub\":\"192b787f-22df-4748-bf1a-18b7c153261c\"},\"provider\":\"email\",\"last_sign_in_at\":\"2026-02-19T04:51:53.92002Z\",\"created_at\":\"2026-02-19T04:51:53.920077Z\",\"updated_at\":\"2026-02-19T04:51:53.920077Z\",\"email\":\"e2e-global-1771476709239@example.com\"}],\"created_at\":\"2026-02-19T04:51:53.869842Z\",\"updated_at\":\"2026-02-19T04:51:54.725109Z\",\"is_anonymous\":false},\"weak_password\":null}"
+        }
+      ]
+    }
+  ]
+}

@@ -24,11 +24,12 @@ describe('DashboardPlatformCard Integration', () => {
         place_id: 'place_123',
         place_name: 'My Shop',
         locked_until: null,
-        keywords: ['SEO'],
         address: 'Seoul',
         lat: 37.5,
         lng: 127.0
     }
+
+    const mockKeywords = ['SEO']
 
     it('renders empty state when no data provided', () => {
         render(<DashboardPlatformCard platform="naver" data={null} />)
@@ -37,7 +38,7 @@ describe('DashboardPlatformCard Integration', () => {
     })
 
     it('renders connected state when data provided', () => {
-        render(<DashboardPlatformCard platform="naver" data={mockData} />)
+        render(<DashboardPlatformCard platform="naver" data={mockData} keywords={mockKeywords} />)
         expect(screen.getByText('My Shop')).toBeInTheDocument()
         expect(screen.getByText('SEO')).toBeInTheDocument()
         // Should NOT show register button

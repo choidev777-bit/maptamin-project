@@ -143,7 +143,7 @@ export function SettingsContent({ user, planStats }: Props) {
 
                     {planStats.plan !== 'premium' && (
                         <button
-                            onClick={() => router.push('/dashboard/upgrade')}
+                            onClick={() => router.push('/dashboard/subscription')}
                             className="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-[#00C896] to-emerald-600 text-white text-sm font-medium rounded-lg hover:from-[#00B386] hover:to-emerald-700 transition-all"
                         >
                             {subscribed ? '업그레이드' : '구독하기'}

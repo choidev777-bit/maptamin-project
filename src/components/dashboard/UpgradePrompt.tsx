@@ -52,7 +52,7 @@ export function UpgradePrompt({ message, requiredPlan, onClose }: Props) {
                         취소
                     </button>
                     <button
-                        onClick={() => router.push('/dashboard/upgrade')}
+                        onClick={() => router.push('/dashboard/subscription')}
                         className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-[#00C896] py-3 text-sm font-semibold text-white shadow-lg shadow-[#00C896]/25 hover:bg-[#00B386] transition-all"
                     >
                         업그레이드

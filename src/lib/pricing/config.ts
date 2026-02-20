@@ -6,6 +6,7 @@ import { PlanV2 } from '@/lib/types';
  */
 export const PLAN_CONFIG: Record<string, {
     price: number;
+    yearlyPrice: number;
     gridSize: number;
     ticketsNaver: number;
     ticketsGoogle: number;
@@ -17,6 +18,7 @@ export const PLAN_CONFIG: Record<string, {
 }> = {
     free: {
         price: 0,
+        yearlyPrice: 0,
         gridSize: 0,
         ticketsNaver: 0,
         ticketsGoogle: 0,
@@ -28,6 +30,7 @@ export const PLAN_CONFIG: Record<string, {
     },
     starter: {
         price: 9900,
+        yearlyPrice: 108900,
         gridSize: 3,
         ticketsNaver: 2,
         ticketsGoogle: 0,
@@ -39,6 +42,7 @@ export const PLAN_CONFIG: Record<string, {
     },
     pro: {
         price: 29000,
+        yearlyPrice: 319000,
         gridSize: 5,
         ticketsNaver: 10,
         ticketsGoogle: 0,
@@ -50,6 +54,7 @@ export const PLAN_CONFIG: Record<string, {
     },
     premium: {
         price: 99000,
+        yearlyPrice: 1089000,
         gridSize: 7,
         ticketsNaver: 15,
         ticketsGoogle: 15,

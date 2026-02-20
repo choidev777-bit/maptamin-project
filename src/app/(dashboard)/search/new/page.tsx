@@ -334,7 +334,7 @@ export default function NewSearchPage() {
                 <h2 className="text-lg font-bold text-gray-900 mb-2">구독이 필요합니다</h2>
                 <p className="text-gray-500 mb-6">구글 검색은 프리미엄 플랜에서 이용 가능합니다.</p>
                 <button
-                    onClick={() => router.push('/dashboard/upgrade')}
+                    onClick={() => router.push('/dashboard/subscription')}
                     className="px-6 py-2.5 bg-[#00C896] text-white rounded-xl font-semibold hover:bg-[#00B386] transition-all"
                 >
                     업그레이드 →

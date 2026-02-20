@@ -9,6 +9,7 @@ import {
     Flame,
     ArrowRight,
 } from 'lucide-react'
+import Link from 'next/link'
 
 /* 5×5 경쟁사 비교 그리드 데이터 (중앙은 '나') */
 const COMPARISON_GRID = [
@@ -163,10 +164,10 @@ export default function FeatureSection() {
                                 ))}
                             </ul>
                             <div className="mt-10">
-                                <button className="group flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-gray-900 transition-all hover:border-[#00C896]/50 hover:bg-[#00C896]/5">
+                                <Link href="/login" className="group flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-gray-900 transition-all hover:border-[#00C896]/50 hover:bg-[#00C896]/5">
                                     경쟁사 분석 시작하기
                                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                                </button>
+                                </Link>
                             </div>
                         </div>
 

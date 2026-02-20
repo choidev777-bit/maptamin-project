@@ -1,6 +1,11 @@
 import { KakaoLoginButton } from '@/components/auth/KakaoLoginButton'
 
-export default function LoginPage() {
+export default async function LoginPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ plan?: string; billing?: string }>
+}) {
+    const { plan, billing } = await searchParams
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-yellow-100">
             <div className="max-w-md w-full mx-4">
@@ -18,7 +23,7 @@ export default function LoginPage() {
                     </div>
 
                     {/* Login Button */}
-                    <KakaoLoginButton />
+                    <KakaoLoginButton plan={plan} billing={billing} />
 
                     {/* Terms */}
                     <p className="text-xs text-center text-gray-500">

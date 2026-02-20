@@ -9,8 +9,14 @@ jest.mock('@/components/results/AverageRankCard', () => ({
 jest.mock('@/components/results/KeywordTabs', () => ({
     KeywordTabs: () => <div data-testid="keyword-tabs">Keyword Tabs</div>
 }))
-jest.mock('@/components/results/RankHeatmap', () => ({
-    RankHeatmap: () => <div data-testid="rank-heatmap">Rank Heatmap</div>
+jest.mock('@/components/naver/NaverRankHeatmap', () => ({
+    NaverRankHeatmap: () => <div data-testid="rank-heatmap">Rank Heatmap</div>
+}))
+jest.mock('@/components/results/CompetitorSelector', () => ({
+    CompetitorSelector: () => <div data-testid="competitor-selector">Competitor Selector</div>
+}))
+jest.mock('@/components/naver/NaverCompetitorComparisonMap', () => ({
+    NaverCompetitorComparisonMap: () => <div data-testid="competitor-map">Competitor Map</div>
 }))
 
 describe('NaverResultsContent', () => {
@@ -45,13 +51,13 @@ describe('NaverResultsContent', () => {
         }
     ]
 
-    test('should render beta warning', () => {
-        render(<NaverResultsContent search={mockSearch} results={mockResults} />)
-        expect(screen.getByText(/네이버 지도 검색 결과입니다/i)).toBeInTheDocument()
+    test('should render competitor section for pro plan', () => {
+        render(<NaverResultsContent search={mockSearch} results={mockResults} competitors={[]} planId="pro" />)
+        expect(screen.getByText(/경쟁사 비교 분석/)).toBeInTheDocument()
     })
 
     test('should render all child components', () => {
-        render(<NaverResultsContent search={mockSearch} results={mockResults} />)
+        render(<NaverResultsContent search={mockSearch} results={mockResults} competitors={[]} planId="pro" />)
 
         expect(screen.getByTestId('average-rank-card')).toBeInTheDocument()
         expect(screen.getByTestId('keyword-tabs')).toBeInTheDocument()

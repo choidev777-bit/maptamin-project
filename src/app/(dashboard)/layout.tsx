@@ -24,10 +24,10 @@ export default async function DashboardLayout({
         avatarUrl: user.user_metadata?.avatar_url || null,
     }
 
-    // Check subscription status for onboarding redirect
+    // Check subscription status for onboarding redirect & ticket counts
     const { data: subscription } = await supabase
         .from('user_subscriptions')
-        .select('plan_id, onboarding_completed')
+        .select('plan_id, onboarding_completed, remaining_tickets_naver, remaining_tickets_google')
         .eq('user_id', user.id)
         .single()
 
@@ -51,12 +51,12 @@ export default async function DashboardLayout({
 
                             {/* Desktop Navigation */}
                             <div className="hidden md:block">
-                                <DesktopNav user={userInfo} />
+                                <DesktopNav user={userInfo} subscription={subscription} />
                             </div>
 
                             {/* Mobile Menu */}
                             <div className="md:hidden">
-                                <MobileNav user={userInfo} />
+                                <MobileNav user={userInfo} subscription={subscription} />
                             </div>
                         </div>
                     </div>
