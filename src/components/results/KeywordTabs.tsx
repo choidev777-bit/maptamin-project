@@ -41,45 +41,40 @@ export function KeywordTabs({ keywords, results, onKeywordChange }: Props) {
     }
 
     return (
-        <div className="mb-6">
+        <div className="mb-8">
             {/* Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-4">
-                {keywordStats.map(({ keyword, average, count }) => (
-                    <button
-                        key={keyword}
-                        onClick={() => handleTabClick(keyword)}
-                        className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all whitespace-nowrap ${activeKeyword === keyword
-                                ? 'bg-blue-600 text-white shadow-lg'
-                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                    >
-                        <span>{keyword}</span>
-                        {average !== null && (
-                            <span
-                                className="px-2 py-0.5 rounded-full text-xs text-white"
-                                style={{ backgroundColor: getRankColor(Math.round(average)) }}
+            <div className="border-b border-gray-200 dark:border-gray-700 overflow-x-auto no-scrollbar">
+                <div className="flex gap-8 min-w-max px-1">
+                    {keywordStats.map(({ keyword, average, count }) => {
+                        const isActive = activeKeyword === keyword;
+                        return (
+                            <button
+                                key={keyword}
+                                onClick={() => handleTabClick(keyword)}
+                                className={`pb-3 border-b-[3px] font-medium text-sm tracking-wide transition-colors flex items-center gap-2 ${isActive
+                                    ? 'border-gray-900 dark:border-white text-gray-900 dark:text-white font-bold'
+                                    : 'border-transparent hover:border-gray-300 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
+                                    }`}
                             >
-                                평균 {average}위
-                            </span>
-                        )}
-                        {average === null && (
-                            <span className="px-2 py-0.5 rounded-full text-xs bg-gray-400 text-white">
-                                순위권 외
-                            </span>
-                        )}
-                    </button>
-                ))}
-            </div>
-
-            {/* Active Keyword Summary */}
-            <div className="bg-white rounded-xl p-4 shadow-sm border">
-                <div className="flex justify-between items-center">
-                    <h3 className="font-semibold text-gray-800">{activeKeyword}</h3>
-                    <span className="text-sm text-gray-500">
-                        {filteredResults.filter(r => r.rank !== null).length} / {filteredResults.length} 지점 순위권
-                    </span>
+                                <span>{keyword}</span>
+                                {average !== null ? (
+                                    <span
+                                        className="px-1.5 py-0.5 rounded text-[10px] text-white font-bold"
+                                        style={{ backgroundColor: getRankColor(Math.round(average)) }}
+                                    >
+                                        {average}
+                                    </span>
+                                ) : (
+                                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400 font-bold">
+                                        -
+                                    </span>
+                                )}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
+
         </div>
     )
 }

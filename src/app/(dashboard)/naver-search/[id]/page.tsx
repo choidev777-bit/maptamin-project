@@ -2,6 +2,7 @@ import { createClient, getCurrentUser } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { Suspense } from 'react'
 import { NaverResultsContent } from './NaverResultsContent'
+import { NaverResultsHeader } from '@/components/results/NaverResultsHeader'
 import { SearchStatusPoller } from '@/components/search/SearchStatusPoller'
 
 interface PageProps {
@@ -56,31 +57,7 @@ export default async function NaverSearchResultsPage({ params }: PageProps) {
     return (
         <div className="max-w-6xl mx-auto">
             {/* Header with Naver branding */}
-            <div className="mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">
-                        네이버 지도
-                    </span>
-                    {search.status === 'completed' && (
-                        <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
-                            완료됨
-                        </span>
-                    )}
-                </div>
-                <p className="text-sm text-gray-500 mt-1">
-                    {(() => {
-                        const d = new Date(search.created_at)
-                        const ampm = d.getHours() < 12 ? '오전' : '오후'
-                        const h = d.getHours() % 12 || 12
-                        const m = d.getMinutes()
-                        return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 · ${ampm} ${h}시 ${m}분`
-                    })()}
-                </p>
-                <h1 className="text-2xl font-bold text-gray-900 mt-1">{search.place_name}</h1>
-                {search.place_address && (
-                    <p className="text-gray-500">{search.place_address}</p>
-                )}
-            </div>
+            <NaverResultsHeader search={search} />
 
             {/* Status-based content */}
             {search.status === 'pending' && (

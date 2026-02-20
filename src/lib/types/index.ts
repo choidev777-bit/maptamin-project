@@ -34,6 +34,7 @@ export interface SearchResult {
     grid_lng: number
     rank: number | null
     competitors: Competitor[] | null
+    competitor_ranks?: Record<string, number> | null
     created_at: string
 }
 

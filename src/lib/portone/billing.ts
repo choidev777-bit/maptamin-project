@@ -75,7 +75,7 @@ function buildHeaders(apiSecret: string): Record<string, string> {
  */
 export async function payWithBillingKey(
     params: BillingKeyPaymentParams
-): Promise<unknown> {
+): Promise<any> {
     const { paymentId, billingKey, orderName, amount, currency, noticeUrls } = params;
 
     if (!paymentId) throw new Error('paymentId는 필수입니다.');

@@ -29,10 +29,12 @@ export interface PaymentHistoryItem {
     status: string
     created_at: string
     plan_id: string
+    receipt_url?: string
 }
 
 interface Props {
     currentPlanId: string
+    billingCycle?: string
     remainingTicketsNaver: number
     remainingTicketsGoogle: number
     currentPeriodEnd: string | null
@@ -107,6 +109,7 @@ const PLANS: PlanCardData[] = [
 
 export function SubscriptionContent({
     currentPlanId,
+    billingCycle = 'monthly',
     remainingTicketsNaver,
     remainingTicketsGoogle,
     currentPeriodEnd,
@@ -236,129 +239,160 @@ export function SubscriptionContent({
         return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-bold uppercase">{status}</span>
     }
 
+    const getDisplayAmount = () => {
+        const currentPlan = PLANS.find(p => p.id === currentPlanId)
+        if (!currentPlan) return { amount: '-', period: '월' }
+        if (billingCycle === 'yearly') {
+            const amountMatch = currentPlan.yearlyTotal.match(/[0-9,]+/)
+            return { amount: amountMatch ? amountMatch[0] : '-', period: '연' }
+        }
+        return { amount: currentPlan.monthly.replace('원', ''), period: '월' }
+    }
+    const { amount: displayAmount, period: displayPeriod } = getDisplayAmount()
+
+    const getHistoryPlanName = (item: PaymentHistoryItem) => {
+        const plan = PLANS.find(p => p.id === item.plan_id)
+        if (!plan) return getPlanDisplayName(item.plan_id)
+
+        // 결제 금액으로 연간/월간 구분
+        const yearlyAmount = parseInt(plan.yearlyTotal.replace(/[^0-9]/g, ''))
+        if (item.amount === yearlyAmount) {
+            return `${plan.name} (연 결제)`
+        }
+        return `${plan.name} (월 결제)`
+    }
+
     return (
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 font-sans text-[#001011]">
             {renderCancelModal()}
 
             {/* Header */}
-            <div className="mb-10">
-                <h1 className="text-3xl font-extrabold tracking-tight text-[#001011]">구독 관리</h1>
-                <p className="mt-2 text-slate-500 text-lg">플랜, 결제 수단 및 청구 내역을 관리하세요.</p>
+            <div className="mb-8">
+                <h1 className="text-3xl font-extrabold tracking-tight text-[#001011]">결제 및 구독 관리</h1>
+                <p className="mt-2 text-slate-500">플랜, 결제 수단 및 청구 내역을 관리하세요.</p>
             </div>
 
-            {/* Current Subscription Card (Hero) */}
-            <section className="mb-10">
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm flex flex-col md:flex-row">
-                    {/* Left: Plan Details */}
-                    <div className="p-8 flex-1 border-b md:border-b-0 md:border-r border-gray-200">
-                        <div className="flex items-center gap-3 mb-2">
-                            <h2 className="text-2xl font-bold text-[#001011]">{getPlanDisplayName(currentPlanId)}</h2>
-                            {isSubscribed && !isCanceled && (
-                                <span className="inline-flex items-center rounded-full bg-[#00C896]/10 px-3 py-1 text-xs font-bold text-[#00C896]">
-                                    Active
-                                </span>
-                            )}
-                            {isCanceled && (
-                                <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">
-                                    해지됨
-                                </span>
-                            )}
-                        </div>
-
-                        {isSubscribed && (
-                            <div className="mb-6">
-                                {isCanceled ? (
-                                    <p className="text-amber-600 text-sm flex items-center gap-1">
-                                        <AlertCircle className="w-4 h-4" />
-                                        {formatDate(canceledUntil || nextBillingDate)}에 종료됩니다.
-                                    </p>
-                                ) : (
-                                    <p className="text-slate-500 text-sm flex items-center gap-1">
-                                        <RefreshCw className="w-4 h-4" />
-                                        자동 갱신 활성화됨
-                                    </p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+                {/* 1. Subscription Overview Card */}
+                <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                    <div className="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-1">현재 이용 중인 플랜</h3>
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl font-bold text-[#001011]">{getPlanDisplayName(currentPlanId)}</span>
+                                {isSubscribed && !isCanceled && (
+                                    <span className="px-2 py-0.5 bg-[#00C896]/10 text-[#00C896] text-xs font-bold rounded border border-[#00C896]/20">이용 중</span>
+                                )}
+                                {isCanceled && (
+                                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold rounded border border-amber-200">해지됨</span>
                                 )}
                             </div>
-                        )}
+                        </div>
+                        <button
+                            onClick={() => document.getElementById('plans-grid')?.scrollIntoView({ behavior: 'smooth' })}
+                            className="px-4 py-2 bg-[#001011] text-white font-semibold rounded-lg text-sm hover:bg-slate-800 transition-all">
+                            플랜 변경
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                <Calendar className="w-5 h-5 text-slate-400" />
+                                <div>
+                                    <p className="text-xs text-slate-500">다음 결제일</p>
+                                    <p className="font-medium text-[#001011]">{formatDate(nextBillingDate)}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <CreditCard className="w-5 h-5 text-slate-400" />
+                                <div>
+                                    <p className="text-xs text-slate-500">결제 금액</p>
+                                    <p className="font-medium text-[#001011]">
+                                        {displayAmount}원 <span className="text-xs text-slate-500 font-normal">/ {displayPeriod}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
 
                         <div className="space-y-4">
-                            <p className="text-sm font-semibold text-slate-700 uppercase tracking-wide">잔여 티켓 (이번 달)</p>
-                            <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-3">
+                                <RefreshCw className={`w-5 h-5 ${isCanceled ? 'text-amber-500' : 'text-[#00C896]'}`} />
                                 <div>
-                                    <div className="flex justify-between items-center text-sm mb-1.5">
-                                        <span className="text-slate-500 font-medium">네이버 지도 진단</span>
-                                        <span className="font-bold text-[#001011]">{remainingTicketsNaver}장</span>
-                                    </div>
-                                    <div className="w-full bg-slate-100 rounded-full h-2">
-                                        <div className="bg-[#00C896] h-2 rounded-full" style={{ width: `${Math.min(remainingTicketsNaver * 10, 100)}%` }}></div>
-                                    </div>
+                                    <p className="text-xs text-slate-500">상태</p>
+                                    {isCanceled ? (
+                                        <p className="font-medium text-amber-600">
+                                            {formatDate(canceledUntil || nextBillingDate)} 종료 예정
+                                        </p>
+                                    ) : (
+                                        <p className="font-medium text-[#00C896]">자동 결제 활성화 상태</p>
+                                    )}
                                 </div>
-                                <div>
-                                    <div className="flex justify-between items-center text-sm mb-1.5">
-                                        <span className="text-slate-500 font-medium">구글 지도 진단</span>
-                                        <span className="font-bold text-[#001011]">{remainingTicketsGoogle}장</span>
+                            </div>
+
+                            <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 max-w-[200px]">
+                                <p className="text-xs text-slate-500 mb-1 uppercase font-bold tracking-tighter text-center">실시간 진단 티켓</p>
+                                <div className="flex gap-4 justify-center">
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-lg font-bold text-[#001011]">{remainingTicketsNaver}</span>
+                                        <span className="text-[10px] text-slate-400">네이버</span>
                                     </div>
-                                    <div className="w-full bg-slate-100 rounded-full h-2">
-                                        <div className="bg-[#00C896] h-2 rounded-full" style={{ width: `${Math.min(remainingTicketsGoogle * 10, 100)}%` }}></div>
+                                    <div className="w-px h-8 bg-slate-200"></div>
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-lg font-bold text-[#001011]">{remainingTicketsGoogle}</span>
+                                        <span className="text-[10px] text-slate-400">구글</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-
-                    {/* Right: Billing Info */}
-                    <div className="p-8 bg-gray-50 md:w-80 flex flex-col justify-center">
-                        {isSubscribed ? (
-                            <>
-                                <div className="space-y-1">
-                                    <p className="text-sm text-slate-500 font-medium">다음 결제일</p>
-                                    <p className="text-xl font-bold text-[#001011] tracking-tight">{formatDate(nextBillingDate)}</p>
-                                </div>
-                                <div className="mt-4 flex items-baseline gap-1">
-                                    <span className="text-2xl font-black text-[#00C896]">
-                                        {PLANS.find(p => p.id === currentPlanId)?.monthly.replace('원', '') || '-'}
-                                    </span>
-                                    <span className="text-lg font-bold text-[#00C896]">원</span>
-                                </div>
-
-                                {/* 결제 수단 */}
-                                <div className="mt-8 pt-6 border-t border-gray-200">
-                                    <p className="text-xs text-slate-400 font-semibold uppercase mb-2">결제 수단</p>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <CreditCard className="w-5 h-5 text-slate-400" />
-                                        <span className="text-sm font-medium text-slate-700">
-                                            {cardBrand ? `${cardBrand} **** ${cardLast4}` : '카드 정보 없음'}
-                                        </span>
-                                    </div>
-                                    <button
-                                        onClick={() => router.push('/dashboard/subscription/checkout')}
-                                        className="text-xs font-semibold text-[#00C896] hover:text-[#00B386] transition-colors flex items-center gap-1"
-                                    >
-                                        카드 변경 <ArrowRight className="w-3 h-3" />
-                                    </button>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="text-center">
-                                <p className="text-slate-500 mb-4">현재 무료 플랜 이용 중입니다.</p>
-                                <button
-                                    onClick={() => document.getElementById('plans-grid')?.scrollIntoView({ behavior: 'smooth' })}
-                                    className="w-full bg-[#00C896] text-white font-bold py-3 px-6 rounded-lg hover:bg-[#00B386] transition-all shadow-md shadow-[#00C896]/20"
-                                >
-                                    구독 시작하기
-                                </button>
-                            </div>
-                        )}
-                    </div>
                 </div>
-            </section>
+
+                {/* 2. Payment Method Card */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm flex flex-col">
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-6">결제 수단 정보</h3>
+
+                    <div className="flex-grow flex flex-col justify-center">
+                        <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 mb-6">
+                            <div className="w-12 h-8 bg-slate-800 rounded flex items-center justify-center overflow-hidden">
+                                <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
+                                    <span className="text-[8px] text-white/50 font-bold italic">CARD</span>
+                                </div>
+                            </div>
+                            <div>
+                                {cardBrand && cardLast4 ? (
+                                    <>
+                                        <p className="font-bold text-sm text-[#001011]">{cardBrand}</p>
+                                        <p className="text-xs text-slate-500 tracking-widest">•••• {cardLast4}</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <p className="font-bold text-sm text-[#001011]">등록된 카드 없음</p>
+                                        <p className="text-xs text-slate-500">결제 수단이 없습니다.</p>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => router.push('/dashboard/subscription/checkout')}
+                        className="w-full py-2.5 border border-gray-300 text-slate-700 font-medium rounded-lg text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                    >
+                        <CreditCard className="w-5 h-5" />
+                        결제 수단 변경
+                    </button>
+                </div>
+            </div>
 
             {/* Billing History Table */}
             {isSubscribed && (
                 <section className="mb-12">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-xl font-bold flex items-center gap-2 text-[#001011]">
-                            <FileText className="w-6 h-6 text-[#00C896]" />
+                        <h3 className="text-xl font-bold flex items-center gap-3 text-[#001011]">
+                            <div className="bg-[#00C896]/10 p-2 rounded-lg">
+                                <FileText className="w-5 h-5 text-[#00C896]" />
+                            </div>
                             결제 내역
                         </h3>
                     </div>
@@ -382,7 +416,7 @@ export function SubscriptionContent({
                                                     {formatDate(item.created_at)}
                                                 </td>
                                                 <td className="px-6 py-4 text-slate-600">
-                                                    {getPlanDisplayName(item.plan_id)}
+                                                    {getHistoryPlanName(item)}
                                                 </td>
                                                 <td className="px-6 py-4 font-bold text-[#001011]">
                                                     {item.amount.toLocaleString()}원
@@ -391,8 +425,13 @@ export function SubscriptionContent({
                                                     {getStatusBadge(item.status)}
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
-                                                    <button className="text-slate-400 hover:text-[#00C896] transition-colors" title="영수증 다운로드 (준비 중)">
-                                                        <Download className="w-5 h-5" />
+                                                    <button
+                                                        onClick={() => item.receipt_url && window.open(item.receipt_url, '_blank')}
+                                                        className={`${item.receipt_url ? 'text-slate-600 hover:text-[#00C896] cursor-pointer' : 'text-slate-300 cursor-not-allowed'} transition-colors`}
+                                                        title={item.receipt_url ? '영수증 조회' : '영수증이 없습니다.'}
+                                                        disabled={!item.receipt_url}
+                                                    >
+                                                        <Download className="w-5 h-5" strokeWidth={1.5} />
                                                     </button>
                                                 </td>
                                             </tr>
@@ -419,18 +458,21 @@ export function SubscriptionContent({
                         <p className="text-slate-500 mt-1">비즈니스 성장에 맞춰 플랜을 업그레이드하세요.</p>
                     </div>
                     {/* Toggle */}
-                    <div className="flex items-center bg-gray-100 p-1 rounded-lg self-start">
+                    <div className="flex items-center p-1 bg-white border border-gray-200 rounded-full shadow-sm self-start">
                         <button
                             onClick={() => setIsYearly(false)}
-                            className={`px-4 py-2 text-sm font-bold rounded-md shadow-sm transition-all ${!isYearly ? 'bg-white text-[#001011]' : 'text-slate-500 hover:text-[#001011]'}`}
+                            className={`relative w-24 rounded-full py-2 text-sm font-semibold transition-colors duration-200 ${!isYearly ? 'bg-[#001011] text-white' : 'text-gray-500 hover:text-gray-900'}`}
                         >
-                            월간
+                            월 결제
                         </button>
                         <button
                             onClick={() => setIsYearly(true)}
-                            className={`px-4 py-2 text-sm font-bold rounded-md shadow-sm transition-all ${isYearly ? 'bg-white text-[#001011]' : 'text-slate-500 hover:text-[#001011]'}`}
+                            className={`relative w-28 rounded-full py-2 text-sm font-semibold transition-colors duration-200 ${isYearly ? 'bg-[#001011] text-white' : 'text-gray-500 hover:text-gray-900'}`}
                         >
-                            연간 (20% 할인)
+                            연 결제
+                            <span className="absolute -top-3 -right-2 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600">
+                                1개월 무료
+                            </span>
                         </button>
                     </div>
                 </div>
@@ -449,46 +491,71 @@ export function SubscriptionContent({
                                 `}
                             >
                                 {isCurrent && (
-                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#00C896] text-white text-xs font-black uppercase px-4 py-1.5 rounded-full tracking-wider shadow-sm">
+                                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#00C896] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-md whitespace-nowrap">
                                         현재 이용 중
                                     </div>
                                 )}
 
-                                <h4 className={`text-lg font-bold ${isFeatured ? 'text-[#00C896]' : 'text-slate-700'}`}>
+                                {/* 플랜 이름 상단에 뱃지가 있는 경우 (PricingSection 참고) */}
+                                {plan.badge && !isCurrent && (
+                                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                                        <span className="whitespace-nowrap rounded-full bg-[#00C896] px-4 py-1.5 text-xs font-bold text-white shadow-md">
+                                            {plan.badge}
+                                        </span>
+                                    </div>
+                                )}
+
+                                <h4 className={`text-lg font-bold ${isCurrent || isFeatured ? 'text-[#00C896]' : 'text-gray-900'}`}>
                                     {plan.name}
                                 </h4>
                                 <div className="mt-4 flex items-baseline gap-1">
-                                    <span className="text-3xl font-black text-[#001011]">{price.replace('원', '')}</span>
-                                    <span className="text-sm font-semibold text-slate-500 uppercase">원</span>
+                                    <span className="text-3xl font-extrabold text-[#001011] sm:text-4xl">{price.replace('원', '')}</span>
+                                    <span className="text-sm font-semibold text-gray-500 uppercase">원<span className="font-normal">/월</span></span>
                                 </div>
-                                <p className="mt-4 text-sm text-slate-500 leading-relaxed min-h-[3rem]">
+                                {isYearly && (
+                                    <p className="mt-1 text-xs text-gray-400 font-medium tracking-tight">
+                                        ({plan.yearlyTotal})
+                                    </p>
+                                )}
+                                <p className="mt-0.5 text-xs text-gray-400">VAT 별도</p>
+
+                                <p className="mt-4 text-sm text-gray-500 leading-relaxed min-h-[3rem]">
                                     {plan.tagline}
                                 </p>
 
-                                <ul className="mt-8 space-y-4 flex-grow">
+                                <ul className="mt-6 flex-1 space-y-3">
                                     {plan.features.map((feature, idx) => (
-                                        <li key={idx} className="flex items-center gap-3 text-sm text-slate-600">
+                                        <li key={idx} className="flex items-start gap-2.5 text-sm">
                                             {feature.included ? (
-                                                <CheckCircle2 className="w-5 h-5 text-[#00C896] shrink-0" />
+                                                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#00C896]/20 text-sm font-black text-[#00C896]">
+                                                    ✓
+                                                </span>
                                             ) : (
-                                                <XCircle className="w-5 h-5 text-slate-300 shrink-0" />
+                                                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 text-sm font-black text-gray-400">
+                                                    ✕
+                                                </span>
                                             )}
-                                            <span className={feature.included ? '' : 'text-slate-400 line-through'}>{feature.text}</span>
+                                            <span className={feature.included ? 'text-gray-700 font-medium' : 'text-gray-400 line-through'}>
+                                                {feature.text}
+                                            </span>
                                         </li>
                                     ))}
                                 </ul>
 
                                 {isCurrent ? (
-                                    <div className="mt-8 w-full bg-slate-100 text-slate-400 font-bold py-3 rounded-lg text-center cursor-default">
+                                    <button
+                                        disabled
+                                        className="mt-8 w-full font-bold py-3.5 rounded-xl border-2 border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed transition-all"
+                                    >
                                         현재 이용 중인 플랜
-                                    </div>
+                                    </button>
                                 ) : (
                                     <button
                                         onClick={() => handleSubscribe(plan.id)}
-                                        className={`mt-8 w-full font-bold py-3 rounded-lg transition-colors
-                                            ${isFeatured
-                                                ? 'bg-[#00C896] text-white hover:bg-[#00B386] shadow-md shadow-[#00C896]/20'
-                                                : 'border-2 border-[#00C896] text-[#00C896] hover:bg-[#00C896]/5'
+                                        className={`mt-8 w-full rounded-xl py-3.5 text-center text-sm font-bold transition-all duration-300
+                                            ${plan.ctaStyle === 'solid'
+                                                ? 'bg-[#00C896] text-white shadow-lg shadow-[#00C896]/25 hover:-translate-y-0.5 hover:bg-[#00B386]'
+                                                : 'border-2 border-gray-200 bg-white text-gray-700 hover:-translate-y-0.5 hover:border-[#00C896] hover:text-[#00C896]'
                                             }
                                         `}
                                     >

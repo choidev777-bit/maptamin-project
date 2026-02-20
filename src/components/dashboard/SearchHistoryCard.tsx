@@ -1,26 +1,25 @@
 'use client'
 
 import { Search } from '@/lib/types'
-import { getRankColor } from '@/lib/utils/rank-colors'
-import { MapPin, Calendar, ExternalLink, Clock, CheckCircle, XCircle, Loader, Trash2 } from 'lucide-react'
-import Link from 'next/link'
+import { format } from 'date-fns'
+import { ko } from 'date-fns/locale'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { Loader, MapPin, Globe, Trash2 } from 'lucide-react'
 
 interface Props {
     search: Search
-    averageRank?: number | null
 }
 
-export function SearchHistoryCard({ search, averageRank }: Props) {
+export function SearchHistoryCard({ search }: Props) {
     const router = useRouter()
     const [isDeleting, setIsDeleting] = useState(false)
 
     const handleDelete = async (e: React.MouseEvent) => {
-        e.preventDefault() // Link 이동 방지
+        e.preventDefault()
         e.stopPropagation()
 
-        if (!confirm('정말 이 검색 기록을 삭제하시겠습니까?')) return
+        if (!confirm('정말 이 진단 기록을 삭제하시겠습니까?')) return
 
         setIsDeleting(true)
         try {
@@ -37,130 +36,104 @@ export function SearchHistoryCard({ search, averageRank }: Props) {
         }
     }
 
-    const getStatusIcon = () => {
-        switch (search.status) {
-            case 'completed':
-                return <CheckCircle className="w-4 h-4 text-green-500" />
-            case 'processing':
-                return <Loader className="w-4 h-4 text-yellow-500 animate-spin" />
-            case 'failed':
-                return <XCircle className="w-4 h-4 text-red-500" />
-            default:
-                return <Clock className="w-4 h-4 text-gray-400" />
+    const handleClickRow = () => {
+        if (search.status === 'completed') {
+            router.push(search.platform === 'naver' ? `/naver-search/${search.id}` : `/search/${search.id}`)
         }
     }
 
-    const getStatusLabel = () => {
-        switch (search.status) {
-            case 'completed':
-                return '완료'
-            case 'processing':
-                return '처리 중'
-            case 'failed':
-                return '실패'
-            default:
-                return '대기 중'
-        }
-    }
-
-    const formatDate = (dateString: string) => {
+    const formatDateString = (dateString: string) => {
         const date = new Date(dateString)
-        const ampm = date.getHours() < 12 ? '오전' : '오후'
-        const hours = date.getHours() % 12 || 12
-        const minutes = date.getMinutes()
-        return `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 · ${ampm} ${hours}시 ${minutes}분`
+        return format(date, 'yyyy-MM-dd • HH:mm', { locale: ko })
     }
 
     if (isDeleting) {
         return (
-            <div className="bg-gray-50 rounded-2xl border border-gray-200 p-5 flex items-center justify-center h-[160px]">
-                <div className="text-gray-400 flex flex-col items-center gap-2">
-                    <Loader className="w-6 h-6 animate-spin" />
-                    <span className="text-sm">삭제 중...</span>
-                </div>
-            </div>
+            <tr>
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-400">
+                    <div className="flex items-center justify-center gap-2">
+                        <Loader className="w-4 h-4 animate-spin" />
+                        삭제 중...
+                    </div>
+                </td>
+            </tr>
         )
     }
 
     return (
-        <div className="relative group">
-            <Link
-                href={search.platform === 'naver' ? `/naver-search/${search.id}` : `/search/${search.id}`}
-                className="block bg-white rounded-2xl border border-gray-200 p-5 hover:border-blue-300 hover:shadow-lg transition-all"
-            >
-                <div className="flex items-start gap-4">
-                    {/* Average Rank Circle */}
-                    {search.status === 'completed' && averageRank !== undefined && (
-                        <div
-                            className="w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
-                            style={{ backgroundColor: getRankColor(averageRank) }}
-                        >
-                            {averageRank !== null ? averageRank.toFixed(1) : '-'}
-                        </div>
-                    )}
+        <tr
+            onClick={handleClickRow}
+            className={`transition-colors group ${search.status === 'completed' ? 'hover:bg-gray-50 dark:hover:bg-slate-700/30 cursor-pointer' : ''}`}
+        >
+            <td className="px-6 py-4">
+                {search.status === 'completed' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                        분석 완료
+                    </span>
+                )}
+                {search.status === 'processing' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        분석 진행 중
+                    </span>
+                )}
+                {search.status === 'pending' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 border border-gray-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span>
+                        대기 중
+                    </span>
+                )}
+                {search.status === 'failed' && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        분석 실패
+                    </span>
+                )}
+            </td>
 
-                    {/* Processing/Pending indicator */}
-                    {search.status !== 'completed' && (
-                        <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                            {getStatusIcon()}
-                        </div>
-                    )}
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0 pr-8"> {/* 우측 여백 추가 (삭제 버튼 공간) */}
-                        <div className="flex items-start justify-between gap-2">
-                            <h3 className="font-semibold text-gray-900 truncate hover:text-blue-600 transition-colors">
-                                {search.place_name}
-                            </h3>
-                            {/* ExternalLink 제거됨 - 원본 코드에는 있었으나 삭제/이동됨 */}
-                        </div>
-
-                        <p className="text-sm text-gray-500 flex items-center gap-1 mt-1 truncate">
-                            <MapPin className="w-3 h-3 flex-shrink-0" />
-                            {search.place_address || '주소 없음'}
-                        </p>
-
-                        {/* Keywords */}
-                        <div className="flex flex-wrap gap-1.5 mt-3">
-                            {search.keywords.map((keyword, i) => (
-                                <span
-                                    key={i}
-                                    className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full"
-                                >
-                                    {keyword}
-                                </span>
-                            ))}
-                        </div>
-
-                        {/* Footer */}
-                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                                <Calendar className="w-3 h-3" />
-                                {formatDate(search.created_at)}
-                            </div>
-                            <div className="flex items-center gap-1 text-xs">
-                                {getStatusIcon()}
-                                <span className={`${search.status === 'completed' ? 'text-green-600' :
-                                    search.status === 'processing' ? 'text-yellow-600' :
-                                        search.status === 'failed' ? 'text-red-600' :
-                                            'text-gray-500'
-                                    }`}>
-                                    {getStatusLabel()}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+            <td className="px-6 py-4 font-bold text-gray-900 dark:text-white">
+                <div className="flex items-center gap-2">
+                    <span className="truncate max-w-[200px]" title={search.place_name}>{search.place_name}</span>
                 </div>
-            </Link>
+            </td>
 
-            {/* Delete Button - Absolute positioned */}
-            <button
-                onClick={handleDelete}
-                className="absolute top-5 right-5 p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10 opacity-0 group-hover:opacity-100"
-                title="기록 삭제"
-            >
-                <Trash2 className="w-4 h-4" />
-            </button>
-        </div>
+            <td className="px-6 py-4">
+                <div className="flex items-center gap-2 text-gray-500 dark:text-slate-400">
+                    {search.platform === 'naver' ? (
+                        <MapPin className="w-5 h-5 text-[#03C75A]" />
+                    ) : (
+                        <Globe className="w-5 h-5 text-blue-500" />
+                    )}
+                    {search.platform === 'naver' ? '네이버 플레이스' : '구글 비즈니스 프로필'}
+                </div>
+            </td>
+
+            <td className="px-6 py-4 text-gray-500 dark:text-slate-400 whitespace-nowrap">
+                {formatDateString(search.created_at)}
+            </td>
+
+            <td className="px-6 py-4 text-right">
+                <div className="flex justify-end items-center gap-2">
+                    {search.status === 'completed' ? (
+                        <button className="text-gray-900 bg-gray-100 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600 hover:bg-gray-200 font-bold text-sm px-3 py-1.5 rounded-md transition-colors whitespace-nowrap">
+                            결과 확인
+                        </button>
+                    ) : (
+                        <button disabled className="text-gray-400 cursor-not-allowed font-medium text-sm px-3 py-1.5 whitespace-nowrap">
+                            대기 중...
+                        </button>
+                    )}
+
+                    <button
+                        onClick={(e) => handleDelete(e)}
+                        className="p-1 text-gray-300 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity rounded-full hover:bg-red-50 dark:hover:bg-red-900/30"
+                        title="기록 삭제"
+                    >
+                        <Trash2 className="w-5 h-5" />
+                    </button>
+                </div>
+            </td>
+        </tr>
     )
 }

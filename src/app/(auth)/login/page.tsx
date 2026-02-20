@@ -1,4 +1,5 @@
 import { KakaoLoginButton } from '@/components/auth/KakaoLoginButton'
+import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton'
 
 export default async function LoginPage({
     searchParams,
@@ -23,7 +24,10 @@ export default async function LoginPage({
                     </div>
 
                     {/* Login Button */}
-                    <KakaoLoginButton plan={plan} billing={billing} />
+                    <div className="flex flex-col gap-3">
+                        <KakaoLoginButton plan={plan} billing={billing} />
+                        <GoogleLoginButton plan={plan} billing={billing} />
+                    </div>
 
                     {/* Terms */}
                     <p className="text-xs text-center text-gray-500">

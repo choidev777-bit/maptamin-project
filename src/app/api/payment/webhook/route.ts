@@ -175,6 +175,7 @@ async function handlePaymentPaid(supabase: SupabaseClient, paymentId: string) {
             status: 'paid',
             period_start: periodStart.toISOString(),
             period_end: periodEnd.toISOString(),
+            receipt_url: paymentData.receiptUrl || null,
         })
         .select()
         .single();

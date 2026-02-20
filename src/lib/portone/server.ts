@@ -21,6 +21,7 @@ export interface PortOnePaymentData {
     amount: { total: number };
     currency: string;
     orderName?: string;
+    receiptUrl?: string;
 }
 
 /** PortOne 결제 취소 응답 */

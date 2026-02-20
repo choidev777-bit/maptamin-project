@@ -137,6 +137,7 @@ export async function POST(request: Request) {
                 status: 'paid',
                 period_start: periodStart.toISOString(),
                 period_end: periodEnd.toISOString(),
+                receipt_url: paymentResult?.receiptUrl || null,
             })
 
         if (historyError) {

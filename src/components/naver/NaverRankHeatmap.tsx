@@ -5,6 +5,7 @@ import { NavermapsProvider, Container as MapDiv, NaverMap, Marker, useNavermaps 
 import { SearchResult } from '@/lib/types'
 import { getRankColor, getRankLabel } from '@/lib/utils/rank-colors'
 import { RankDetailModal } from '@/components/results/RankDetailModal'
+import { MapPin } from 'lucide-react'
 
 interface Props {
     center: { lat: number; lng: number }
@@ -160,8 +161,31 @@ export function NaverRankHeatmap({ center, results, selectedKeyword }: Props) {
     }
 
     return (
-        <>
-            <div className="rounded-2xl overflow-hidden border-2 border-gray-200 shadow-lg" style={{ height: '500px' }}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm mb-8 overflow-hidden">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <span className="text-emerald-500">
+                        <MapPin className="w-5 h-5" />
+                    </span>
+                    플레이스 순위 지도
+                </h3>
+                <div className="flex items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                        1-5위
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        6-10위
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        11위 이상
+                    </div>
+                </div>
+            </div>
+
+            <div className="relative w-full h-[500px] bg-slate-100 dark:bg-slate-900 group">
                 <NavermapsProvider ncpKeyId={clientId}>
                     <MapDiv style={{ width: '100%', height: '100%' }}>
                         <MapContent
@@ -173,22 +197,7 @@ export function NaverRankHeatmap({ center, results, selectedKeyword }: Props) {
                 </NavermapsProvider>
             </div>
 
-            {/* Legend */}
-            <div className="mt-4 flex flex-wrap gap-3 justify-center">
-                {[
-                    { label: '1-5위', color: '#22c55e' },
-                    { label: '6-10위', color: '#eab308' },
-                    { label: '11위 이상', color: '#ef4444' },
-                ].map(({ label, color }) => (
-                    <div key={label} className="flex items-center gap-2">
-                        <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: color }}
-                        />
-                        <span className="text-sm text-gray-600">{label}</span>
-                    </div>
-                ))}
-            </div>
+
 
             {/* Detail Modal */}
             {selectedResult && (
@@ -198,6 +207,6 @@ export function NaverRankHeatmap({ center, results, selectedKeyword }: Props) {
                     result={selectedResult}
                 />
             )}
-        </>
+        </div>
     )
 }
