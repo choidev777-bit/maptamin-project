@@ -1,12 +1,46 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { SearchResultsOverview } from '@/components/results/SearchResultsOverview'
 import { KeywordTabs } from '@/components/results/KeywordTabs'
-import { NaverRankHeatmap } from '@/components/naver/NaverRankHeatmap'
 import { CompetitorComparisonPanel } from '@/components/results/CompetitorComparisonPanel'
-import { NaverCompetitorComparisonMap } from '@/components/naver/NaverCompetitorComparisonMap'
 import { Search, SearchResult, ManagedCompetitor } from '@/lib/types'
+
+// Dynamic import로 지도 컴포넌트를 클라이언트에서만 렌더링 (SSR 줌아웃 버그 방지)
+const NaverRankHeatmap = dynamic(
+    () => import('@/components/naver/NaverRankHeatmap').then(mod => ({ default: mod.NaverRankHeatmap })),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                    <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                </div>
+                <div style={{ width: '100%', height: '500px' }} className="bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+                    <div className="text-gray-400 text-sm">지도 로딩 중...</div>
+                </div>
+            </div>
+        )
+    }
+)
+
+const NaverCompetitorComparisonMap = dynamic(
+    () => import('@/components/naver/NaverCompetitorComparisonMap').then(mod => ({ default: mod.NaverCompetitorComparisonMap })),
+    {
+        ssr: false,
+        loading: () => (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+                    <div className="h-5 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                </div>
+                <div style={{ width: '100%', height: '500px' }} className="bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+                    <div className="text-gray-400 text-sm">지도 로딩 중...</div>
+                </div>
+            </div>
+        )
+    }
+)
 
 interface Props {
     search: Search

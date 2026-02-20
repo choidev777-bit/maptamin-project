@@ -53,12 +53,31 @@ function MapContent({ center, comparisonPoints, onMarkerClick }: MapContentProps
     const [map, setMap] = useState<any>(null)
     const initializedRef = useRef(false)
 
-    // Force correct zoom/center once after map first loads
+    // 지도가 완전히 로드된 후(idle 이벤트) 줌/중심 강제 보정
     useEffect(() => {
-        if (map && !initializedRef.current) {
-            initializedRef.current = true
-            map.setCenter(new navermaps.LatLng(center.lat, center.lng))
-            map.setZoom(14)
+        if (!map || initializedRef.current) return
+
+        const listener = navermaps.Event.addListener(map, 'idle', () => {
+            if (!initializedRef.current) {
+                initializedRef.current = true
+                map.setCenter(new navermaps.LatLng(center.lat, center.lng))
+                map.setZoom(14)
+            }
+            navermaps.Event.removeListener(listener)
+        })
+
+        // 폴백: 3초 내에 idle이 발생하지 않으면 강제 줌 설정
+        const fallbackTimer = setTimeout(() => {
+            if (!initializedRef.current) {
+                initializedRef.current = true
+                map.setCenter(new navermaps.LatLng(center.lat, center.lng))
+                map.setZoom(14)
+            }
+        }, 3000)
+
+        return () => {
+            navermaps.Event.removeListener(listener)
+            clearTimeout(fallbackTimer)
         }
     }, [map, navermaps, center])
 
