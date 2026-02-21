@@ -2,14 +2,15 @@
 
 import { useMemo } from 'react';
 import { SearchResult } from '@/lib/types';
-import { BarChart2, PieChart, Grid } from 'lucide-react';
+import { BarChart2, PieChart, MapPin } from 'lucide-react';
 
 interface Props {
     results: SearchResult[];
     topRankThreshold?: number;
+    gridDistance?: number;
 }
 
-export function SearchResultsOverview({ results, topRankThreshold = 3 }: Props) {
+export function SearchResultsOverview({ results, topRankThreshold = 3, gridDistance }: Props) {
     const stats = useMemo(() => {
         if (!results || results.length === 0) {
             return { averageRank: 0, topExposureShare: 0, totalPoints: 0, topExposureCount: 0 };
@@ -68,7 +69,7 @@ export function SearchResultsOverview({ results, topRankThreshold = 3 }: Props) 
                     <div className="flex items-baseline gap-3">
                         <h3 className="text-4xl font-bold text-gray-900 dark:text-white">{stats.topExposureShare}%</h3>
                     </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                         전체 {stats.totalPoints}개 좌표 중 {stats.topExposureCount}개가 상위 노출되었습니다.
                     </p>
                 </div>
@@ -81,12 +82,17 @@ export function SearchResultsOverview({ results, topRankThreshold = 3 }: Props) 
                     <div className="flex justify-between items-start mb-2">
                         <p className="text-gray-500 dark:text-gray-400 font-medium text-sm">분석 좌표</p>
                         <div className="text-purple-500 bg-purple-500/10 p-1.5 rounded-md">
-                            <Grid className="w-5 h-5" />
+                            <MapPin className="w-5 h-5" />
                         </div>
                     </div>
                     <div className="flex items-baseline gap-3">
                         <h3 className="text-4xl font-bold text-gray-900 dark:text-white">{stats.totalPoints}개</h3>
                     </div>
+                    {gridDistance && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                            분석 좌표 간격: {gridDistance * 1000}m
+                        </p>
+                    )}
                 </div>
             </div>
         </div>

@@ -5,7 +5,7 @@ import { NavermapsProvider, Container as MapDiv, NaverMap, Marker, useNavermaps 
 import { SearchResult } from '@/lib/types'
 import { getRankColor, getRankLabel } from '@/lib/utils/rank-colors'
 import { RankDetailModal } from '@/components/results/RankDetailModal'
-import { MapPin } from 'lucide-react'
+import { Grid } from 'lucide-react'
 
 interface Props {
     center: { lat: number; lng: number }
@@ -192,7 +192,7 @@ export function NaverRankHeatmap({ center, results, selectedKeyword }: Props) {
             <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <span className="text-emerald-500">
-                        <MapPin className="w-5 h-5" />
+                        <Grid className="w-5 h-5" />
                     </span>
                     플레이스 순위 지도
                 </h3>

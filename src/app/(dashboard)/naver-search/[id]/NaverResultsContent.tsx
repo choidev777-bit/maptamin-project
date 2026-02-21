@@ -64,7 +64,11 @@ export function NaverResultsContent({ search, results, competitors, planId }: Pr
 
     return (
         <div className="space-y-6">
-            <SearchResultsOverview results={filteredResults} topRankThreshold={5} />
+            <SearchResultsOverview
+                results={filteredResults}
+                topRankThreshold={5}
+                gridDistance={search.grid_distance}
+            />
 
             {/* Keyword Tabs */}
             <KeywordTabs
