@@ -71,7 +71,7 @@ export default function HeroSection() {
                                 href="/login"
                                 className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#00C896] px-8 py-4 text-base font-bold text-white shadow-[0_20px_40px_-10px_rgba(0,199,149,0.3)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#00B386] hover:shadow-[0_25px_50px_-10px_rgba(0,199,149,0.4)] sm:w-auto sm:text-lg"
                             >
-                                우리 가게 &lsquo;진짜 순위&rsquo; 확인하기
+                                우리 매장 &lsquo;진짜 순위&rsquo; 확인하기
                                 <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
                             </Link>
                         </div>
@@ -142,7 +142,7 @@ export default function HeroSection() {
                                         <div className="absolute left-1/2 top-[38%] z-20 -translate-x-1/2 -translate-y-full">
                                             <div className="flex items-center gap-1 whitespace-nowrap rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-gray-800 shadow-lg">
                                                 <span className="h-2 w-2 rounded-full bg-[#00C896]" />
-                                                내 가게
+                                                내 매장
                                             </div>
                                             <div className="mx-auto h-0 w-0 border-l-[6px] border-r-[6px] border-t-[8px] border-l-transparent border-r-transparent border-t-white drop-shadow-sm" />
                                         </div>

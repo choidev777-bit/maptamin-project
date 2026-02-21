@@ -115,7 +115,7 @@ export default function FeatureSection() {
                                         let colorClass = 'bg-red-500/40' // 기본 빨강 (외곽)
                                         if (i === 24)
                                             colorClass =
-                                                'bg-[#00C896] ring-4 ring-white shadow-xl animate-pulse' // 중심 (내 가게)
+                                                'bg-[#00C896] ring-4 ring-white shadow-xl animate-pulse' // 중심 (내 매장)
                                         else if (
                                             [16, 17, 18, 23, 25, 30, 31, 32].includes(i)
                                         )
@@ -181,7 +181,7 @@ export default function FeatureSection() {
                                         <h3 className="text-lg font-bold text-gray-900">경쟁사 비교 분석</h3>
                                         <div className="flex rounded-lg bg-slate-100 p-1 text-xs font-bold">
                                             <div className="rounded bg-white px-3 py-1 text-[#00C896] shadow-sm">
-                                                내 가게
+                                                내 매장
                                             </div>
                                             <div className="px-3 py-1 text-slate-400">경쟁사 A</div>
                                         </div>
@@ -250,7 +250,7 @@ export default function FeatureSection() {
                             {
                                 icon: BarChart3,
                                 title: '이해하기 쉬운 신호등 시스템',
-                                desc: '초록불, 노란불, 빨간불로 내 가게의 위치별 진짜 순위를 한눈에 파악하세요.',
+                                desc: '초록불, 노란불, 빨간불로 내 매장의 위치별 진짜 순위를 한눈에 파악하세요.',
                             },
                             {
                                 icon: ClipboardCheck,

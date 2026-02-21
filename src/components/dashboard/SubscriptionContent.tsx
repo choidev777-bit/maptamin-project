@@ -100,7 +100,7 @@ const PLANS: PlanCardData[] = [
             { text: '실시간 진단 티켓 월 15회', included: true },
             { text: '주간 보고서 자동 발송', included: true },
             { text: '경쟁사 10곳 심층 분석', included: true },
-            { text: '연결 가게 무제한 변경', included: true },
+            { text: '연결 매장 무제한 변경', included: true },
         ],
         cta: '업그레이드',
         ctaStyle: 'ghost',

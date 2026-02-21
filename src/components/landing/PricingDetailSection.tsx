@@ -17,11 +17,11 @@ interface ComparisonRow {
 const COMPARISON: ComparisonRow[] = [
     { label: '월 구독료', starter: '9,900원', pro: '29,000원', premium: '99,000원' },
     {
-        label: '연결 가게',
+        label: '연결 매장',
         starter: '1곳 \n(30일 이후 변경 가능)',
         pro: '1곳 \n(30일 이후 변경 가능)',
         premium: '무제한 \n변경 가능',
-        tooltip: '그리드 분석의 중심이 되는 가게입니다. 스타터/프로는 설정 후 30일간 변경 불가합니다.',
+        tooltip: '그리드 분석의 중심이 되는 매장입니다. 스타터/프로는 설정 후 30일간 변경 불가합니다.',
     },
     { label: '제공 채널', starter: '네이버 지도', pro: '네이버 지도', premium: '네이버 + 구글' },
     {
@@ -60,23 +60,23 @@ interface Term {
 const TERMS: Term[] = [
     {
         icon: '📍',
-        title: '연결 가게',
-        desc: '분석의 중심이 되는 가게입니다. 사장님의 가게라고 생각하시면 됩니다.',
+        title: '연결 매장',
+        desc: '분석의 중심이 되는 매장입니다. 사장님의 매장라고 생각하시면 됩니다.',
     },
     {
         icon: '🔑',
         title: '관리 키워드',
-        desc: '순위를 추적할 검색 키워드입니다. 예: "근처 맛집", "주변 조용한 카페" 등 고객이 가게 근처에서 실제로 검색하는 키워드를 등록합니다.',
+        desc: '순위를 추적할 검색 키워드입니다. 예: "근처 맛집", "주변 조용한 카페" 등 고객이 매장 근처에서 실제로 검색하는 키워드를 등록합니다.',
     },
     {
         icon: '⚡',
         title: '실시간 진단 티켓',
-        desc: '정기 리포트(주 1회) 외에, 지금 당장 내 가게 순위가 궁금할 때 사용하는 즉시 조회 기능입니다.',
+        desc: '정기 리포트(주 1회) 외에, 지금 당장 내 매장 순위가 궁금할 때 사용하는 즉시 조회 기능입니다.',
     },
     {
         icon: '👋',
         title: '웰컴 리포트',
-        desc: '결제 즉시 발송되는 첫 번째 리포트입니다. 가입 후 일주일을 기다릴 필요 없이, 바로 내 가게 상태를 확인할 수 있습니다.',
+        desc: '결제 즉시 발송되는 첫 번째 리포트입니다. 가입 후 일주일을 기다릴 필요 없이, 바로 내 매장 상태를 확인할 수 있습니다.',
     },
 ]
 
@@ -138,7 +138,7 @@ const PLANS: PlanCard[] = [
             { text: '실시간 진단 티켓 월 10회', included: true },
             { text: '경쟁사 1곳 집중 추적 & 비교', included: true },
         ],
-        cta: '내 가게 진단 & 경쟁사 분석', // PricingSection은 '... 분석 시작하기' 인데 여기는 짧게 유지? 사용자는 "그대로" 원함. PricingSection의 CTA 사용.
+        cta: '내 매장 진단 & 경쟁사 분석', // PricingSection은 '... 분석 시작하기' 인데 여기는 짧게 유지? 사용자는 "그대로" 원함. PricingSection의 CTA 사용.
         ctaStyle: 'solid',
     },
     {
@@ -156,7 +156,7 @@ const PLANS: PlanCard[] = [
             { text: '실시간 진단 티켓 월 15회', included: true },
             { text: '주간 보고서 자동 발송', included: true },
             { text: '경쟁사 10곳 심층 분석', included: true },
-            { text: '연결 가게 무제한 변경', included: true },
+            { text: '연결 매장 무제한 변경', included: true },
         ],
         cta: '상권 완전 장악하기',
         ctaStyle: 'ghost',
@@ -252,17 +252,17 @@ export default function PricingDetailSection() {
                                             className="flex items-start gap-2.5 text-sm"
                                         >
                                             {feature.included ? (
-                                                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#00C896]/10 text-xs text-[#00C896]">
+                                                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#00C896]/20 text-xs font-bold text-[#00A078]">
                                                     ✓
                                                 </span>
                                             ) : (
-                                                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-400">
+                                                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-500">
                                                     ✕
                                                 </span>
                                             )}
                                             <span
                                                 className={
-                                                    feature.included ? 'text-gray-700' : 'text-gray-400'
+                                                    feature.included ? 'text-gray-800 font-medium' : 'text-gray-400'
                                                 }
                                             >
                                                 {feature.text}

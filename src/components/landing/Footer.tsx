@@ -10,7 +10,7 @@ export default function Footer() {
                     <div className="flex flex-col items-center gap-3 sm:items-start">
                         <MaptaminLogo />
                         <p className="text-sm text-gray-500">
-                            우리 가게 지도 건강검진 서비스
+                            우리 매장 지도 건강검진 서비스
                         </p>
                     </div>
 
@@ -48,12 +48,6 @@ export default function Footer() {
                             className="inline-flex items-center gap-1.5 rounded-lg border border-[#FEE500] bg-[#FEE500]/10 px-4 py-2 text-xs font-semibold text-gray-800 transition-all hover:-translate-y-0.5 hover:bg-[#FEE500]/20 hover:shadow-sm"
                         >
                             💬 카카오톡 문의
-                        </a>
-                        <a
-                            href="mailto:maptaminbiz@gmail.com"
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-600 transition-all hover:-translate-y-0.5 hover:bg-gray-100 hover:shadow-sm"
-                        >
-                            📧 이메일 문의
                         </a>
                     </div>
                 </div>

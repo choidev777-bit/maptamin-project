@@ -55,7 +55,7 @@ async function sendAlimtalk(
 /**
  * 웰컴 리포트 알림톡 발송
  * @param userId - 사용자 ID
- * @param placeName - 가게명
+ * @param placeName - 매장명
  * @param searchId - 검색 결과 ID
  */
 export async function sendWelcomeReport(
@@ -81,7 +81,7 @@ export async function sendWelcomeReport(
 /**
  * 주간 리포트 알림톡 발송
  * @param userId - 사용자 ID
- * @param placeName - 가게명
+ * @param placeName - 매장명
  * @param searchId - 검색 결과 ID
  */
 export async function sendWeeklyReport(

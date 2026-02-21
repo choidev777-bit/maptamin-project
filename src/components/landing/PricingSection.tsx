@@ -63,7 +63,7 @@ const PLANS: Plan[] = [
             { text: '실시간 진단 티켓 월 10회', included: true },
             { text: '경쟁사 1곳 집중 추적 & 비교', included: true },
         ],
-        cta: '내 가게 진단 & 경쟁사 분석 시작하기',
+        cta: '내 매장 진단 & 경쟁사 분석 시작하기',
         ctaStyle: 'solid',
     },
     {
@@ -81,7 +81,7 @@ const PLANS: Plan[] = [
             { text: '실시간 진단 티켓 월 15회', included: true },
             { text: '주간 보고서 자동 발송', included: true },
             { text: '경쟁사 10곳 심층 분석', included: true },
-            { text: '연결 가게 무제한 변경', included: true },
+            { text: '연결 매장 무제한 변경', included: true },
         ],
         cta: '상권 완전 장악하기',
         ctaStyle: 'ghost',
@@ -185,17 +185,17 @@ export default function PricingSection() {
                                         className="flex items-start gap-2.5 text-sm"
                                     >
                                         {feature.included ? (
-                                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#00C896]/10 text-xs text-[#00C896]">
+                                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#00C896]/20 text-xs font-bold text-[#00A078]">
                                                 ✓
                                             </span>
                                         ) : (
-                                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-400">
+                                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gray-200 text-xs font-bold text-gray-500">
                                                 ✕
                                             </span>
                                         )}
                                         <span
                                             className={
-                                                feature.included ? 'text-gray-700' : 'text-gray-400'
+                                                feature.included ? 'text-gray-800 font-medium' : 'text-gray-400'
                                             }
                                         >
                                             {feature.text}

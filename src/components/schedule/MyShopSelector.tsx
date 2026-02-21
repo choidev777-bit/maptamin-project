@@ -43,7 +43,7 @@ export function MyShopSelector({ platform, onSelect, selectedPlace }: Props) {
         return (
             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
                 <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
-                <span className="text-gray-600">내 가게 불러오는 중...</span>
+                <span className="text-gray-600">내 매장 불러오는 중...</span>
             </div>
         )
     }
@@ -61,10 +61,10 @@ export function MyShopSelector({ platform, onSelect, selectedPlace }: Props) {
             <div className="p-6 bg-amber-50 border border-amber-200 rounded-xl text-center">
                 <Store className="w-10 h-10 text-amber-500 mx-auto mb-3" />
                 <p className="font-medium text-amber-800">
-                    등록된 {platform === 'naver' ? '네이버' : '구글'} 가게가 없습니다
+                    등록된 {platform === 'naver' ? '네이버' : '구글'} 매장가 없습니다
                 </p>
                 <p className="text-sm text-amber-600 mt-1">
-                    설정 &gt; 내 가게 관리에서 먼저 가게를 등록해주세요.
+                    설정 &gt; 내 매장 관리에서 먼저 매장를 등록해주세요.
                 </p>
             </div>
         )

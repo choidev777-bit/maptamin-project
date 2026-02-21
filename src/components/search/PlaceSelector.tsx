@@ -74,7 +74,7 @@ export function PlaceSelector({ onSelect, selectedPlaceId }: PlaceSelectorProps)
                         <span className="font-medium text-gray-900">{selectedItem.place_name || selectedItem.place_id}</span>
                     </div>
                 ) : (
-                    <span className="text-gray-500">분석할 가게를 선택하세요...</span>
+                    <span className="text-gray-500">분석할 매장를 선택하세요...</span>
                 )}
                 <ChevronsUpDown className="w-4 h-4 text-gray-400" />
             </button>
@@ -86,7 +86,7 @@ export function PlaceSelector({ onSelect, selectedPlaceId }: PlaceSelectorProps)
                             <Search className="absolute left-2 top-2.5 w-4 h-4 text-gray-400" />
                             <input
                                 type="text"
-                                placeholder="가게 이름 검색..."
+                                placeholder="매장 이름 검색..."
                                 className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-emerald-500"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -99,7 +99,7 @@ export function PlaceSelector({ onSelect, selectedPlaceId }: PlaceSelectorProps)
                         {/* My Places Group */}
                         {filteredMyPlaces.length > 0 && (
                             <div className="mb-2">
-                                <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50">내 가게 (My Places)</div>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50">내 매장 (My Places)</div>
                                 {filteredMyPlaces.map((place) => (
                                     <button
                                         key={place.place_id}

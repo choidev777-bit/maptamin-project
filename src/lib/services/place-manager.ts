@@ -23,11 +23,11 @@ export class PlaceManager {
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', userId);
 
-            if (error) throw new Error('가게 수 조회 실패');
+            if (error) throw new Error('매장 수 조회 실패');
 
             // starter & pro: 1곳 제한
             if ((count || 0) >= 1) {
-                throw new Error(`${plan.name} 플랜은 가게 1곳까지 등록 가능합니다.`);
+                throw new Error(`${plan.name} 플랜은 매장 1곳까지 등록 가능합니다.`);
             }
         }
 

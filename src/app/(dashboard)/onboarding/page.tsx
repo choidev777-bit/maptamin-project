@@ -42,7 +42,7 @@ interface StepDef {
 
 function getSteps(planId: string): StepDef[] {
     const base: StepDef[] = [
-        { id: 'store', label: '가게 등록', icon: <Store className="h-4 w-4" /> },
+        { id: 'store', label: '매장 등록', icon: <Store className="h-4 w-4" /> },
         { id: 'keyword', label: '키워드 등록', icon: <Hash className="h-4 w-4" /> },
     ]
 

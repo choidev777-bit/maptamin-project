@@ -68,7 +68,7 @@ export default function ProblemSection() {
                         {/* 카드 푸터 */}
                         <div className="border-t border-red-50 bg-red-50/50 px-6 py-4 text-center">
                             <p className="text-sm font-medium text-red-600 sm:text-base">
-                                더 이상 위험한 방식에 내 가게의 운명을 맡기지
+                                더 이상 위험한 방식에 내 매장의 운명을 맡기지
                                 마세요.
                             </p>
                         </div>

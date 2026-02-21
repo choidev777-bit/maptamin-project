@@ -43,7 +43,7 @@ export default function StepKeywordRegister({ planId, onComplete }: Props) {
                     관리 키워드 등록
                 </h2>
                 <p className="mt-2 text-sm text-gray-600">
-                    고객이 내 가게를 찾을 때 검색할 키워드를 등록해주세요.
+                    고객이 내 매장를 찾을 때 검색할 키워드를 등록해주세요.
                 </p>
             </div>
 

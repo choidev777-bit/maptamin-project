@@ -20,7 +20,7 @@ export function SubscriptionBanner() {
                     <div>
                         <h3 className="font-bold text-gray-900">맵타민을 시작하려면 구독이 필요합니다</h3>
                         <p className="text-sm text-gray-500 mt-0.5">
-                            구독하고 내 가게의 지도 검색 순위를 분석해보세요
+                            구독하고 내 매장의 지도 검색 순위를 분석해보세요
                         </p>
                     </div>
                 </div>

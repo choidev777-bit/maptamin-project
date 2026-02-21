@@ -85,7 +85,7 @@ export function CompetitorDetailModal({
                     <div className="grid grid-cols-2 gap-3">
                         {/* My Rank */}
                         <div className="bg-blue-50 rounded-xl p-4 text-center">
-                            <p className="text-xs text-blue-600 font-medium mb-1">내 가게</p>
+                            <p className="text-xs text-blue-600 font-medium mb-1">내 매장</p>
                             <p className="text-3xl font-bold text-blue-900">
                                 {myRank !== null ? `${myRank}위` : '-'}
                             </p>

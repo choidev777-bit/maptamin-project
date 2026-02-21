@@ -208,7 +208,7 @@ export default function NewSearchPage() {
                 setIsPlaceModalOpen(false)
             } else {
                 const error = await res.json()
-                alert(error.error || '가게 등록에 실패했습니다.')
+                alert(error.error || '매장 등록에 실패했습니다.')
             }
         } catch (error) {
             console.error(error)
@@ -348,7 +348,7 @@ export default function NewSearchPage() {
         return (
             <div className="max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
                 <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
-                <p className="text-gray-500">가게 정보를 불러오는 중...</p>
+                <p className="text-gray-500">매장 정보를 불러오는 중...</p>
             </div>
         )
     }

@@ -100,7 +100,7 @@ export function CompetitorManager({ planId, maxNaverCompetitors, maxGoogleCompet
                 <div>
                     <h2 className="text-lg font-semibold text-gray-900">경쟁사 관리</h2>
                     <p className="text-sm text-gray-500 mt-1">
-                        비교 분석할 경쟁 가게를 등록하세요.
+                        비교 분석할 경쟁 매장를 등록하세요.
                     </p>
                 </div>
 

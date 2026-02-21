@@ -65,8 +65,8 @@ export default function StepCompetitorRegister({ planId, onComplete, onSkip }: P
                 </h2>
                 <p className="mt-2 text-sm text-gray-600">
                     {planId === 'pro'
-                        ? '비교 분석할 경쟁 가게 1곳을 등록해주세요.'
-                        : `비교 분석할 경쟁 가게를 최대 ${maxCompetitors}곳 등록할 수 있습니다.`}
+                        ? '비교 분석할 경쟁 매장 1곳을 등록해주세요.'
+                        : `비교 분석할 경쟁 매장를 최대 ${maxCompetitors}곳 등록할 수 있습니다.`}
                 </p>
             </div>
 

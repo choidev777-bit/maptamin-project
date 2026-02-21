@@ -22,7 +22,7 @@ export default function BridgeSection2() {
 
                     {/* 서브 타이틀 */}
                     <p className="mx-auto mt-8 max-w-2xl break-keep text-base leading-relaxed text-gray-600 sm:text-lg">
-                        내 가게 주변을{' '}
+                        내 매장 주변을{' '}
                         <strong className="text-gray-800">
                             바둑판처럼 나누어
                         </strong>
@@ -80,7 +80,7 @@ export default function BridgeSection2() {
                             ))}
                         </div>
                         <p className="mt-3 text-xs text-gray-400">
-                            가운데(■)가 내 가게 위치
+                            가운데(■)가 내 매장 위치
                         </p>
                     </div>
 

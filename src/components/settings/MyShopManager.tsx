@@ -46,7 +46,7 @@ export function MyShopManager() {
 
             if (!res.ok) {
                 const error = await res.json()
-                alert(error.error || '가게 등록 실패')
+                alert(error.error || '매장 등록 실패')
                 return
             }
 
@@ -93,9 +93,9 @@ export function MyShopManager() {
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h2 className="text-lg font-semibold text-gray-900">내 가게 관리</h2>
+                    <h2 className="text-lg font-semibold text-gray-900">내 매장 관리</h2>
                     <p className="text-sm text-gray-500 mt-1">
-                        순위를 추적할 사장님의 가게를 등록하세요. (등록 후 30일간 변경 불가)
+                        순위를 추적할 사장님의 매장를 등록하세요. (등록 후 30일간 변경 불가)
                     </p>
                 </div>
                 <div className="flex bg-gray-100 rounded-lg p-1">
@@ -127,13 +127,13 @@ export function MyShopManager() {
                 ) : !currentShop ? (
                     <div className="text-center py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                         <Store className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                        <p className="text-gray-500 text-sm mb-4">등록된 가게가 없습니다.</p>
+                        <p className="text-gray-500 text-sm mb-4">등록된 매장가 없습니다.</p>
                         <button
                             onClick={() => setIsAddModalOpen(true)}
                             className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
                         >
                             <Plus className="w-4 h-4" />
-                            가게 등록하기
+                            매장 등록하기
                         </button>
                     </div>
                 ) : (
@@ -168,7 +168,7 @@ export function MyShopManager() {
                                             ? 'text-gray-300 cursor-not-allowed'
                                             : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
                                             }`}
-                                        title={isLocked ? "변경 제한 기간입니다" : "가게 삭제"}
+                                        title={isLocked ? "변경 제한 기간입니다" : "매장 삭제"}
                                     >
                                         <Trash2 className="w-4 h-4" />
                                     </button>

@@ -36,7 +36,7 @@ function delay(ms: number): Promise<void> {
  * 원리:
  * 1. /place/list URL을 좌표+키워드로 조립
  * 2. Playwright 브라우저 컨텍스트에서 새 탭으로 접속 (프록시+쿠키 유지)
- * 3. HTML 내 __APOLLO_STATE__ JSON에서 가게 데이터 추출
+ * 3. HTML 내 __APOLLO_STATE__ JSON에서 매장 데이터 추출
  * 4. adDescription이 있는 광고 항목 제외
  * 
  * 네이버가 /place/list → /restaurant/list 등으로 자동 리다이렉트
@@ -110,8 +110,8 @@ async function fetchListApiResults(
 }
 
 /**
- * __APOLLO_STATE__ 객체에서 가게 데이터를 추출합니다.
- * - "ListSummary:" 키 패턴으로 가게 항목 필터링
+ * __APOLLO_STATE__ 객체에서 매장 데이터를 추출합니다.
+ * - "ListSummary:" 키 패턴으로 매장 항목 필터링
  * - adDescription이 있으면 광고로 제외
  */
 function extractPlacesFromApolloState(apolloState: Record<string, any>): NaverPlaceResult[] {

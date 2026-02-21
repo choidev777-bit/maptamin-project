@@ -10,7 +10,7 @@ const STEPS = [
         bgColor: 'bg-red-50',
         borderColor: 'border-red-100',
         description:
-            '맵타민 지도로 우리 가게의 약점인 빨간불을 찾습니다.',
+            '맵타민 지도로 우리 매장의 약점인 빨간불을 찾습니다.',
     },
     {
         step: '2',
@@ -88,12 +88,12 @@ export default function SolutionSection() {
                             <br />
                             시작은{' '}
                             <span className="text-[#00C896]">
-                                &lsquo;내 가게 근처&rsquo;
+                                &lsquo;내 매장 근처&rsquo;
                             </span>
                             부터입니다.
                         </h2>
                         <p className="mt-6 break-keep text-base text-gray-600 sm:text-lg">
-                            가게 앞{' '}
+                            매장 앞{' '}
                             <strong className="text-gray-800">
                                 100m, 300m
                             </strong>

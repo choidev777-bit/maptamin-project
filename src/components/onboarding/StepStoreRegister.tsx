@@ -59,12 +59,12 @@ export default function StepStoreRegister({ planId, onComplete }: Props) {
             <div>
                 <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
                     <MapPin className="mr-2 inline-block h-6 w-6 text-[#00C896]" />
-                    내 가게 등록
+                    내 매장 등록
                 </h2>
                 <p className="mt-2 text-sm text-gray-600">
                     {isPremium
-                        ? '네이버 지도와 구글 지도에서 내 가게를 검색하여 등록해주세요.'
-                        : '네이버 지도에서 내 가게를 검색하여 등록해주세요.'}
+                        ? '네이버 지도와 구글 지도에서 내 매장를 검색하여 등록해주세요.'
+                        : '네이버 지도에서 내 매장를 검색하여 등록해주세요.'}
                 </p>
             </div>
 
@@ -100,12 +100,12 @@ export default function StepStoreRegister({ planId, onComplete }: Props) {
                     {subStep === 'naver' ? (
                         <>
                             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#03C75A] text-xs font-bold text-white">N</span>
-                            네이버 지도에서 내 가게 검색
+                            네이버 지도에서 내 매장 검색
                         </>
                     ) : (
                         <>
                             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#4285F4] text-xs font-bold text-white">G</span>
-                            구글 지도에서 내 가게 검색
+                            구글 지도에서 내 매장 검색
                         </>
                     )}
                 </h3>
@@ -166,7 +166,7 @@ export default function StepStoreRegister({ planId, onComplete }: Props) {
                 className="w-full rounded-xl bg-[#00C896] py-4 text-base font-bold text-white shadow-lg shadow-[#00C896]/25 transition-all hover:-translate-y-0.5 hover:bg-[#00B386] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
             >
                 {isPremium && subStep === 'naver'
-                    ? '다음: 구글 가게 등록 →'
+                    ? '다음: 구글 매장 등록 →'
                     : '다음 단계로 →'}
             </button>
         </div>
