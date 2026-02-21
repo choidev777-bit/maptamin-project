@@ -38,33 +38,41 @@ function MapContent({ center, uniquePositions, onMarkerClick }: MapContentProps)
     const [map, setMap] = useState<any>(null)
     const initializedRef = useRef(false)
 
-    // 지도가 완전히 로드된 후(idle 이벤트) 줌/중심 강제 보정
+    // map + 마커 데이터 모두 준비된 후 300ms 뒤 fitBounds 적용
     useEffect(() => {
-        if (!map || initializedRef.current) return
+        if (!map || initializedRef.current || uniquePositions.length === 0) return
 
-        const listener = navermaps.Event.addListener(map, 'idle', () => {
-            if (!initializedRef.current) {
-                initializedRef.current = true
+        const applyFitBounds = () => {
+            if (initializedRef.current) return
+            initializedRef.current = true
+
+            if (uniquePositions.length <= 1) {
                 map.setCenter(new navermaps.LatLng(center.lat, center.lng))
                 map.setZoom(14)
+                return
             }
-            navermaps.Event.removeListener(listener)
-        })
 
-        // 폴백: 3초 내에 idle이 발생하지 않으면 강제 줌 설정
-        const fallbackTimer = setTimeout(() => {
-            if (!initializedRef.current) {
-                initializedRef.current = true
-                map.setCenter(new navermaps.LatLng(center.lat, center.lng))
-                map.setZoom(14)
-            }
-        }, 3000)
+            const bounds = new navermaps.LatLngBounds(
+                new navermaps.LatLng(center.lat, center.lng),
+                new navermaps.LatLng(center.lat, center.lng)
+            )
+            uniquePositions.forEach(pos => {
+                bounds.extend(new navermaps.LatLng(pos.lat, pos.lng))
+            })
+
+            map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 })
+        }
+
+        // 300ms: 컨테이너 레이아웃 + 프로젝션 엔진 초기화 대기
+        const timer = setTimeout(applyFitBounds, 300)
+        // 안전장치: 3초 폴백
+        const fallback = setTimeout(applyFitBounds, 3000)
 
         return () => {
-            navermaps.Event.removeListener(listener)
-            clearTimeout(fallbackTimer)
+            clearTimeout(timer)
+            clearTimeout(fallback)
         }
-    }, [map, navermaps, center])
+    }, [map, navermaps, center, uniquePositions])
 
     return (
         <NaverMap

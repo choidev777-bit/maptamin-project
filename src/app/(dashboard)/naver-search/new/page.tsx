@@ -167,6 +167,30 @@ export default function NewNaverSearchPage() {
         checkCompetitors()
     }, [])
 
+    // Set default grid size and distance based on subscription plan
+    useEffect(() => {
+        if (subscription.loading) return
+
+        const planId = subscription.planId
+        const allowedSizes = getAllowedGridSizes(planId)
+
+        if (planId === 'premium' && allowedSizes.includes(7)) {
+            setSelectedGridSize(7)
+            setGridPoints(GRID_TEMPLATES[7] || DEFAULT_GRID_POINTS)
+        } else if (planId === 'pro' && allowedSizes.includes(5)) {
+            setSelectedGridSize(5)
+            setGridPoints(GRID_TEMPLATES[5] || DEFAULT_GRID_POINTS)
+        } else {
+            // Default (Starter or fallback)
+            setSelectedGridSize(3)
+            setGridPoints(DEFAULT_GRID_POINTS)
+        }
+
+        // Default distance 300m for all
+        setDistanceUnit('km')
+        setGridDistance(0.3)
+    }, [subscription.loading, subscription.planId])
+
     // Handler: Register shop from modal
     const handleRegisterShop = async (selectedPlace: Place) => {
         try {

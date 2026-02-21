@@ -76,7 +76,7 @@ export function DistanceSettings({ distance, unit, onDistanceChange, onUnitChang
                 </div>
             </div>
 
-            {/* Unit Toggle */}
+            {/* Unit Toggle
             <div className="flex items-center gap-4">
                 <span className="text-sm font-medium text-gray-700">단위:</span>
                 <div className="flex rounded-xl overflow-hidden border-2 border-gray-200">
@@ -100,6 +100,7 @@ export function DistanceSettings({ distance, unit, onDistanceChange, onUnitChang
                     </button>
                 </div>
             </div>
+            */}
 
             {/* Coverage Info */}
             <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">

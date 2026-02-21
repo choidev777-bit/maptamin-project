@@ -3,7 +3,7 @@ import { Map } from 'lucide-react'
 
 const PLATFORMS = [
     { name: 'NAVER Place', icon: SiNaver },
-    { name: 'Naver Map', icon: Map },
+    { name: 'NAVER Map', icon: Map },
     { name: 'Kakao Talk', icon: SiKakaotalk },
     { name: 'Google Maps', icon: SiGooglemaps },
 ]
