@@ -52,7 +52,7 @@ export function PlaceSelectionModal({ isOpen, onClose, platform, onConfirm, isCo
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>
-                        {step === 'search' ? '비즈니스 선택' : '선택 확인'}
+                        {step === 'search' ? '매장 검색' : '선택 확인'}
                     </DialogTitle>
                     <DialogDescription>
                         {step === 'search'

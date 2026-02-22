@@ -137,20 +137,25 @@ export function PlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
         .place-autocomplete-wrapper gmp-place-autocomplete {
           width: 100%;
           display: block;
+          border: 1px solid #d1d5db;
+          border-radius: 0.75rem;
+          overflow: hidden;
         }
         .place-autocomplete-wrapper input {
           width: 100%;
           padding: 1rem;
-          border: 1px solid #e5e7eb;
+          border: none !important;
           border-radius: 0.75rem;
           font-size: 1.125rem;
           transition: all 0.15s ease;
           background: white;
         }
-        .place-autocomplete-wrapper input:focus {
-          outline: none;
+        .place-autocomplete-wrapper gmp-place-autocomplete:focus-within {
           border-color: #2563eb;
           box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .place-autocomplete-wrapper input:focus {
+          outline: none;
         }
         .place-autocomplete-wrapper input::placeholder {
           color: #9ca3af;
