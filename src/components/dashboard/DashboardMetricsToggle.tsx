@@ -1,15 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { QuickStatsRow } from './QuickStatsRow'
+
 import { QuickInsightsRow } from './QuickInsightsRow'
 import { UpgradePrompt } from './UpgradePrompt'
 import { KeywordInsight } from '@/lib/utils/insights'
 import { Lock } from 'lucide-react'
 
 interface MetricsData {
-    keywordsCount: number
-    competitorsCount: number
     insights: {
         rising: KeywordInsight | null
         dropping: KeywordInsight | null
@@ -44,8 +42,8 @@ export function DashboardMetricsToggle({ naverData, googleData, canGoogle }: Pro
                     <button
                         onClick={() => handleToggle('naver')}
                         className={`px-5 py-2 text-sm font-bold rounded-lg transition-all ${activePlatform === 'naver'
-                                ? 'bg-white dark:bg-slate-700 text-[#00C896] shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
-                                : 'text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white hover:bg-white/50'
+                            ? 'bg-white dark:bg-slate-700 text-[#00C896] shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
+                            : 'text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white hover:bg-white/50'
                             }`}
                     >
                         네이버 플레이스
@@ -53,8 +51,8 @@ export function DashboardMetricsToggle({ naverData, googleData, canGoogle }: Pro
                     <button
                         onClick={() => handleToggle('google')}
                         className={`px-5 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 ${activePlatform === 'google'
-                                ? 'bg-white dark:bg-slate-700 text-blue-500 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
-                                : 'text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white hover:bg-white/50'
+                            ? 'bg-white dark:bg-slate-700 text-blue-500 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/10'
+                            : 'text-gray-500 hover:text-gray-900 dark:text-slate-400 dark:hover:text-white hover:bg-white/50'
                             }`}
                     >
                         구글 비즈니스 프로필
@@ -62,12 +60,6 @@ export function DashboardMetricsToggle({ naverData, googleData, canGoogle }: Pro
                     </button>
                 </div>
             </div>
-
-            {/* Quick Stats Overview */}
-            <QuickStatsRow
-                managedKeywordsCount={currentData.keywordsCount}
-                competitorsTrackedCount={currentData.competitorsCount}
-            />
 
             {/* Quick Insights */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-slate-700 p-6">

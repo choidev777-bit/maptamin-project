@@ -10,6 +10,7 @@ import { SearchHistorySection } from '@/components/dashboard/SearchHistorySectio
 import { Search, SearchResult } from '@/lib/types'
 import { canAccessPlatform, isSubscribed } from '@/lib/utils/subscription'
 import { calculateWeeklyInsights } from '@/lib/utils/insights'
+import { getPlanLimit } from '@/lib/pricing/config'
 
 export default async function DashboardPage() {
     const supabase = await createClient()
@@ -28,6 +29,7 @@ export default async function DashboardPage() {
     const subscribed = isSubscribed(planId)
     const canNaver = canAccessPlatform(planId, 'naver')
     const canGoogle = canAccessPlatform(planId, 'google')
+    const limits = getPlanLimit(planId)
 
     // Quick Stats Data
     const remainingNaverTickets = subscription?.remaining_tickets_naver || 0
@@ -102,14 +104,10 @@ export default async function DashboardPage() {
     const googleKeywords = managedKeywords?.filter(k => k.platform === 'google').map(k => k.keyword) || []
 
     const naverData = {
-        keywordsCount: naverKeywords.length,
-        competitorsCount: naverCompetitors.length,
         insights: naverInsights
     }
 
     const googleData = {
-        keywordsCount: googleKeywords.length,
-        competitorsCount: googleCompetitors.length,
         insights: googleInsights
     }
 
@@ -127,14 +125,7 @@ export default async function DashboardPage() {
             {/* Main Content Area */}
             <div className="flex flex-col gap-8">
 
-                {/* Platform Toggle Section (Quick Stats & Insights) */}
-                <DashboardMetricsToggle
-                    naverData={naverData}
-                    googleData={googleData}
-                    canGoogle={canGoogle}
-                />
-
-                {/* Section 3: Registered Places */}
+                {/* Section 1: Registered Places (최상단) */}
                 <div className="bg-white dark:bg-slate-800 rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-slate-700 p-6">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white">등록된 내 매장</h3>
@@ -151,6 +142,8 @@ export default async function DashboardPage() {
                             firstCompetitorName={naverCompetitors[0]?.place_name}
                             isLocked={!canNaver}
                             keywords={naverKeywords}
+                            maxKeywords={limits.keywordsNaver}
+                            maxCompetitors={limits.competitorsNaver}
                         />
                         <DashboardPlatformCard
                             platform="google"
@@ -159,11 +152,20 @@ export default async function DashboardPage() {
                             firstCompetitorName={googleCompetitors[0]?.place_name}
                             isLocked={!canGoogle}
                             keywords={googleKeywords}
+                            maxKeywords={limits.keywordsGoogle}
+                            maxCompetitors={limits.competitorsGoogle}
                         />
                     </div>
                 </div>
 
-                {/* Section 4: Search History Table */}
+                {/* Section 2: Platform Toggle + Weekly Insights */}
+                <DashboardMetricsToggle
+                    naverData={naverData}
+                    googleData={googleData}
+                    canGoogle={canGoogle}
+                />
+
+                {/* Section 3: Search History Table */}
                 <SearchHistorySection searches={searches} />
             </div>
         </div>

@@ -1,8 +1,10 @@
 'use client'
 
 import { Card } from '@/components/ui/card'
-import { Lock, Store, ArrowRight } from 'lucide-react'
+import { Lock, Store, ArrowRight, Key, Eye, ChevronRight } from 'lucide-react'
 import { PlaceSelectionModal } from './PlaceSelectionModal'
+import { KeywordManageModal } from './KeywordManageModal'
+import { CompetitorManageModal } from './CompetitorManageModal'
 import { UpgradePrompt } from './UpgradePrompt'
 import { getRequiredPlanForPlatform } from '@/lib/utils/subscription'
 
@@ -29,12 +31,16 @@ interface Props {
     firstCompetitorName?: string
     isLocked?: boolean
     keywords?: string[]
+    maxKeywords?: number
+    maxCompetitors?: number
 }
 
-export function DashboardPlatformCard({ platform, data, competitorCount = 0, firstCompetitorName, isLocked = false, keywords = [] }: Props) {
+export function DashboardPlatformCard({ platform, data, competitorCount = 0, firstCompetitorName, isLocked = false, keywords = [], maxKeywords = 0, maxCompetitors = 0 }: Props) {
     const router = useRouter()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
+    const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false)
+    const [isCompetitorModalOpen, setIsCompetitorModalOpen] = useState(false)
 
     const handleRegister = async (place: Place) => {
         // API Call
@@ -133,21 +139,29 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{data.place_name}</h3>
                             <p className="text-sm text-gray-500 line-clamp-1 mt-1">{data.address || '주소 정보 없음'}</p>
 
-                            {keywords.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                    {keywords.map((kw) => (
-                                        <span key={kw} className="text-xs font-medium text-gray-500 bg-gray-100 dark:bg-slate-700 dark:text-slate-300 px-2 py-1 rounded">
-                                            #{kw}
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
-
-                            {data.locked_until ? (
-                                <p className="text-xs text-amber-600 mt-2">
-                                    {new Date(data.locked_until).toLocaleDateString()}까지 변경 제한
-                                </p>
-                            ) : null}
+                            {/* 키워드/경쟁사 관리 버튼 */}
+                            <div className="flex flex-col gap-2 mt-3">
+                                <button
+                                    onClick={() => setIsKeywordModalOpen(true)}
+                                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-slate-700/50 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-100 dark:border-slate-600 transition-colors group/btn"
+                                >
+                                    <span className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+                                        <Key className={`w-4 h-4 ${platform === 'naver' ? 'text-[#00C896]' : 'text-blue-500'}`} />
+                                        저장된 키워드: <span className="font-bold text-gray-900 dark:text-white">{keywords.length}개</span>
+                                    </span>
+                                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover/btn:text-gray-600 transition-colors" />
+                                </button>
+                                <button
+                                    onClick={() => setIsCompetitorModalOpen(true)}
+                                    className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-slate-700/50 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-100 dark:border-slate-600 transition-colors group/btn"
+                                >
+                                    <span className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+                                        <Eye className={`w-4 h-4 ${platform === 'naver' ? 'text-[#00C896]' : 'text-blue-500'}`} />
+                                        저장된 경쟁사: <span className="font-bold text-gray-900 dark:text-white">{competitorCount}곳</span>
+                                    </span>
+                                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover/btn:text-gray-600 transition-colors" />
+                                </button>
+                            </div>
                         </div>
                         <div className="mt-4 flex gap-3">
                             <button
@@ -182,6 +196,22 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                     onClose={() => setShowUpgradePrompt(false)}
                 />
             )}
+
+            {/* 키워드 관리 모달 */}
+            <KeywordManageModal
+                isOpen={isKeywordModalOpen}
+                onClose={() => setIsKeywordModalOpen(false)}
+                platform={platform}
+                maxKeywords={maxKeywords}
+            />
+
+            {/* 경쟁사 관리 모달 */}
+            <CompetitorManageModal
+                isOpen={isCompetitorModalOpen}
+                onClose={() => setIsCompetitorModalOpen(false)}
+                platform={platform}
+                maxCompetitors={maxCompetitors}
+            />
         </>
     )
 }
