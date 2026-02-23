@@ -141,7 +141,7 @@ export async function POST(request: Request) {
     const enabledCount = gridPoints.filter((p: { enabled: boolean }) => p.enabled).length
     const estimatedTime = enabledCount * keywords.length * 3
 
-    // 🆕 Trigger queue dispatcher (await — dispatch 확실히 실행)
+    // 🆕 Trigger queue dispatcher (await로 확실한 실행 보장)
     const baseUrl = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || ''
     try {
         await fetch(`${baseUrl}/api/queue/dispatch`, {
