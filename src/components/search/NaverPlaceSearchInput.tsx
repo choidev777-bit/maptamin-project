@@ -133,7 +133,7 @@ export function NaverPlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
             ? window.btoa(unescape(encodeURIComponent(`${cleanTitle}-${place.address}`)))
             : `${cleanTitle}-${place.address}`
 
-        setQuery(cleanTitle)            // Update input with selected name
+        setQuery('')                    // 선택 완료 후 검색창 즉시 초기화 (사용성 개선)
         setOpen(false)                  // Close dropdown immediately
 
         // Map to global Place interface expected by parent

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Home, Search, Settings } from 'lucide-react'
+import { Home, Search, Settings, History } from 'lucide-react'
 import { WalletLabel, SubscriptionInfo } from './WalletLabel'
 import { NavDropdown } from './NavDropdown'
 
@@ -25,6 +25,14 @@ export function DesktopNav({ user, subscription }: Props) {
                 >
                     <Home className="w-4 h-4" />
                     대시보드
+                </Link>
+
+                <Link
+                    href="/history"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                    <History className="w-4 h-4" />
+                    진단 기록
                 </Link>
 
                 <NavDropdown

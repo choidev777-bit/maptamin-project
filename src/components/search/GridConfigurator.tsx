@@ -98,8 +98,8 @@ export function GridConfigurator({ selectedPoints, onPointsChange, maxPoints = 4
                         <Grid3X3 className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-gray-900">그리드 포인트 선택</h3>
-                        <p className="text-sm text-gray-500">클릭하거나 드래그하여 측정 지점을 선택하세요</p>
+                        <h3 className="font-semibold text-gray-900">좌표 위치 선택</h3>
+                        <p className="text-sm text-gray-500">클릭하거나 드래그하여 분석 위치를 선택하세요</p>
                     </div>
                 </div>
                 <div className="text-right">
@@ -115,8 +115,8 @@ export function GridConfigurator({ selectedPoints, onPointsChange, maxPoints = 4
                         key={preset.size}
                         onClick={() => applyPreset(preset.size)}
                         className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-medium ${enabledCount === preset.points
-                                ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 text-gray-700'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 text-gray-700'
                             }`}
                     >
                         <span className="text-lg">{preset.label}</span>
@@ -150,12 +150,12 @@ export function GridConfigurator({ selectedPoints, onPointsChange, maxPoints = 4
                                     onMouseDown={() => handleMouseDown(row, col)}
                                     onMouseEnter={() => handleMouseEnter(row, col)}
                                     className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 transition-all duration-150 ${isCenter
-                                            ? 'bg-blue-600 border-blue-600 cursor-default shadow-lg shadow-blue-600/30'
-                                            : isEnabled
-                                                ? 'bg-orange-500 border-orange-500 hover:bg-orange-400 cursor-pointer shadow-md shadow-orange-500/20'
-                                                : 'bg-white border-gray-300 hover:border-blue-400 hover:bg-blue-50 cursor-pointer'
+                                        ? 'bg-blue-600 border-blue-600 cursor-default shadow-lg shadow-blue-600/30'
+                                        : isEnabled
+                                            ? 'bg-orange-500 border-orange-500 hover:bg-orange-400 cursor-pointer shadow-md shadow-orange-500/20'
+                                            : 'bg-white border-gray-300 hover:border-blue-400 hover:bg-blue-50 cursor-pointer'
                                         }`}
-                                    title={isCenter ? '비즈니스 위치 (중심)' : `(${row}, ${col})`}
+                                    title={isCenter ? '매장 위치 (중심)' : `(${row}, ${col})`}
                                 />
                             )
                         })
@@ -167,11 +167,11 @@ export function GridConfigurator({ selectedPoints, onPointsChange, maxPoints = 4
             <div className="flex items-center gap-6 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full bg-blue-600" />
-                    <span>비즈니스 위치</span>
+                    <span>매장 위치</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full bg-orange-500" />
-                    <span>측정 지점</span>
+                    <span>분석 위치</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full bg-white border-2 border-gray-300" />

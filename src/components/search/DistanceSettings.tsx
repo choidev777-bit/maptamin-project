@@ -33,8 +33,8 @@ export function DistanceSettings({ distance, unit, onDistanceChange, onUnitChang
                     <Ruler className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                    <h3 className="font-semibold text-gray-900">그리드 포인트 간격</h3>
-                    <p className="text-sm text-gray-500">측정 지점 사이의 거리를 설정하세요</p>
+                    <h3 className="font-semibold text-gray-900">분석 좌표 간격 설정</h3>
+                    <p className="text-sm text-gray-500">좌표 사이의 거리를 설정하세요</p>
                 </div>
             </div>
 
@@ -110,10 +110,10 @@ export function DistanceSettings({ distance, unit, onDistanceChange, onUnitChang
                         <p className="text-sm font-medium text-gray-900">
                             예상 측정 범위
                         </p>
-                        <p className="text-sm text-gray-600 mt-1">
-                            비즈니스 위치에서 반경 약 <span className="font-semibold text-blue-600">
+                        <p className="text-sm text-amber-700 leading-relaxed">
+                            매장 위치에서 반경 약 <span className="font-semibold text-blue-600">
                                 {coverageRadius.toFixed(1)} {unit}
-                            </span>까지 측정됩니다.
+                            </span> 영역의 순위를 분석합니다.
                         </p>
                     </div>
                 </div>

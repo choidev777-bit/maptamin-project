@@ -36,16 +36,28 @@ export async function POST(request: Request) {
     }
     */
 
-    // Body 파싱 완료
     const body = await bodyPromise
-    const { placeName, placeAddress, placeLat, placeLng, keywords, gridPoints, distance, distanceUnit, placeId } = body
+    const { placeName, placeAddress, placeLat, placeLng, keywords, gridPoints, distance, distanceUnit, placeId, reportType } = body
+
+    // --- Welcome Report 분기 (최소 변경) ---
+    const isWelcome = reportType === 'welcome'
 
     // 1. Plan & Subscription Check
     const { data: subscription } = await supabase
         .from('user_subscriptions')
-        .select('plan_id, remaining_tickets_naver')
+        .select('plan_id, remaining_tickets_naver, welcome_report_sent')
         .eq('user_id', user.id)
         .single()
+
+    // 🔴 CRITICAL: 웰컴 리포트 보안 검증 — 이미 전송한 유저 차단
+    if (isWelcome) {
+        if (subscription?.welcome_report_sent) {
+            return NextResponse.json(
+                { error: 'WELCOME_REPORT_ALREADY_SENT', message: '웰컴 리포트는 한 번만 받을 수 있습니다.' },
+                { status: 403 }
+            )
+        }
+    }
 
     const planId = subscription?.plan_id || 'starter'
     const planConfig = PLAN_CONFIG[planId] || PLAN_CONFIG['starter']
@@ -72,25 +84,27 @@ export async function POST(request: Request) {
         }, { status: 403 })
     }
 
-    // 3. Ticket Check
-    const remainingTickets = subscription?.remaining_tickets_naver || 0
-    if (remainingTickets <= 0) {
-        return NextResponse.json({
-            error: 'NO_TICKETS',
-            message: '이번 달 실시간 진단 티켓이 모두 소진되었습니다.',
-        }, { status: 402 })
-    }
+    // 3. Ticket Check (웰컴 리포트는 무료 — Skip)
+    if (!isWelcome) {
+        const remainingTickets = subscription?.remaining_tickets_naver || 0
+        if (remainingTickets <= 0) {
+            return NextResponse.json({
+                error: 'NO_TICKETS',
+                message: '이번 달 실시간 진단 티켓이 모두 소진되었습니다.',
+            }, { status: 402 })
+        }
 
-    // 4. Deduct Ticket (Atomic RPC)
-    const { error: deductError } = await supabase
-        .rpc('deduct_ticket', { p_platform: 'naver' })
+        // 4. Deduct Ticket (Atomic RPC)
+        const { error: deductError } = await supabase
+            .rpc('deduct_ticket', { p_platform: 'naver' })
 
-    if (deductError) {
-        console.error('Ticket deduction failed:', deductError)
-        return NextResponse.json({
-            error: 'TICKET_DEDUCTION_FAILED',
-            message: '티켓 차감에 실패했습니다.',
-        }, { status: 500 })
+        if (deductError) {
+            console.error('Ticket deduction failed:', deductError)
+            return NextResponse.json({
+                error: 'TICKET_DEDUCTION_FAILED',
+                message: '티켓 차감에 실패했습니다.',
+            }, { status: 500 })
+        }
     }
 
     // 5. Create Search Record
@@ -109,15 +123,17 @@ export async function POST(request: Request) {
             distance_unit: distanceUnit,
             status: 'pending',
             platform: 'naver',
-            report_type: 'realtime'
+            report_type: isWelcome ? 'welcome' : 'realtime'
         })
         .select()
         .single()
 
     if (createError) {
         console.error('Failed to create naver search:', createError)
-        // Auto Refund on Failure
-        await supabase.rpc('refund_ticket', { p_platform: 'naver' })
+        // Auto Refund on Failure (웰컴 리포트는 티켓 없으므로 refund 불필요)
+        if (!isWelcome) {
+            await supabase.rpc('refund_ticket', { p_platform: 'naver' })
+        }
         return NextResponse.json({ error: createError.message }, { status: 500 })
     }
 

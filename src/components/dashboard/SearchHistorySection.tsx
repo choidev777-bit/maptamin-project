@@ -5,6 +5,7 @@ import { SearchHistoryCard } from './SearchHistoryCard'
 import { DeleteAllButton } from './DeleteAllButton'
 import { Search as SearchIcon, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Search } from '@/lib/types'
+import Link from 'next/link'
 
 const PAGE_SIZE = 5
 
@@ -45,8 +46,14 @@ export function SearchHistorySection({ searches }: Props) {
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-slate-700">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">최근 진단 기록</h3>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-3">
                     {searches.length > 0 && <DeleteAllButton />}
+                    <Link
+                        href="/history"
+                        className="text-sm font-medium text-gray-500 hover:text-[#00C896] transition-colors whitespace-nowrap"
+                    >
+                        전체 보기 →
+                    </Link>
                 </div>
             </div>
 

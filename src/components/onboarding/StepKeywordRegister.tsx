@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, Hash } from 'lucide-react'
+import { AlertTriangle, Hash, Loader2 } from 'lucide-react'
 import { KeywordInput } from '@/components/search/KeywordInput'
+import { createClient } from '@/lib/supabase/client'
 
 interface Props {
     planId: 'starter' | 'pro' | 'premium'
@@ -22,16 +23,58 @@ export default function StepKeywordRegister({ planId, onComplete }: Props) {
     const [activeTab, setActiveTab] = useState<'naver' | 'google'>('naver')
     const [naverKeywords, setNaverKeywords] = useState<string[]>([''])
     const [googleKeywords, setGoogleKeywords] = useState<string[]>([''])
+    const [saving, setSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const naverFilled = naverKeywords.filter(k => k.trim()).length > 0
     const googleFilled = isPremium ? googleKeywords.filter(k => k.trim()).length > 0 : true
     const canProceed = naverFilled && googleFilled
 
-    const handleNext = () => {
-        onComplete({
-            naverKeywords: naverKeywords.filter(k => k.trim()),
-            googleKeywords: isPremium ? googleKeywords.filter(k => k.trim()) : undefined,
-        })
+    // DB 즉시 커밋: Supabase Client 직접 INSERT
+    const handleNext = async () => {
+        if (!canProceed) return
+        setSaving(true)
+        setError(null)
+
+        try {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('인증 정보를 확인할 수 없습니다.')
+
+            const filteredNaver = naverKeywords.filter(k => k.trim())
+            const filteredGoogle = isPremium ? googleKeywords.filter(k => k.trim()) : []
+
+            // 네이버 키워드 INSERT
+            const naverInserts = filteredNaver.map(keyword => ({
+                user_id: user.id,
+                platform: 'naver' as const,
+                keyword: keyword.trim(),
+            }))
+
+            // 구글 키워드 INSERT (Premium)
+            const googleInserts = filteredGoogle.map(keyword => ({
+                user_id: user.id,
+                platform: 'google' as const,
+                keyword: keyword.trim(),
+            }))
+
+            const allInserts = [...naverInserts, ...googleInserts]
+
+            const { error: insertError } = await supabase
+                .from('managed_keywords')
+                .insert(allInserts)
+
+            if (insertError) throw new Error(insertError.message)
+
+            onComplete({
+                naverKeywords: filteredNaver,
+                googleKeywords: isPremium ? filteredGoogle : undefined,
+            })
+        } catch (err: any) {
+            setError(err.message)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (
@@ -88,7 +131,7 @@ export default function StepKeywordRegister({ planId, onComplete }: Props) {
                             keywords={naverKeywords}
                             onChange={setNaverKeywords}
                             maxKeywords={limits.naver}
-                            placeholder='키워드 입력 (예: "강남 카페", "강남역 맛집")'
+                            platform="naver"
                         />
                     </div>
                 )}
@@ -99,38 +142,42 @@ export default function StepKeywordRegister({ planId, onComplete }: Props) {
                             keywords={googleKeywords}
                             onChange={setGoogleKeywords}
                             maxKeywords={limits.google}
-                            placeholder='키워드 입력 (예: "cafe near gangnam", "korean bbq")'
+                            platform="google"
                         />
                     </div>
                 )}
             </div>
 
             {/* 안내 문구 */}
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
-                <p className="text-sm text-blue-700">
-                    💡 이 키워드는 <strong>주간 리포트</strong>와 <strong>실시간 진단</strong>에 모두 사용됩니다.
+            <div className="rounded-xl border border-[#00C896]/20 bg-[#E5F9F4] p-4">
+                <p className="text-sm text-gray-700 leading-relaxed">
+                    이 키워드는 <strong>주간 리포트</strong>와 <strong>실시간 진단</strong>에 모두 사용됩니다.<br />
+                    등록하신 키워드는 언제든지 자유롭게 변경할 수 있습니다.
                 </p>
             </div>
 
-            {/* 30일 락 경고 */}
-            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
-                <div>
-                    <p className="text-sm font-medium text-amber-800">등록 후 30일간 변경이 불가합니다</p>
-                    <p className="mt-1 text-xs text-amber-600">
-                        키워드를 신중하게 선택해주세요. 30일 이후 설정 메뉴에서 변경할 수 있습니다.
-                    </p>
+            {/* 에러 메시지 */}
+            {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                    <p className="text-sm text-red-700">{error}</p>
                 </div>
-            </div>
+            )}
 
             {/* 다음 버튼 */}
             <button
                 type="button"
                 onClick={handleNext}
-                disabled={!canProceed}
+                disabled={!canProceed || saving}
                 className="w-full rounded-xl bg-[#00C896] py-4 text-base font-bold text-white shadow-lg shadow-[#00C896]/25 transition-all hover:-translate-y-0.5 hover:bg-[#00B386] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
             >
-                다음 단계로 →
+                {saving ? (
+                    <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        저장 중...
+                    </span>
+                ) : (
+                    '다음 단계로 →'
+                )}
             </button>
         </div>
     )

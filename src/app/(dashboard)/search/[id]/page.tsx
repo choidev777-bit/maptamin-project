@@ -34,7 +34,8 @@ export default async function SearchResultsPage({ params }: PageProps) {
         supabase
             .from('managed_competitors')
             .select('*')
-            .eq('user_id', user.id),
+            .eq('user_id', user.id)
+            .eq('platform', 'google'),
         supabase
             .from('user_subscriptions')
             .select('plan_id')

@@ -18,7 +18,7 @@ export function DashboardHeader({ hasActiveWeeklyReport, nextReportDate }: Props
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div className="flex flex-col gap-1">
                 <h1 className="text-3xl md:text-4xl font-black tracking-tight text-gray-900 dark:text-white">대시보드</h1>
-                <p className="text-gray-500 dark:text-slate-400 text-base font-normal">로컬 검색 순위를 직관적으로 추적하세요</p>
+                <p className="text-gray-500 dark:text-slate-400 text-base font-normal">사장님의 진짜 상권 순위를 확인하세요.</p>
             </div>
 
             {/* Auto Report Status Badge */}

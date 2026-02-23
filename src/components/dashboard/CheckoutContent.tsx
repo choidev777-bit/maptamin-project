@@ -95,8 +95,21 @@ export function CheckoutContent() {
                 throw new Error(data.error || '구독 시작에 실패했습니다.')
             }
 
-            // 3. 성공 -> 대시보드로 이동
-            router.replace('/dashboard/subscription?success=true')
+            // 3. 성공 -> 신규 가입 vs 업그레이드 분기
+            // 신규 가입(온보딩 미완료) → /onboarding
+            // 플랜 업그레이드(온보딩 완료) → /dashboard/subscription?success=true
+            const { createClient } = await import('@/lib/supabase/client')
+            const supabase = createClient()
+            const { data: sub } = await supabase
+                .from('user_subscriptions')
+                .select('onboarding_completed')
+                .single()
+
+            if (sub && !sub.onboarding_completed) {
+                router.replace('/onboarding')
+            } else {
+                router.replace('/dashboard/subscription?success=true')
+            }
 
         } catch (err) {
             setError(err instanceof Error ? err.message : '결제 처리 중 오류가 발생했습니다.')

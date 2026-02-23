@@ -29,6 +29,7 @@ export function MobileNav({ user, subscription }: Props) {
 
     const navItems = [
         { href: '/dashboard', label: '대시보드', icon: Home },
+        { href: '/history', label: '진단 기록', icon: History },
         {
             label: '내 순위 검색',
             icon: Search,

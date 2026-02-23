@@ -58,6 +58,13 @@ export function PlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
                     lat: value.location.lat(),
                     lng: value.location.lng(),
                 })
+
+                // 검색창 즉시 초기화 (사용성 개선)
+                if (autocompleteRef.current) {
+                    const el = autocompleteRef.current as any
+                    if (el) el.value = ''
+                    setTimeout(() => el.blur && el.blur(), 10)
+                }
                 return
             }
 
@@ -88,6 +95,13 @@ export function PlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
                             lat: place.location.lat(),
                             lng: place.location.lng(),
                         })
+
+                        // 자동완성 검색일 경우에도 엔터 등 수동 검색 시 입력창 즉시 초기화
+                        if (autocompleteRef.current) {
+                            const el = autocompleteRef.current as any
+                            if (el) el.value = ''
+                            setTimeout(() => el.blur && el.blur(), 10)
+                        }
                     }
                 }
             } catch (error) {
@@ -139,7 +153,7 @@ export function PlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
           display: block;
           border: 1px solid #d1d5db;
           border-radius: 0.75rem;
-          overflow: hidden;
+          /* overflow: hidden; 삭제 - 드롭다운이 잘리는 원인 */
         }
         .place-autocomplete-wrapper input {
           width: 100%;
@@ -163,15 +177,13 @@ export function PlaceSearchInput({ onPlaceSelect, selectedPlace }: Props) {
       `}</style>
 
             {selectedPlace && (
-                <div className="p-5 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-                    <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <MapPin className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                            <p className="font-semibold text-gray-900">{selectedPlace.name}</p>
-                            <p className="text-sm text-gray-600 mt-1">{selectedPlace.address}</p>
-                        </div>
+                <div className="mt-3 p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-3 animate-in fade-in slide-in-from-top-1">
+                    <div className="p-2 bg-emerald-100 rounded-full text-emerald-600">
+                        <MapPin className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <p className="font-semibold text-emerald-900">{selectedPlace.name}</p>
+                        <p className="text-sm text-emerald-700">{selectedPlace.address}</p>
                     </div>
                 </div>
             )}

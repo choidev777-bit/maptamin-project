@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Calendar, Clock, MessageSquare, Check } from 'lucide-react'
+import { Calendar, Clock, Phone, Loader2, MessageCircle } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import type { OnboardingData } from '@/app/(dashboard)/onboarding/onboarding-utils'
 
 const DAYS = [
     { value: 1, label: '월' },
@@ -24,32 +26,143 @@ interface ScheduleData {
     notifyImmediate: boolean
     notifyDay?: number
     notifyTime?: string
+    phone?: string
 }
 
 interface Props {
+    planId?: 'starter' | 'pro' | 'premium'
+    onboardingData?: OnboardingData
     onComplete: (data: ScheduleData) => void
 }
 
-export default function StepScheduleSetting({ onComplete }: Props) {
+export default function StepScheduleSetting({ planId, onboardingData, onComplete }: Props) {
+    const isPremium = planId === 'premium'
     const [crawlingDay, setCrawlingDay] = useState<number | null>(null)
     const [crawlingTime, setCrawlingTime] = useState('09:00')
-    const [notifyImmediate, setNotifyImmediate] = useState(true)
-    const [notifyDay, setNotifyDay] = useState<number | null>(null)
-    const [notifyTime, setNotifyTime] = useState('10:00')
+    const [phone, setPhone] = useState('')
+    const [saving, setSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
-    const canProceed = crawlingDay !== null && (notifyImmediate || notifyDay !== null)
+    const phoneValid = phone.replace(/[^0-9]/g, '').length >= 11
+    const canProceed = crawlingDay !== null && phoneValid
 
     const getDayLabel = (value: number) => DAYS.find(d => d.value === value)?.label || ''
 
-    const handleComplete = () => {
-        if (crawlingDay === null) return
-        onComplete({
-            crawlingDay,
-            crawlingTime,
-            notifyImmediate,
-            notifyDay: notifyImmediate ? undefined : (notifyDay ?? undefined),
-            notifyTime: notifyImmediate ? undefined : notifyTime,
-        })
+    // 전화번호 포맷 (하이픈 자동 삽입)
+    const formatPhone = (val: string) => {
+        const digits = val.replace(/[^0-9]/g, '').slice(0, 11)
+        if (digits.length <= 3) return digits
+        if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+        return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+    }
+
+    // DB 즉시 커밋: search_schedules + notification_schedules INSERT
+    const handleComplete = async () => {
+        if (crawlingDay === null || !phoneValid) return
+        setSaving(true)
+        setError(null)
+
+        try {
+            const supabase = createClient()
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('인증 정보를 확인할 수 없습니다.')
+
+            // 1. 전화번호 저장: user_subscriptions.phone
+            const { error: phoneErr } = await supabase
+                .from('user_subscriptions')
+                .update({ phone: phone.replace(/[^0-9]/g, '') })
+                .eq('user_id', user.id)
+
+            if (phoneErr) throw new Error(phoneErr.message)
+
+            // 2. 네이버 search_schedule INSERT (grid_config + place/keyword 포함)
+            const naverGrid = onboardingData?.grid?.naverGrid ?? []
+            const naverGridConfig = naverGrid.map(p => ({
+                lat: p.lat, lng: p.lng, row: p.row, col: p.col,
+                enabled: p.enabled, distance: onboardingData?.grid?.distance ?? 1,
+            }))
+
+            const { error: naverScheduleErr } = await supabase
+                .from('search_schedules')
+                .insert({
+                    user_id: user.id,
+                    platform: 'naver',
+                    place_id: onboardingData?.store?.naverPlace?.placeId ?? '',
+                    place_name: onboardingData?.store?.naverPlace?.name ?? '',
+                    keywords: onboardingData?.keywords?.naverKeywords ?? [],
+                    grid_config: naverGridConfig,
+                    grid_distance: onboardingData?.grid?.distance ?? 1,
+                    crawling_day: crawlingDay,
+                    crawling_time: crawlingTime,
+                    is_active: true,
+                })
+
+            if (naverScheduleErr) throw new Error(naverScheduleErr.message)
+
+            // 3. Premium: 구글 search_schedule도 INSERT
+            if (isPremium) {
+                const googleGrid = onboardingData?.grid?.googleGrid ?? []
+                const googleGridConfig = googleGrid.map(p => ({
+                    lat: p.lat, lng: p.lng, row: p.row, col: p.col,
+                    enabled: p.enabled, distance: onboardingData?.grid?.distance ?? 1,
+                }))
+
+                const { error: googleScheduleErr } = await supabase
+                    .from('search_schedules')
+                    .insert({
+                        user_id: user.id,
+                        platform: 'google',
+                        place_id: onboardingData?.store?.googlePlace?.placeId ?? '',
+                        place_name: onboardingData?.store?.googlePlace?.name ?? '',
+                        keywords: onboardingData?.keywords?.googleKeywords ?? [],
+                        grid_config: googleGridConfig,
+                        grid_distance: onboardingData?.grid?.distance ?? 1,
+                        crawling_day: crawlingDay,
+                        crawling_time: crawlingTime,
+                        is_active: true,
+                    })
+
+                if (googleScheduleErr) throw new Error(googleScheduleErr.message)
+            }
+
+            // 4. 네이버 notification_schedule INSERT
+            const { error: naverNotifyErr } = await supabase
+                .from('notification_schedules')
+                .insert({
+                    user_id: user.id,
+                    is_immediate: true,
+                    notify_day: null,
+                    notify_time: null,
+                })
+
+            if (naverNotifyErr) throw new Error(naverNotifyErr.message)
+
+            // 5. Premium: 구글 notification_schedule도 INSERT
+            if (isPremium) {
+                const { error: googleNotifyErr } = await supabase
+                    .from('notification_schedules')
+                    .insert({
+                        user_id: user.id,
+                        is_immediate: true,
+                        notify_day: null,
+                        notify_time: null,
+                    })
+
+                if (googleNotifyErr) throw new Error(googleNotifyErr.message)
+            }
+
+            // 성공 → 다음 Step
+            onComplete({
+                crawlingDay,
+                crawlingTime,
+                notifyImmediate: true,
+                phone,
+            })
+        } catch (err: any) {
+            setError(err.message)
+        } finally {
+            setSaving(false)
+        }
     }
 
     return (
@@ -65,17 +178,32 @@ export default function StepScheduleSetting({ onComplete }: Props) {
                 </p>
             </div>
 
+            {/* 전화번호 입력 */}
+            <div className="rounded-xl border border-gray-200 bg-white p-6">
+                <h3 className="mb-1 flex items-center gap-2 text-base font-semibold text-gray-800">
+                    <Phone className="h-5 w-5 text-[#00C896]" />
+                    전화번호
+                </h3>
+                <p className="mb-4 text-xs text-gray-500">카카오톡으로 리포트를 받을 전화번호를 입력해주세요.</p>
+                <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => setPhone(formatPhone(e.target.value))}
+                    placeholder="010-1234-5678"
+                    className="w-full rounded-lg border border-gray-200 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#00C896]"
+                />
+            </div>
+
             {/* A. 검색 실행 시점 */}
             <div className="rounded-xl border border-gray-200 bg-white p-6">
                 <h3 className="mb-1 flex items-center gap-2 text-base font-semibold text-gray-800">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#00C896] text-xs font-bold text-white">A</span>
-                    검색 실행 시점
+                    분석 실행 시간 설정
                 </h3>
                 <p className="mb-5 text-xs text-gray-500">매주 이 시간에 자동으로 순위를 분석합니다</p>
 
                 {/* 요일 선택 — 단일 선택 */}
                 <div className="mb-4">
-                    <label className="mb-2 block text-sm font-medium text-gray-700">검색 요일 (1개 선택)</label>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">분석 요일 (1개 선택)</label>
                     <div className="flex gap-2">
                         {DAYS.map(day => {
                             const isSelected = crawlingDay === day.value
@@ -101,7 +229,7 @@ export default function StepScheduleSetting({ onComplete }: Props) {
                 <div>
                     <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
                         <Clock className="h-4 w-4" />
-                        검색 시간
+                        분석 시간
                     </label>
                     <div className="relative">
                         <select
@@ -124,102 +252,43 @@ export default function StepScheduleSetting({ onComplete }: Props) {
                 {/* 미리보기 */}
                 {crawlingDay !== null && (
                     <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
-                        🔍 매주 <strong>{getDayLabel(crawlingDay)}요일 {crawlingTime}</strong>에 자동 분석됩니다
+                        매주 <strong>{getDayLabel(crawlingDay)}요일 {crawlingTime}</strong>에 자동 분석됩니다
                     </div>
                 )}
             </div>
 
-            {/* B. 카톡 수신 시점 */}
-            <div className="rounded-xl border border-gray-200 bg-white p-6">
-                <h3 className="mb-1 flex items-center gap-2 text-base font-semibold text-gray-800">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#00C896] text-xs font-bold text-white">B</span>
-                    카카오톡 수신 시점
-                </h3>
-                <p className="mb-5 text-xs text-gray-500">리포트를 카카오톡으로 받아볼 시점을 설정합니다</p>
-
-                {/* 즉시 받기 옵션 */}
-                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 p-4 transition-all hover:border-[#00C896]/30 hover:bg-[#00C896]/5">
-                    <div className="relative mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center">
-                        <input
-                            type="checkbox"
-                            checked={notifyImmediate}
-                            onChange={e => setNotifyImmediate(e.target.checked)}
-                            className="h-5 w-5 rounded border-gray-300 text-[#00C896] focus:ring-[#00C896]"
-                        />
-                    </div>
-                    <div>
-                        <p className="text-sm font-medium text-gray-900">분석 완료 즉시 받기</p>
-                        <p className="mt-0.5 text-xs text-gray-500">분석이 끝나면 바로 카카오톡으로 알립니다 (권장)</p>
-                    </div>
-                </label>
-
-                {/* 직접 설정 */}
-                {!notifyImmediate && (
-                    <div className="mt-4 space-y-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4">
-                        <p className="text-sm font-medium text-gray-700">직접 수신 시간 설정</p>
-
-                        {/* 요일 */}
-                        <div>
-                            <label className="mb-2 block text-xs text-gray-500">수신 요일</label>
-                            <div className="flex gap-2">
-                                {DAYS.map(day => {
-                                    const isSelected = notifyDay === day.value
-                                    return (
-                                        <button
-                                            key={day.value}
-                                            type="button"
-                                            onClick={() => setNotifyDay(day.value)}
-                                            className={`flex-1 rounded-lg py-2 text-xs font-medium transition-all ${isSelected
-                                                ? 'bg-[#00C896] text-white shadow-sm'
-                                                : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-                                                }`}
-                                        >
-                                            {day.label}
-                                        </button>
-                                    )
-                                })}
-                            </div>
-                        </div>
-
-                        {/* 시간 */}
-                        <div>
-                            <label className="mb-2 block text-xs text-gray-500">수신 시간</label>
-                            <div className="relative">
-                                <select
-                                    value={notifyTime}
-                                    onChange={e => setNotifyTime(e.target.value)}
-                                    className="w-full appearance-none rounded-lg border border-gray-200 bg-white py-2.5 pl-3 pr-10 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#00C896]"
-                                >
-                                    {HOURS.map(h => (
-                                        <option key={h.value} value={h.value}>{h.label}</option>
-                                    ))}
-                                </select>
-                                <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                                    <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </div>
-                            </div>
-                        </div>
-
-                        {notifyDay !== null && (
-                            <p className="text-xs text-gray-600">
-                                📱 매주 <strong>{getDayLabel(notifyDay)}요일 {notifyTime}</strong>에 카톡을 보내드립니다
-                            </p>
-                        )}
-                    </div>
-                )}
+            {/* 카카오톡 안내 */}
+            <div className="rounded-xl border border-[#00C896]/20 bg-[#E5F9F4] px-5 py-4">
+                <p className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                    <MessageCircle className="h-5 w-5 text-[#00C896]" />
+                    분석이 완료되면 즉시 사장님의 카카오톡으로 리포트를 배달할게요!
+                </p>
             </div>
+
+            {/* 에러 메시지 */}
+            {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                    <p className="text-sm text-red-700">{error}</p>
+                </div>
+            )}
 
             {/* 완료 버튼 */}
             <button
                 type="button"
                 onClick={handleComplete}
-                disabled={!canProceed}
+                disabled={!canProceed || saving}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#00C896] py-4 text-base font-bold text-white shadow-lg shadow-[#00C896]/25 transition-all hover:-translate-y-0.5 hover:bg-[#00B386] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
             >
-                <Check className="h-5 w-5" />
-                온보딩 완료하기
+                {saving ? (
+                    <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        저장 중...
+                    </span>
+                ) : (
+                    <>
+                        완료하고 첫 리포트 받기 🎉
+                    </>
+                )}
             </button>
         </div>
     )

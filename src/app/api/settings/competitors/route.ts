@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { platform, placeId, placeName, address, lat, lng } = body;
+        const { platform, placeId, placeName } = body;
 
         if (!['naver', 'google'].includes(platform) || !placeId || !placeName) {
             return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
@@ -92,9 +92,6 @@ export async function POST(request: Request) {
                 platform,
                 place_id: placeId,
                 place_name: placeName,
-                address: address || null,
-                lat: lat || null,
-                lng: lng || null,
             });
 
         if (insertErr) throw insertErr;

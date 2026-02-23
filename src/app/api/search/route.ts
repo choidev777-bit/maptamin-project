@@ -19,39 +19,49 @@ export async function POST(request: NextRequest) {
     ]
     const isAdmin = user.email && ADMIN_EMAILS.includes(user.email)
 
-    // Body 파싱 완료
     const body = await bodyPromise
-    const { place, keywords, gridPoints, distance, distanceUnit } = body
+    const { place, keywords, gridPoints, distance, distanceUnit, reportType } = body
 
-    // 1. Ticket Check
+    // --- Welcome Report 분기 (최소 변경) ---
+    const isWelcome = reportType === 'welcome'
+
     const { data: subscription } = await supabase
         .from('user_subscriptions')
-        .select('remaining_tickets_google')
+        .select('remaining_tickets_google, welcome_report_sent')
         .eq('user_id', user.id)
         .single()
 
-    const remainingTickets = subscription?.remaining_tickets_google || 0
-
-    // Admins bypass ticket check? For now, let's enforce it or give them many tickets.
-    // Assuming admins also need tickets, or we can bypass. 
-    // Let's enforce it for consistency, unless requested otherwise.
-    if (remainingTickets <= 0) {
-        return NextResponse.json({
-            error: 'NO_TICKETS',
-            message: '구글 검색 티켓이 부족합니다.',
-        }, { status: 402 })
+    // 🔴 CRITICAL: 웰컴 리포트 보안 검증
+    if (isWelcome) {
+        if (subscription?.welcome_report_sent) {
+            return NextResponse.json(
+                { error: 'WELCOME_REPORT_ALREADY_SENT', message: '웰컴 리포트는 한 번만 받을 수 있습니다.' },
+                { status: 403 }
+            )
+        }
     }
 
-    // 2. Deduct Ticket (Atomic RPC)
-    const { error: deductError } = await supabase
-        .rpc('deduct_ticket', { p_platform: 'google' })
+    // 1. Ticket Check (웰컴 리포트는 무료 — Skip)
+    if (!isWelcome) {
+        const remainingTickets = subscription?.remaining_tickets_google || 0
+        if (remainingTickets <= 0) {
+            return NextResponse.json({
+                error: 'NO_TICKETS',
+                message: '구글 검색 티켓이 부족합니다.',
+            }, { status: 402 })
+        }
 
-    if (deductError) {
-        console.error('Ticket deduction failed:', deductError)
-        return NextResponse.json({
-            error: 'TICKET_DEDUCTION_FAILED',
-            message: '티켓 차감 중 오류가 발생했습니다.',
-        }, { status: 500 })
+        // 2. Deduct Ticket (Atomic RPC)
+        const { error: deductError } = await supabase
+            .rpc('deduct_ticket', { p_platform: 'google' })
+
+        if (deductError) {
+            console.error('Ticket deduction failed:', deductError)
+            return NextResponse.json({
+                error: 'TICKET_DEDUCTION_FAILED',
+                message: '티켓 차감 중 오류가 발생했습니다.',
+            }, { status: 500 })
+        }
     }
 
     // 3. Create Search Record
@@ -70,7 +80,7 @@ export async function POST(request: NextRequest) {
             distance_unit: distanceUnit,
             status: 'processing',
             platform: 'google',
-            report_type: 'realtime'
+            report_type: isWelcome ? 'welcome' : 'realtime'
         })
         .select()
         .single()
@@ -78,7 +88,9 @@ export async function POST(request: NextRequest) {
     if (error) {
         console.error('Failed to create search:', error)
         // Auto Refund on Failure
-        await supabase.rpc('refund_ticket', { p_platform: 'google' })
+        if (!isWelcome) {
+            await supabase.rpc('refund_ticket', { p_platform: 'google' })
+        }
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
@@ -123,7 +135,9 @@ export async function POST(request: NextRequest) {
         } catch (dispatchError) {
             console.error('[API] Dispatch Error:', dispatchError);
             // Refund ticket
-            await supabase.rpc('refund_ticket', { p_platform: 'google' });
+            if (!isWelcome) {
+                await supabase.rpc('refund_ticket', { p_platform: 'google' })
+            };
             return NextResponse.json({ error: 'Internal Dispatch Error' }, { status: 500 });
         }
     } else {

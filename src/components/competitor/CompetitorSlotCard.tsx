@@ -42,11 +42,7 @@ export function CompetitorSlotCard({ competitor, platform, onSelect, onDelete, o
                         <h4 className="font-bold text-gray-900 line-clamp-1">{competitor.place_name}</h4>
                         <p className="text-xs text-gray-500 line-clamp-1 mt-1">{competitor.address || '주소 정보 없음'}</p>
                     </div>
-                    {competitor.locked_until && (
-                        <Badge variant="outline" className="text-xs text-amber-600 bg-amber-50">
-                            {new Date(competitor.locked_until).toLocaleDateString()}
-                        </Badge>
-                    )}
+
                 </div>
             </div>
 
@@ -67,13 +63,11 @@ export function CompetitorSlotCard({ competitor, platform, onSelect, onDelete, o
                 >
                     <History className="w-4 h-4" />
                 </Button>
-                {/* Delete only if not locked? Or show disabled? Requirement says 30 day lock. */}
-                {/* We can disable delete if locked */}
+                {/* Delete */}
                 <Button
                     variant="ghost"
                     size="icon"
                     className="text-gray-400 hover:text-red-500"
-                    disabled={!!competitor.locked_until}
                     onClick={() => onDelete(competitor.id)}
                 >
                     <Trash2 className="w-4 h-4" />

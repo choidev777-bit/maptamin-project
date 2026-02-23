@@ -78,11 +78,7 @@ export function getPlanDisplayName(planId: string): string {
     };
     return names[planId] || planId;
 }
-/** 키워드 변경 가능 여부 확인 (매장 잠금 기준) */
-export function canUpdateKeywords(lockedUntil: string | null): boolean {
-    if (!lockedUntil) return true;
-    return new Date() > new Date(lockedUntil);
-}
+
 
 /** 구독 해지 가능 여부 (유효한 유료 플랜일 때만 해지 가능) */
 export function canCancelSubscription(planId: string): boolean {

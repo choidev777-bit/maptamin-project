@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useEffect, useRef } from 'react'
 import { NavermapsProvider, Container as MapDiv, NaverMap, Marker, useNavermaps } from 'react-naver-maps'
 import { MapPin, Grid3X3 } from 'lucide-react'
 
@@ -20,6 +20,7 @@ interface Props {
     onPointsChange: (points: GridPoint[]) => void
     gridDistance: number // in km
     maxPoints?: number
+    onReset?: () => void
 }
 
 const PRESETS = [
@@ -59,9 +60,37 @@ interface MapContentProps {
 
 function MapContent({ centerLat, centerLng, pointsWithPosition, togglePoint }: MapContentProps) {
     const navermaps = useNavermaps()
+    const mapRef = useRef<any>(null)
+
+    // Auto-fit bounds when points change
+    useEffect(() => {
+        if (!mapRef.current || pointsWithPosition.length === 0) return
+
+        const map = mapRef.current
+
+        let minLat = centerLat
+        let maxLat = centerLat
+        let minLng = centerLng
+        let maxLng = centerLng
+
+        pointsWithPosition.forEach(p => {
+            if (p.lat < minLat) minLat = p.lat
+            if (p.lat > maxLat) maxLat = p.lat
+            if (p.lng < minLng) minLng = p.lng
+            if (p.lng > maxLng) maxLng = p.lng
+        })
+
+        const bounds = new navermaps.LatLngBounds(
+            new navermaps.LatLng(minLat, minLng),
+            new navermaps.LatLng(maxLat, maxLng)
+        )
+
+        map.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 })
+    }, [navermaps, centerLat, centerLng, pointsWithPosition])
 
     return (
         <NaverMap
+            ref={mapRef}
             defaultCenter={new navermaps.LatLng(centerLat, centerLng)}
             defaultZoom={14}
             zoomControl={true}
@@ -132,6 +161,7 @@ export function NaverMapGridConfigurator({
     onPointsChange,
     gridDistance,
     maxPoints = 49,
+    onReset,
 }: Props) {
     const clientId = process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID
 
@@ -172,11 +202,6 @@ export function NaverMapGridConfigurator({
         onPointsChange(newPoints)
     }, [onPointsChange])
 
-    // Clear all (keep only center)
-    const clearAll = useCallback(() => {
-        onPointsChange([{ row: 0, col: 0, enabled: true }])
-    }, [onPointsChange])
-
     const enabledCount = selectedPoints.filter(p => p.enabled).length
 
     if (!clientId) {
@@ -188,21 +213,21 @@ export function NaverMapGridConfigurator({
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 p-6">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                        <Grid3X3 className="w-5 h-5 text-emerald-600" />
+                    <div className="w-10 h-10 bg-[#E5F9F4] rounded-lg flex items-center justify-center">
+                        <Grid3X3 className="w-5 h-5 text-[#00C896]" />
                     </div>
                     <div>
-                        <h3 className="font-semibold text-gray-900">그리드 포인트 선택</h3>
-                        <p className="text-sm text-gray-500">지도에서 측정 지점을 선택하세요</p>
+                        <h3 className="font-semibold text-gray-900">좌표 위치 선택</h3>
+                        <p className="text-sm text-gray-500">지도에서 순위를 분석할 좌표를 선택하세요</p>
                     </div>
                 </div>
                 <div className="text-right">
-                    <p className="text-2xl font-bold text-emerald-600">{enabledCount}</p>
-                    <p className="text-sm text-gray-500">/ {maxPoints} 지점</p>
+                    <span className="text-3xl font-bold text-[#00C896]">{enabledCount}</span>
+                    <span className="ml-1 text-sm font-medium text-gray-500">개 좌표 선택됨</span>
                 </div>
             </div>
 
@@ -213,17 +238,17 @@ export function NaverMapGridConfigurator({
                         key={preset.size}
                         onClick={() => applyPreset(preset.size)}
                         className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-medium ${enabledCount === preset.points
-                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                            : 'border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/50 text-gray-700'
+                            ? 'border-[#00C896] bg-[#E5F9F4] text-[#00A87D]'
+                            : 'border-gray-200 hover:border-[#00C896]/50 hover:bg-[#E5F9F4]/50 text-gray-700'
                             }`}
                     >
                         <span className="text-lg">{preset.label}</span>
-                        <span className="block text-xs text-gray-500 mt-0.5">{preset.points}개 지점</span>
+                        <span className="block text-xs text-gray-500 mt-0.5">{preset.points}개 좌표</span>
                     </button>
                 ))}
                 <button
-                    onClick={clearAll}
-                    className="py-3 px-4 rounded-xl border-2 border-gray-200 hover:border-red-300 hover:bg-red-50/50 text-gray-700 transition-all"
+                    onClick={onReset}
+                    className="py-3 px-4 rounded-xl border-2 border-gray-200 hover:border-red-300 hover:bg-red-50/50 text-gray-700 transition-all cursor-pointer"
                 >
                     <span className="text-sm">초기화</span>
                 </button>
@@ -244,21 +269,28 @@ export function NaverMapGridConfigurator({
             </div>
 
             {/* Legend */}
-            <div className="flex items-center gap-6 text-sm text-gray-600">
+            <div className="mt-4 flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-gray-600 px-1">
                 <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+                    <div className="w-5 h-5 rounded-full bg-[#00C896] flex items-center justify-center">
                         <MapPin className="w-3 h-3 text-white" />
                     </div>
-                    <span>비즈니스 위치</span>
+                    <span>매장 위치</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow" />
-                    <span>측정 지점</span>
+                    <span>분석 위치</span>
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full bg-gray-400 border-2 border-white opacity-60" />
                     <span>비활성</span>
                 </div>
+            </div>
+
+            {/* Hint */}
+            <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
+                <p className="text-xs text-amber-700 leading-relaxed">
+                    <span className="font-semibold">추천:</span> 산, 강, 바다 등 사람이 검색하지 않는 지역의 좌표는 클릭하여 비활성화하세요.
+                </p>
             </div>
         </div>
     )

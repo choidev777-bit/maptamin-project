@@ -72,15 +72,12 @@ export class PlaceManager {
             throw new Error(`${plan.name} 플랜은 경쟁사 ${plan.max_competitors}곳까지 등록 가능합니다.`);
         }
 
-        // 3. Insert with Lock
-        const lockedUntil = new Date();
-        lockedUntil.setDate(lockedUntil.getDate() + 30);
-
+        // 3. Insert (no lock)
         const { error: insertError } = await supabase.from('managed_competitors').insert({
             user_id: userId,
             place_id: placeId,
             place_name: placeName,
-            locked_until: lockedUntil.toISOString()
+            locked_until: null
         });
 
         if (insertError) throw new Error(insertError.message);

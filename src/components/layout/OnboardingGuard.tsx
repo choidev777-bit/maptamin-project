@@ -15,16 +15,17 @@ interface Props {
 export function OnboardingGuard({ shouldRedirect, children }: Props) {
     const pathname = usePathname()
     const router = useRouter()
-    const isOnboardingPage = pathname.startsWith('/onboarding')
+    const isExemptPath = pathname.startsWith('/onboarding')
+        || pathname.startsWith('/dashboard/subscription')
 
     useEffect(() => {
-        if (shouldRedirect && !isOnboardingPage) {
+        if (shouldRedirect && !isExemptPath) {
             router.replace('/onboarding')
         }
-    }, [shouldRedirect, isOnboardingPage, router])
+    }, [shouldRedirect, isExemptPath, router])
 
     // 리다이렉트 대기 중이면 로딩 표시
-    if (shouldRedirect && !isOnboardingPage) {
+    if (shouldRedirect && !isExemptPath) {
         return (
             <div className="flex min-h-screen items-center justify-center">
                 <div className="animate-spin h-8 w-8 border-4 border-[#00C896] border-t-transparent rounded-full" />
