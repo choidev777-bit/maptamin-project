@@ -141,13 +141,16 @@ export async function POST(request: Request) {
     const enabledCount = gridPoints.filter((p: { enabled: boolean }) => p.enabled).length
     const estimatedTime = enabledCount * keywords.length * 3
 
-    // 🆕 Trigger queue dispatcher (non-blocking)
-    // This will start the job if slots are available
+    // 🆕 Trigger queue dispatcher (await — dispatch 확실히 실행)
     const baseUrl = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || ''
-    fetch(`${baseUrl}/api/queue/dispatch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-    }).catch(err => console.error('[Search] Dispatcher trigger failed:', err))
+    try {
+        await fetch(`${baseUrl}/api/queue/dispatch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+    } catch (err) {
+        console.error('[Search] Dispatcher trigger failed:', err)
+    }
 
     return NextResponse.json({
         searchId: search.id,
