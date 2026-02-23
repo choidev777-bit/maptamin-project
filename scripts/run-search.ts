@@ -1,10 +1,7 @@
 import 'dotenv/config'; // Must be first to ensure env vars are loaded before other imports
 import { createClient } from '@supabase/supabase-js';
+import { SolapiMessageService } from 'solapi';
 
-// Dynamic imports for scraper functions to avoid load-time errors if they use browser APIs
-// We will import them inside the main function or use require if needed, 
-// but standard ES import is cleaner if the modules are isomorphic.
-// Assuming scraper.ts is isomorphic or Node-safe.
 import { scrapeNaverBatch } from '../src/lib/naver/scraper_ex2';
 import { NaverScrapeTask } from '../src/lib/naver/types';
 
@@ -19,6 +16,125 @@ if (!supabaseUrl || !serviceKey) {
 }
 
 const supabase = createClient(supabaseUrl, serviceKey);
+
+// ── KST 시간 유틸 ──
+function getKstNow(): Date {
+    return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+}
+
+function formatKstDate(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${y}.${m}.${d} ${h}:${min}`;
+}
+
+function formatReportPeriod(): string {
+    const now = getKstNow();
+    const end = new Date(now);
+    end.setDate(end.getDate() - 1);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 6);
+    const fmt = (d: Date) => `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+    return `${fmt(start)} ~ ${fmt(end)}`;
+}
+
+// ── 솔라피 알림톡 발송 ──
+async function sendKakaoAlimtalk(search: {
+    id: string; user_id: string; place_name: string;
+    platform: string; report_type: string;
+}): Promise<void> {
+    const apiKey = process.env.SOLAPI_API_KEY;
+    const apiSecret = process.env.SOLAPI_API_SECRET;
+    const senderNumber = process.env.SOLAPI_SENDER_NUMBER;
+    const pfId = process.env.SOLAPI_PFID;
+    const siteUrl = process.env.SITE_URL || 'https://www.maptamin.com';
+
+    if (!apiKey || !apiSecret || !senderNumber || !pfId) {
+        console.log('[AlimTalk] 솔라피 환경변수 미설정 — 알림톡 건너뜀');
+        return;
+    }
+
+    // 1. 사용자 전화번호 조회
+    const { data: sub } = await supabase
+        .from('user_subscriptions')
+        .select('phone')
+        .eq('user_id', search.user_id)
+        .single();
+
+    if (!sub?.phone) {
+        console.log(`[AlimTalk] 전화번호 미등록 — user ${search.user_id}, 알림톡 건너뜀`);
+        return;
+    }
+
+    // 2. 템플릿 ID 결정
+    const isWeekly = search.report_type === 'weekly';
+    const templateId = isWeekly
+        ? process.env.KAKAO_TEMPLATE_WEEKLY
+        : process.env.KAKAO_TEMPLATE_WELCOME;
+
+    if (!templateId) {
+        console.log(`[AlimTalk] 템플릿 ID 미설정 (${search.report_type}) — 건너뜀`);
+        return;
+    }
+
+    // 3. 변수 매핑
+    const platformName = search.platform === 'naver' ? '네이버' : '구글';
+    const analysisDate = formatKstDate(getKstNow());
+    const baseUrl = siteUrl.replace(/^https?:\/\//, '');
+    const urlPath = search.platform === 'naver' ? 'naver-search' : 'search';
+    const reportUrl = `${baseUrl}/${urlPath}/${search.id}`;
+
+    const variables: Record<string, string> = {
+        '#{가게명}': search.place_name,
+        '#{플랫폼명}': platformName,
+        '#{분석일시}': analysisDate,
+        '#{리포트URL}': reportUrl,
+    };
+
+    if (isWeekly) {
+        variables['#{리포트기간}'] = formatReportPeriod();
+    }
+
+    // 4. 발송
+    try {
+        const messageService = new SolapiMessageService(apiKey, apiSecret);
+        await messageService.send({
+            to: sub.phone,
+            from: senderNumber,
+            kakaoOptions: {
+                pfId,
+                templateId,
+                variables,
+            },
+        });
+
+        console.log(`[AlimTalk] ✅ 발송 성공: ${search.report_type} → ${sub.phone}`);
+
+        // 5. notification_logs 기록
+        await supabase.from('notification_logs').insert({
+            user_id: search.user_id,
+            search_id: search.id,
+            type: search.report_type,
+            status: 'sent',
+            sent_via: 'solapi',
+            sent_at: new Date().toISOString(),
+        });
+    } catch (sendError: any) {
+        console.error(`[AlimTalk] ❌ 발송 실패:`, sendError.message || sendError);
+
+        await supabase.from('notification_logs').insert({
+            user_id: search.user_id,
+            search_id: search.id,
+            type: search.report_type,
+            status: 'failed',
+            sent_via: 'solapi',
+            error_message: sendError.message || 'Unknown error',
+        });
+    }
+}
 
 async function refundCredits(userId: string, amount: number) {
     if (amount <= 0) return;
@@ -171,6 +287,15 @@ async function processSearch(search: any) {
                     await supabase.from('searches').update(updatePayload).eq('id', search.id);
                     console.log(`[Worker] Search ${search.id} Completed.`);
 
+                    // 🔔 알림톡 발송 (weekly/welcome만)
+                    if (search.report_type === 'weekly' || search.report_type === 'welcome') {
+                        try {
+                            await sendKakaoAlimtalk(search);
+                        } catch (alimtalkError: any) {
+                            console.error(`[Worker] 알림톡 발송 실패 (검색 결과는 보존됨):`, alimtalkError.message);
+                        }
+                    }
+
                 } catch (saveError: any) {
                     if (saveError.message?.includes('foreign key') || saveError.code === '23503') {
                         console.log(`[Worker] ⚠️ Parent search ${search.id} was deleted during save. Ignoring.`);
@@ -214,19 +339,37 @@ async function processSearch(search: any) {
 }
 
 async function processScheduleJob(job: any) {
-    console.log(`[Worker] Processing Schedule ID: ${job.id}`);
+    console.log(`[Worker] Processing Schedule ID: ${job.id} (${job.place_name})`);
 
-    // 1. Create a new Search Record from the Schedule
+    // 0. last_run_at 선행 업데이트 (중복 실행 방지)
+    await supabase
+        .from('search_schedules')
+        .update({ last_run_at: new Date().toISOString() })
+        .eq('id', job.id);
+
+    // 1. managed_places에서 좌표/주소 조회
+    const { data: place } = await supabase
+        .from('managed_places')
+        .select('lat, lng, address')
+        .eq('user_id', job.user_id)
+        .eq('platform', job.platform || 'naver')
+        .maybeSingle();
+
+    // 2. 검색 레코드 생성
+    const gridConfig = Array.isArray(job.grid_config) ? job.grid_config : [];
     const { data: search, error } = await supabase.from('searches').insert({
         user_id: job.user_id,
         place_id: job.place_id,
-        place_name: job.place_name,
-        keywords: job.keywords,
-        platform: job.platform,
-        grid_points: job.grid_points,
-        grid_distance: job.grid_distance,
-        status: 'pending', // Will be picked up immediately
-        cost: 0, // Automated searches might be free or cost credits
+        place_name: job.place_name || '',
+        place_address: place?.address || '',
+        place_lat: place?.lat || 0,
+        place_lng: place?.lng || 0,
+        keywords: job.keywords || [],
+        platform: job.platform || 'naver',
+        grid_points: gridConfig,
+        grid_distance: job.grid_distance || (gridConfig[0] as any)?.distance || 1,
+        status: 'pending',
+        report_type: 'weekly',
         created_at: new Date().toISOString()
     }).select().single();
 
@@ -235,7 +378,7 @@ async function processScheduleJob(job: any) {
         return;
     }
 
-    // 2. Process it
+    // 3. 크롤링 실행
     await processSearch(search);
 }
 
@@ -247,15 +390,45 @@ async function main() {
 
     try {
         if (mode === 'SCHEDULE') {
-            const { data: jobs, error } = await supabase
-                .from('scheduled_searches')
+            // KST 기준 현재 요일/시간
+            const kstNow = getKstNow();
+            const currentDay = kstNow.getDay(); // 0=Sun, 6=Sat
+            const currentHour = kstNow.getHours();
+            const timePrefix = `${String(currentHour).padStart(2, '0')}:00:00`;
+
+            console.log(`[Worker] KST: Day=${currentDay}, Time=${timePrefix}`);
+
+            // 1. 활성 스케줄 중 오늘 요일 + 현재 시간에 해당하는 것 조회
+            const { data: allSchedules, error } = await supabase
+                .from('search_schedules')
                 .select('*')
-                .eq('is_active', true);
+                .eq('is_active', true)
+                .eq('crawling_time', timePrefix);
 
             if (error) throw error;
 
-            console.log(`[Worker] Found ${jobs?.length || 0} active schedules.`);
-            for (const job of jobs || []) {
+            // 2. crawling_day (단수) 또는 crawling_days (배열) 매칭
+            const todayStr = new Date().toISOString().slice(0, 10); // UTC date for last_run_at comparison
+            const jobs = (allSchedules || []).filter(s => {
+                // 요일 매칭: crawling_day(주 컬럼) 우선, 없으면 crawling_days(레거시)
+                const dayMatch = s.crawling_day !== null && s.crawling_day !== undefined
+                    ? s.crawling_day === currentDay
+                    : Array.isArray(s.crawling_days) && s.crawling_days.includes(currentDay);
+
+                if (!dayMatch) return false;
+
+                // 오늘 이미 실행했으면 skip
+                if (s.last_run_at) {
+                    const lastRunDate = s.last_run_at.slice(0, 10);
+                    if (lastRunDate === todayStr) return false;
+                }
+
+                return true;
+            });
+
+            console.log(`[Worker] Found ${jobs.length} schedules to run (of ${allSchedules?.length || 0} active at ${timePrefix}).`);
+
+            for (const job of jobs) {
                 await processScheduleJob(job);
             }
         } else if (mode === 'MANUAL') {

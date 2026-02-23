@@ -95,7 +95,7 @@ export class ScheduleManager {
                     if (latestSearch) {
                         if (!notifSchedule || notifSchedule.is_immediate) {
                             // 즉시 발송
-                            await sendWeeklyReport(job.user_id, latestSearch.place_name, latestSearch.id);
+                            await sendWeeklyReport(job.user_id, latestSearch.place_name, latestSearch.id, targetPlatform);
 
                             await supabase.from('notification_logs').insert({
                                 user_id: job.user_id,

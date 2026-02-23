@@ -7,7 +7,38 @@ const messageService = new SolapiMessageService(
     process.env.SOLAPI_API_SECRET!
 );
 
-const SITE_URL = process.env.SITE_URL || 'http://localhost:3000';
+const SITE_URL = process.env.SITE_URL || 'https://www.maptamin.com';
+
+// ── KST 시간 유틸 ──
+function getKstNow(): Date {
+    return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+}
+
+function formatKstDate(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${y}.${m}.${d} ${h}:${min}`;
+}
+
+function formatReportPeriod(): string {
+    const now = getKstNow();
+    const end = new Date(now);
+    end.setDate(end.getDate() - 1);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 6);
+    const fmt = (d: Date) => `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+    return `${fmt(start)} ~ ${fmt(end)}`;
+}
+
+// ── 리포트 URL 생성 (https:// 제거, 플랫폼별 경로) ──
+function getReportUrl(searchId: string, platform: string): string {
+    const baseUrl = SITE_URL.replace(/^https?:\/\//, '');
+    const urlPath = platform === 'naver' ? 'naver-search' : 'search';
+    return `${baseUrl}/${urlPath}/${searchId}`;
+}
 
 /**
  * 사용자 전화번호 조회
@@ -57,11 +88,13 @@ async function sendAlimtalk(
  * @param userId - 사용자 ID
  * @param placeName - 매장명
  * @param searchId - 검색 결과 ID
+ * @param platform - 플랫폼 ('naver' | 'google')
  */
 export async function sendWelcomeReport(
     userId: string,
     placeName: string,
-    searchId: string
+    searchId: string,
+    platform: string = 'naver',
 ): Promise<void> {
     const phone = await getUserPhone(userId);
     const templateId = process.env.KAKAO_TEMPLATE_WELCOME;
@@ -70,11 +103,15 @@ export async function sendWelcomeReport(
         throw new Error('KAKAO_TEMPLATE_WELCOME 환경 변수가 설정되지 않았습니다.');
     }
 
-    const resultUrl = `${SITE_URL}/search/${searchId}`;
+    const platformName = platform === 'naver' ? '네이버' : '구글';
+    const analysisDate = formatKstDate(getKstNow());
+    const reportUrl = getReportUrl(searchId, platform);
 
     await sendAlimtalk(phone, templateId, {
         '#{가게명}': placeName,
-        '#{리포트URL}': resultUrl,
+        '#{플랫폼명}': platformName,
+        '#{분석일시}': analysisDate,
+        '#{리포트URL}': reportUrl,
     });
 }
 
@@ -83,11 +120,13 @@ export async function sendWelcomeReport(
  * @param userId - 사용자 ID
  * @param placeName - 매장명
  * @param searchId - 검색 결과 ID
+ * @param platform - 플랫폼 ('naver' | 'google')
  */
 export async function sendWeeklyReport(
     userId: string,
     placeName: string,
-    searchId: string
+    searchId: string,
+    platform: string = 'naver',
 ): Promise<void> {
     const phone = await getUserPhone(userId);
     const templateId = process.env.KAKAO_TEMPLATE_WEEKLY;
@@ -96,10 +135,16 @@ export async function sendWeeklyReport(
         throw new Error('KAKAO_TEMPLATE_WEEKLY 환경 변수가 설정되지 않았습니다.');
     }
 
-    const resultUrl = `${SITE_URL}/search/${searchId}`;
+    const platformName = platform === 'naver' ? '네이버' : '구글';
+    const analysisDate = formatKstDate(getKstNow());
+    const reportPeriod = formatReportPeriod();
+    const reportUrl = getReportUrl(searchId, platform);
 
     await sendAlimtalk(phone, templateId, {
         '#{가게명}': placeName,
-        '#{리포트URL}': resultUrl,
+        '#{플랫폼명}': platformName,
+        '#{분석일시}': analysisDate,
+        '#{리포트기간}': reportPeriod,
+        '#{리포트URL}': reportUrl,
     });
 }

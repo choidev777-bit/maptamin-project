@@ -78,7 +78,7 @@ export class NotificationService {
                     // 해당 search의 place_name 조회
                     const { data: search } = await supabase
                         .from('searches')
-                        .select('place_name')
+                        .select('place_name, platform')
                         .eq('id', log.search_id)
                         .single();
 
@@ -93,7 +93,8 @@ export class NotificationService {
                     await sendWeeklyReport(
                         log.user_id,
                         search.place_name,
-                        log.search_id
+                        log.search_id,
+                        search.platform || 'naver',
                     );
 
                     // 발송 성공 → 상태 업데이트

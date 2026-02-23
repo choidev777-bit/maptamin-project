@@ -36,15 +36,24 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // ── 3. 알림톡 발송 ──
+        // ── 3. 검색 정보에서 platform 조회 ──
+        const { data: searchData } = await supabase
+            .from('searches')
+            .select('platform')
+            .eq('id', searchId)
+            .single();
+
+        const platform = searchData?.platform || 'naver';
+
+        // ── 4. 알림톡 발송 ──
         try {
             if (type === 'welcome') {
-                await sendWelcomeReport(user.id, placeName, searchId);
+                await sendWelcomeReport(user.id, placeName, searchId, platform);
             } else {
-                await sendWeeklyReport(user.id, placeName, searchId);
+                await sendWeeklyReport(user.id, placeName, searchId, platform);
             }
 
-            // ── 4. 발송 성공 → notification_logs 기록 ──
+            // ── 5. 발송 성공 → notification_logs 기록 ──
             await supabase.from('notification_logs').insert({
                 user_id: user.id,
                 search_id: searchId,
@@ -56,7 +65,7 @@ export async function POST(request: NextRequest) {
 
             return NextResponse.json({ success: true });
         } catch (sendError: any) {
-            // ── 5. 발송 실패 → notification_logs에 실패 기록 ──
+            // ── 6. 발송 실패 → notification_logs에 실패 기록 ──
             console.error('[API /kakao/send-report] 발송 실패:', sendError.message);
 
             await supabase.from('notification_logs').insert({
