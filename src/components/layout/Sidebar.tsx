@@ -15,12 +15,13 @@ import {
     LogOut,
     ChevronDown,
     ChevronRight,
-    Pin,
+    PanelLeftOpen,
     PanelLeftClose,
     PanelLeft,
     Lock,
     Ticket,
     Map,
+    CalendarClock,
 } from 'lucide-react'
 import { isSubscribed, getPlanDisplayName, canAccessPlatform } from '@/lib/utils/subscription'
 import { WalletLabel, SubscriptionInfo } from './WalletLabel'
@@ -73,6 +74,19 @@ function findActiveRoute(pathname: string, routes: NavRoute[]): string | null {
     return null
 }
 
+// ── Custom Platform Icons ──
+const NaverPlatformIcon = ({ className }: { className?: string }) => (
+    <span className={`inline-flex items-center justify-center text-white text-[10px] font-bold rounded bg-slate-400 ${className}`}>
+        N
+    </span>
+)
+
+const GooglePlatformIcon = ({ className }: { className?: string }) => (
+    <span className={`inline-flex items-center justify-center text-white text-[10px] font-bold rounded bg-slate-400 ${className}`}>
+        G
+    </span>
+)
+
 // ── Component ──
 
 export function Sidebar({
@@ -98,11 +112,12 @@ export function Sidebar({
     const mainRoutes: NavRoute[] = [
         { href: '/dashboard', label: '대시보드', icon: Home, match: 'exact' },
         { href: '/history', label: '진단 기록', icon: History, match: 'startsWith' },
+        { href: '/report-settings', label: '리포트 설정', icon: CalendarClock, match: 'startsWith', isLocked: !subscribed },
     ]
 
     const searchSubRoutes: NavRoute[] = [
-        { href: '/naver-search', label: '네이버 지도 검색', icon: Map, match: 'startsWith' },
-        { href: '/search', label: '구글 지도 검색', icon: Map, match: 'startsWith', isLocked: !canGoogle },
+        { href: '/naver-search', label: '네이버', icon: NaverPlatformIcon, match: 'startsWith' },
+        { href: '/search', label: '구글', icon: GooglePlatformIcon, match: 'startsWith', isLocked: !canGoogle },
     ]
 
     const bottomRoutes: NavRoute[] = [
@@ -198,12 +213,12 @@ export function Sidebar({
                                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                             }
                         `}
-                        title={!isExpanded ? '내 순위 검색' : undefined}
+                        title={!isExpanded ? '실시간 순위 진단' : undefined}
                     >
                         <Search className="w-5 h-5 flex-shrink-0" />
                         {isExpanded && (
                             <>
-                                <span className="flex-1 text-left whitespace-nowrap">내 순위 검색</span>
+                                <span className="flex-1 text-left whitespace-nowrap">실시간 순위 진단</span>
                                 <ChevronDown
                                     className={`w-4 h-4 transition-transform ${searchGroupOpen ? 'rotate-0' : '-rotate-90'}`}
                                 />
@@ -323,8 +338,8 @@ export function Sidebar({
                         text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors
                         ${isExpanded ? '' : 'justify-center'}
                     `}
-                    aria-label={mode === 'pinned' ? '사이드바 접기' : '사이드바 고정'}
-                    title={mode === 'pinned' ? '사이드바 접기' : '사이드바 고정'}
+                    aria-label={mode === 'pinned' ? '사이드바 접기' : '사이드바 펼치기'}
+                    title={mode === 'pinned' ? '사이드바 접기' : '사이드바 펼치기'}
                 >
                     {mode === 'pinned' ? (
                         <>
@@ -333,8 +348,8 @@ export function Sidebar({
                         </>
                     ) : (
                         <>
-                            <Pin className="w-4 h-4 flex-shrink-0" />
-                            {isExpanded && <span>고정</span>}
+                            <PanelLeftOpen className="w-4 h-4 flex-shrink-0" />
+                            {isExpanded && <span>펼치기</span>}
                         </>
                     )}
                 </button>

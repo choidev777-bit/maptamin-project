@@ -30,6 +30,14 @@ export function MyShopManager() {
     }, [fetchMyShops])
 
     const handleRegisterMyShop = async (place: Place) => {
+        // 기존 매장이 있고, 다른 매장으로 변경하는 경우 → 확인 모달
+        if (currentShop && currentShop.place_id !== place.placeId) {
+            const confirmed = confirm(
+                '매장을 변경하면 기존 키워드와 경쟁사가 초기화됩니다.\n계속하시겠습니까?'
+            )
+            if (!confirmed) return
+        }
+
         try {
             const res = await fetch('/api/settings/my-shop', {
                 method: 'POST',

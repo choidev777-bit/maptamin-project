@@ -256,14 +256,12 @@ export default function OnboardingPage() {
                     .eq('user_id', (await supabase.auth.getUser()).data.user!.id)
             }
 
-            // 5. 완료 화면으로 전환
-            setNaverSearchId(nSearchId)
-            setGoogleSearchId(gSearchId)
-            setIsComplete(true)
+            // 5. 대시보드로 즉시 이동 (리포트는 백그라운드 생성)
+            window.location.href = '/dashboard'
         } catch (err) {
             console.error('Onboarding completion error:', err)
-            // 에러가 나도 완료 화면은 표시 (다시 시도 버튼 제공)
-            setIsComplete(true)
+            // 에러가 나도 대시보드로 이동
+            window.location.href = '/dashboard'
         } finally {
             setConfirming(false)
         }

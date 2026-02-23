@@ -125,11 +125,10 @@ export function KeywordManager({ planId, maxNaverKeywords, maxGoogleKeywords, ca
 
     return (
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">
-                <Key className="w-5 h-5 text-gray-600" />
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
                 키워드 관리
             </h2>
-            <p className="text-sm text-gray-500 mb-6">순위를 추적할 검색 키워드를 등록하세요. 한도를 초과하면 등록할 수 없습니다.</p>
+            <p className="text-sm text-gray-500 mb-6">순위를 분석할 검색 키워드를 등록하세요.</p>
 
             {error && (
                 <div className="flex items-center gap-2 text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-4">
@@ -176,7 +175,7 @@ export function KeywordManager({ planId, maxNaverKeywords, maxGoogleKeywords, ca
                                 value={newNaverKeyword}
                                 onChange={(e) => setNewNaverKeyword(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && addKeyword('naver')}
-                                placeholder="키워드 입력 (예: 강남 맛집)"
+                                placeholder="키워드 입력"
                                 className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                             />
                             <button
@@ -240,7 +239,7 @@ export function KeywordManager({ planId, maxNaverKeywords, maxGoogleKeywords, ca
                                     value={newGoogleKeyword}
                                     onChange={(e) => setNewGoogleKeyword(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && addKeyword('google')}
-                                    placeholder="키워드 입력 (예: best cafe near me)"
+                                    placeholder="키워드 입력"
                                     className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                 />
                                 <button

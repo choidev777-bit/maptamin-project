@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { NaverMapGridConfigurator } from '@/components/naver/NaverMapGridConfigurator'
-import { DistanceSettings } from '@/components/search/DistanceSettings'
+// DistanceSettings removed — inline onboarding-style UI used instead
 import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
 import { Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, AlertTriangle, Swords, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -27,8 +27,21 @@ interface RegisteredKeyword {
 // Simplified steps: No place selection (handled via modal)
 const STEPS = [
     { id: 1, name: '키워드 선택', icon: Tag },
-    { id: 2, name: '그리드 설정', icon: Grid3X3 },
+    { id: 2, name: '좌표 설정', icon: Grid3X3 },
     { id: 3, name: '결제 및 확인', icon: Check },
+]
+
+// 간격 프리셋 (온보딩과 동일)
+const DISTANCE_PRESETS = [
+    { value: 0.1, label: '100m' },
+    { value: 0.2, label: '200m' },
+    { value: 0.3, label: '300m' },
+    { value: 0.4, label: '400m' },
+    { value: 0.5, label: '500m' },
+    { value: 1, label: '1km' },
+    { value: 2, label: '2km' },
+    { value: 3, label: '3km' },
+    { value: 5, label: '5km' },
 ]
 
 // Default 3x3 grid preset
@@ -389,17 +402,6 @@ export default function NewNaverSearchPage() {
             {/* Main UI - only show when place is set */}
             {hasPlace && (
                 <>
-                    {/* Beta Warning */}
-                    <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                        <div>
-                            <p className="text-sm font-medium text-amber-800">베타 기능</p>
-                            <p className="text-sm text-amber-700">
-                                네이버 지도 검색은 베타 기능입니다.
-                                네이버 정책 변경에 따라 기능이 제한될 수 있습니다.
-                            </p>
-                        </div>
-                    </div>
 
                     {/* Selected Shop Display */}
                     <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
@@ -509,19 +511,22 @@ export default function NewNaverSearchPage() {
                             </div>
                         )}
 
-                        {/* Step 2: Grid Configuration */}
+                        {/* Step 2: 좌표 설정 (온보딩과 동일 UI) */}
                         {step === 2 && (
                             <div className="space-y-6">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">검색 그리드 설정</h2>
+                                    <h2 className="text-2xl font-bold text-gray-900">
+                                        <Grid3X3 className="mr-2 inline-block h-6 w-6 text-[#00C896]" />
+                                        순위를 분석할 좌표를 직접 선택하세요
+                                    </h2>
                                     <p className="mt-2 text-gray-600">
-                                        그리드 크기와 간격을 설정하세요.
+                                        매장 주변의 검색 순위를 분석할 좌표를 설정합니다.
                                     </p>
                                 </div>
 
-                                {/* Grid Size Selector */}
+                                {/* 분석 범위 선택 */}
                                 <div>
-                                    <label className="text-sm font-medium text-gray-700 mb-2 block">그리드 크기</label>
+                                    <label className="text-sm font-medium text-gray-700 mb-2 block">분석 범위</label>
                                     <div className="flex gap-3">
                                         {[3, 5, 7].map((size) => {
                                             const allowed = allowedGridSizes.includes(size)
@@ -531,7 +536,7 @@ export default function NewNaverSearchPage() {
                                                     onClick={() => handleGridSizeChange(size)}
                                                     disabled={!allowed}
                                                     className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition-all ${selectedGridSize === size
-                                                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                                        ? 'border-[#00C896] bg-[#E5F9F4] text-[#00A87D]'
                                                         : allowed
                                                             ? 'border-gray-200 text-gray-700 hover:border-gray-300'
                                                             : 'border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50'
@@ -550,24 +555,65 @@ export default function NewNaverSearchPage() {
                                     </div>
                                 </div>
 
-                                <DistanceSettings
-                                    distance={gridDistance}
-                                    unit={distanceUnit}
-                                    onDistanceChange={setGridDistance}
-                                    onUnitChange={setDistanceUnit}
-                                />
+                                {/* 분석 좌표 간격 설정 (온보딩 스타일) */}
+                                <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
+                                    <div>
+                                        <h3 className="font-semibold text-gray-900">분석 좌표 간격 설정</h3>
+                                        <p className="text-sm text-gray-500 mb-4">좌표 사이의 거리를 설정하세요</p>
 
-                                <NaverMapGridConfigurator
-                                    centerLat={parseFloat(placeLat) || 37.5665}
-                                    centerLng={parseFloat(placeLng) || 126.9780}
-                                    selectedPoints={gridPoints}
-                                    onPointsChange={setGridPoints}
-                                    gridDistance={distanceUnit === 'mile' ? gridDistance * 1.60934 : gridDistance}
-                                />
+                                        <div className="flex items-center gap-4 mb-6">
+                                            <input
+                                                type="range"
+                                                min="0.1"
+                                                max="5"
+                                                step="0.1"
+                                                value={gridDistance}
+                                                onChange={(e) => setGridDistance(parseFloat(e.target.value))}
+                                                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#00C896]"
+                                            />
+                                            <div className="w-20 text-right">
+                                                <span className="text-2xl font-bold text-[#00C896]">{gridDistance}</span>
+                                                <span className="text-lg text-gray-500 ml-1">km</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            {DISTANCE_PRESETS.map(preset => (
+                                                <button
+                                                    key={preset.value}
+                                                    type="button"
+                                                    onClick={() => setGridDistance(preset.value)}
+                                                    className={`flex-1 min-w-0 py-2 px-1 rounded-lg text-xs sm:text-sm font-medium transition-all ${gridDistance === preset.value
+                                                        ? 'bg-[#E5F9F4] text-[#00A87D] border-2 border-[#00C896]'
+                                                        : 'bg-gray-50 text-gray-600 border-2 border-transparent hover:bg-gray-100'
+                                                        }`}
+                                                >
+                                                    {preset.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 지도 */}
+                                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                                    <NaverMapGridConfigurator
+                                        centerLat={parseFloat(placeLat) || 37.5665}
+                                        centerLng={parseFloat(placeLng) || 126.9780}
+                                        selectedPoints={gridPoints}
+                                        onPointsChange={setGridPoints}
+                                        gridDistance={gridDistance}
+                                        maxPoints={selectedGridSize * selectedGridSize}
+                                        onReset={() => {
+                                            setGridDistance(0.3)
+                                            setGridPoints(GRID_TEMPLATES[selectedGridSize] || DEFAULT_GRID_POINTS)
+                                        }}
+                                    />
+                                </div>
 
                                 <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                                    <span className="text-sm text-gray-600">활성 포인트</span>
-                                    <span className="font-bold text-emerald-600">{enabledGridCount}개</span>
+                                    <span className="text-sm text-gray-600">활성 좌표</span>
+                                    <span className="font-bold text-[#00C896]">{enabledGridCount}/{selectedGridSize * selectedGridSize}개</span>
                                 </div>
                             </div>
                         )}
@@ -595,7 +641,7 @@ export default function NewNaverSearchPage() {
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span className="text-gray-600">그리드 포인트</span>
+                                            <span className="text-gray-600">분석 좌표</span>
                                             <span className="font-medium text-gray-900">{enabledGridCount}개</span>
                                         </div>
                                     </div>

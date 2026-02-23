@@ -15,8 +15,8 @@ const DAYS = [
     { value: 0, label: '일' },
 ]
 
-const HOURS = Array.from({ length: 13 }, (_, i) => {
-    const h = (i + 7).toString().padStart(2, '0')
+const HOURS = Array.from({ length: 24 }, (_, i) => {
+    const h = i.toString().padStart(2, '0')
     return { value: `${h}:00`, label: `${h}:00` }
 })
 

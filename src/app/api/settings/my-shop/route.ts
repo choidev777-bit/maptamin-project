@@ -36,6 +36,8 @@ export async function POST(request: Request) {
                 }, { status: 403 });
             }
 
+            const isPlaceChanged = existing.place_id !== placeId;
+
             // 3. Update
             const lockedUntil = new Date();
             lockedUntil.setDate(lockedUntil.getDate() + 30);
@@ -53,8 +55,31 @@ export async function POST(request: Request) {
                 .eq('id', existing.id);
 
             if (error) throw error;
+
+            // 4. 매장이 실제로 변경된 경우 → 키워드/경쟁사/스케줄 초기화
+            if (isPlaceChanged) {
+                await Promise.all([
+                    supabase
+                        .from('managed_keywords')
+                        .delete()
+                        .eq('user_id', user.id)
+                        .eq('platform', platform),
+                    supabase
+                        .from('managed_competitors')
+                        .delete()
+                        .eq('user_id', user.id)
+                        .eq('platform', platform),
+                    supabase
+                        .from('search_schedules')
+                        .update({ is_active: false })
+                        .eq('user_id', user.id)
+                        .eq('platform', platform),
+                ]);
+            }
+
+            return NextResponse.json({ success: true, resetPerformed: isPlaceChanged });
         } else {
-            // 4. Create
+            // 5. Create (신규 등록 — 초기화 불필요)
             const lockedUntil = new Date();
             lockedUntil.setDate(lockedUntil.getDate() + 30);
 

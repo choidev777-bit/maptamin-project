@@ -1,38 +1,16 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import dynamic from 'next/dynamic'
+import {
+    ResponsiveContainer,
+    LineChart,
+    Line,
+    XAxis,
+    YAxis,
+    Tooltip,
+    CartesianGrid,
+} from 'recharts'
 import { RankTrendDataPoint } from '@/lib/utils/rank-trend'
-
-// Vercel best practice: bundle-dynamic-imports — recharts lazy loaded
-const ResponsiveContainer = dynamic(
-    () => import('recharts').then(m => m.ResponsiveContainer),
-    { ssr: false }
-)
-const LineChart = dynamic(
-    () => import('recharts').then(m => m.LineChart),
-    { ssr: false }
-)
-const Line = dynamic(
-    () => import('recharts').then(m => m.Line),
-    { ssr: false }
-)
-const XAxis = dynamic(
-    () => import('recharts').then(m => m.XAxis),
-    { ssr: false }
-)
-const YAxis = dynamic(
-    () => import('recharts').then(m => m.YAxis),
-    { ssr: false }
-)
-const Tooltip = dynamic(
-    () => import('recharts').then(m => m.Tooltip),
-    { ssr: false }
-)
-const CartesianGrid = dynamic(
-    () => import('recharts').then(m => m.CartesianGrid),
-    { ssr: false }
-)
 
 // 키워드별 색상 팔레트
 const KEYWORD_COLORS = [
@@ -96,8 +74,8 @@ export function RankTrendChart({ trendData, keywords }: Props) {
                             key={keyword}
                             onClick={() => toggleKeyword(keyword)}
                             className={`px-3 py-1.5 text-xs font-semibold rounded-full border-2 transition-all ${isActive
-                                    ? 'text-white shadow-sm'
-                                    : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
+                                ? 'text-white shadow-sm'
+                                : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300'
                                 }`}
                             style={isActive ? {
                                 backgroundColor: color,
@@ -178,11 +156,8 @@ export function RankTrendChart({ trendData, keywords }: Props) {
                     </LineChart>
                 </ResponsiveContainer>
             </div>
-
-            {/* 범례 */}
-            <p className="text-xs text-gray-400 text-center">
-                ↑ 1위(위) — 순위가 낮을수록 좋습니다
-            </p>
         </div>
     )
 }
+
+export default RankTrendChart

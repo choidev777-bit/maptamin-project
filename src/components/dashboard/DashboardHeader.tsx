@@ -2,6 +2,7 @@
 
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import Link from 'next/link'
 
 interface Props {
     hasActiveWeeklyReport: boolean
@@ -21,8 +22,11 @@ export function DashboardHeader({ hasActiveWeeklyReport, nextReportDate }: Props
                 <p className="text-gray-500 dark:text-slate-400 text-base font-normal">사장님의 진짜 상권 순위를 확인하세요.</p>
             </div>
 
-            {/* Auto Report Status Badge */}
-            <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-full shadow-sm border border-gray-200 dark:border-slate-700">
+            {/* Auto Report Status Badge — 클릭 시 리포트 설정으로 이동 */}
+            <Link
+                href="/report-settings"
+                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-full shadow-sm border border-gray-200 dark:border-slate-700 hover:border-[#00C896]/50 hover:shadow-md transition-all cursor-pointer"
+            >
                 <span className="relative flex h-3 w-3">
                     {hasActiveWeeklyReport && (
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00C896] opacity-75"></span>
@@ -32,7 +36,7 @@ export function DashboardHeader({ hasActiveWeeklyReport, nextReportDate }: Props
                 <span className="text-gray-800 dark:text-slate-200 text-sm font-bold">
                     {statusText}
                 </span>
-            </div>
+            </Link>
         </div>
     )
 }

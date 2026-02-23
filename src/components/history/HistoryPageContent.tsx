@@ -1,11 +1,21 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Search } from '@/lib/types'
 import { RankTrendDataPoint } from '@/lib/utils/rank-trend'
-import { RankTrendChart } from './RankTrendChart'
 import { HistoryTable } from './HistoryTable'
 import { Lock, TrendingUp, BarChart3 } from 'lucide-react'
+
+// Vercel best practice: bundle-dynamic-imports — recharts를 포함한 전체 컴포넌트를 lazy load
+const RankTrendChart = dynamic(() => import('./RankTrendChart'), {
+    ssr: false,
+    loading: () => (
+        <div className="flex items-center justify-center h-[360px]">
+            <div className="animate-spin h-8 w-8 border-4 border-[#00C896] border-t-transparent rounded-full" />
+        </div>
+    ),
+})
 
 interface Props {
     searches: Search[]
@@ -68,8 +78,8 @@ export function HistoryPageContent({
                         <button
                             onClick={() => handlePlatformToggle('naver')}
                             className={`px-5 py-2 text-sm font-bold rounded-lg transition-all ${activePlatform === 'naver'
-                                    ? 'bg-white text-[#00C896] shadow-sm ring-1 ring-gray-900/5'
-                                    : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'
+                                ? 'bg-white text-[#00C896] shadow-sm ring-1 ring-gray-900/5'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'
                                 }`}
                         >
                             네이버
@@ -77,8 +87,8 @@ export function HistoryPageContent({
                         <button
                             onClick={() => handlePlatformToggle('google')}
                             className={`px-5 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 ${activePlatform === 'google'
-                                    ? 'bg-white text-blue-500 shadow-sm ring-1 ring-gray-900/5'
-                                    : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'
+                                ? 'bg-white text-blue-500 shadow-sm ring-1 ring-gray-900/5'
+                                : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'
                                 }`}
                         >
                             구글

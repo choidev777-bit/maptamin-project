@@ -105,7 +105,7 @@ export function HistoryTable({ searches }: Props) {
                             <th className="px-6 py-4">유형</th>
                             <th className="px-6 py-4">대상 매장명</th>
                             <th className="px-6 py-4">플랫폼</th>
-                            <th className="px-6 py-4">검색 일시</th>
+                            <th className="px-6 py-4">분석 일시</th>
                             <th className="px-6 py-4 text-right">상세</th>
                         </tr>
                     </thead>
@@ -197,8 +197,8 @@ export function HistoryTable({ searches }: Props) {
                                 key={page}
                                 onClick={() => goToPage(page)}
                                 className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm transition-colors ${page === currentPage
-                                        ? 'bg-[#00C896] text-white font-bold shadow-md shadow-[#00C896]/20'
-                                        : 'border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'
+                                    ? 'bg-[#00C896] text-white font-bold shadow-md shadow-[#00C896]/20'
+                                    : 'border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'
                                     }`}
                             >
                                 {page}

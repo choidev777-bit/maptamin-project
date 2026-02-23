@@ -2,7 +2,7 @@
 
 > **Purpose**: AI가 코드 수정 시 각 기능의 전체 데이터 흐름을 정확히 파악할 수 있도록,  
 > `User UI Action ↔ Client Component ↔ Server API Route ↔ Supabase DB Table` 매핑을 정리한 문서입니다.  
-> **Last Updated**: 2026-02-23 (진단 기록 페이지 추가)  
+> **Last Updated**: 2026-02-24 (Sidebar 아키텍처, Report Settings, Navigator 라벨 변경 반영)  
 > **Auto-generated from codebase analysis**
 
 ---
@@ -26,6 +26,7 @@
 14. [Feature: Settings (My Shop / Competitors)](#14-settings)
 15. [Feature: Onboarding Flow (5-Step + Welcome Report)](#15-feature-onboarding-flow)
 16. [Feature: History Page (진단 기록)](#16-feature-history-page)
+16-1. [Feature: Report Settings (리포트 설정)](#16-1-feature-report-settings)
 17. [RPC Functions Summary](#17-rpc-functions-summary)
 18. [File Index](#18-file-index)
 
@@ -219,13 +220,27 @@ User Action: /dashboard/* 하위 페이지 접근
         │       └── shouldRedirect && pathname !== '/onboarding'
         │           → router.replace('/onboarding')
         │
-        ├── 5. <DesktopNav subscription={subscription} />
-        │   └── <WalletLabel subscription={subscription} />
-        │       ├── isSubscribed(plan_id) === false → "구독 필요" 버튼
-        │       └── isSubscribed(plan_id) === true  → 티켓 잔량 뱃지
-        │
-        └── 6. <MobileNav subscription={subscription} />
-            └── (동일 로직)
+        └── 5. <DashboardShell user={userInfo} subscription={subscription}>
+            └── src/components/layout/DashboardShell.tsx (Client)
+                │
+                ├── Desktop (lg 이상): <Sidebar> (고정 사이드바)
+                │   └── src/components/layout/Sidebar.tsx
+                │       ├── 3가지 모드: pinned | collapsed | hover (localStorage 저장)
+                │       ├── Navigator 구성:
+                │       │   ├── 대시보드 (Home, /dashboard)
+                │       │   ├── 진단 기록 (History, /history)
+                │       │   ├── 리포트 설정 (CalendarClock, /report-settings, 구독 잠금)
+                │       │   ├── 실시간 순위 진단 (Search, 아코디언 그룹)
+                │       │   │   ├── 네이버 (NaverPlatformIcon [N], /naver-search)
+                │       │   │   └── 구글 (GooglePlatformIcon [G], /search, 플랜 잠금)
+                │       │   ├── 설정 (Settings, /settings)
+                │       │   └── 구독 관리 (CreditCard, /dashboard/subscription)
+                │       ├── 티켓/CTA 섹션 (구독 시 WalletLabel, 미구독 시 구독하기 버튼)
+                │       ├── 사용자 프로필 + 로그아웃
+                │       └── 사이드바 접기/펼치기 토글
+                │
+                └── Mobile (lg 미만): <MobileNav> (햄버거 메뉴)
+                    └── src/components/layout/MobileNav.tsx
 ```
 
 **DB Operations:**
@@ -698,6 +713,53 @@ User Action: /history 페이지 접속
 
 ---
 
+## 16-1. Feature: Report Settings (리포트 설정)
+
+### 리포트 설정 페이지 (스케줄/키워드/그리드/알림 관리)
+
+```
+User Action: /report-settings 페이지 접속
+│
+└── Server Component (SSR, force-dynamic)
+    └── src/app/(dashboard)/report-settings/page.tsx
+        │
+        ├── 1. supabase.auth.getUser()
+        ├── 2. SELECT → user_subscriptions (plan_id, phone)
+        ├── 3. 구독 상태 판단 (isSubscribed, canAccessPlatform, getAllowedGridSizes)
+        │
+        ├── 4. 유료 사용자 → Promise.all 병렬 조회:
+        │   ├── SELECT → search_schedules (네이버/구글 스케줄)
+        │   ├── SELECT → managed_places (네이버/구글 매장)
+        │   └── SELECT → managed_keywords (네이버/구글 키워드)
+        │
+        └── Render:
+            └── <ReportSettingsContent> (Client)
+                └── src/app/(dashboard)/report-settings/ReportSettingsContent.tsx
+                    ├── 스케줄 요일/시간 설정
+                    ├── 키워드 선택
+                    ├── 그리드 설정 (플랜별 크기 제한)
+                    ├── 알림 설정 (전화번호)
+                    └── POST /api/settings/schedule (스케줄 저장/업데이트)
+
+Components Used:
+├── src/components/schedule/DaySelector.tsx    ← 요일 선택
+├── src/components/schedule/TimeSelector.tsx   ← 시간 선택
+└── src/components/schedule/MyShopSelector.tsx  ← 매장 선택
+```
+
+**DB Operations:**
+| Operation | Table | Action |
+|-----------|-------|--------|
+| SELECT | `user_subscriptions` | 플랜 + 전화번호 조회 |
+| SELECT | `search_schedules` | 기존 스케줄 조회 (플랫폼별) |
+| SELECT | `managed_places` | 등록 매장 조회 (플랫폼별) |
+| SELECT | `managed_keywords` | 등록 키워드 조회 (플랫폼별) |
+| UPSERT | `search_schedules` | 스케줄 저장/업데이트 (via API) |
+| UPSERT | `notification_schedules` | 알림 스케줄 저장 (via API) |
+| UPDATE | `user_subscriptions` | 전화번호 업데이트 |
+
+---
+
 ## 17. RPC Functions Summary
 
 | RPC Function | Migration File | Description | Tables Affected |
@@ -819,16 +881,21 @@ User Action: 요약 화면에서 "완료하고 첫 리포트 받기" 클릭
 | `(auth)/login/page.tsx` | `/login` | SSR | 로그인 (카카오/구글) |
 | `(auth)/auth/callback/route.ts` | `/auth/callback` | API | OAuth 콜백 |
 | `(auth)/auth/signout/route.ts` | `/auth/signout` | API | 로그아웃 |
+| `(dashboard)/layout.tsx` | — | SSR | 대시보드 레이아웃 (DashboardShell + OnboardingGuard) |
 | `(dashboard)/dashboard/page.tsx` | `/dashboard` | SSR | 대시보드 메인 |
 | `(dashboard)/dashboard/subscription/page.tsx` | `/dashboard/subscription` | Page | 구독 관리 |
 | `(dashboard)/dashboard/subscription/checkout/page.tsx` | `/dashboard/subscription/checkout` | Page | 구독 결제 |
+| `(dashboard)/dashboard/shop/page.tsx` | `/dashboard/shop` | Page | 티켓 샵 |
 | `(dashboard)/onboarding/page.tsx` | `/onboarding` | Page | 온보딩 플로우 (5단계 + 완료) |
 | `(dashboard)/onboarding/onboarding-utils.ts` | — | Util | 온보딩 단계 계산, 이탈 복구 |
 | `(dashboard)/naver-search/new/page.tsx` | `/naver-search/new` | Page | 네이버 검색 설정 |
 | `(dashboard)/naver-search/[id]/page.tsx` | `/naver-search/[id]` | Page | 네이버 결과 보기 |
+| `(dashboard)/naver-search/history/page.tsx` | `/naver-search/history` | Page | 네이버 검색 히스토리 |
 | `(dashboard)/search/new/page.tsx` | `/search/new` | Page | 구글 검색 설정 |
 | `(dashboard)/search/[id]/page.tsx` | `/search/[id]` | Page | 구글 결과 보기 |
+| `(dashboard)/search/history/page.tsx` | `/search/history` | Page | 구글 검색 히스토리 |
 | `(dashboard)/history/page.tsx` | `/history` | SSR | 진단 기록 (순위 변화 그래프 + 전체 기록) |
+| `(dashboard)/report-settings/page.tsx` | `/report-settings` | SSR | 리포트 설정 (스케줄/키워드/그리드/알림) |
 | `(dashboard)/settings/page.tsx` | `/settings` | Page | 설정 |
 | `pricing/page.tsx` | `/pricing` | SSR | 가격 안내 |
 | `terms/page.tsx` | `/terms` | SSR | 이용약관 |
@@ -854,6 +921,7 @@ User Action: 요약 화면에서 "완료하고 첫 리포트 받기" 클릭
 | `payment/webhook/route.ts` | `/api/payment/webhook` | POST | PortOne 웹훅 |
 | `settings/my-shop/route.ts` | `/api/settings/my-shop` | GET, POST, DELETE | 매장 관리 |
 | `settings/competitors/route.ts` | `/api/settings/competitors` | GET, POST, DELETE | 경쟁사 관리 |
+| `settings/schedule/route.ts` | `/api/settings/schedule` | POST | 리포트 스케줄 저장/업데이트 |
 | `subscription/cancel/route.ts` | `/api/subscription/cancel` | — | 구독 취소 (대안) |
 | `queue/dispatch/route.ts` | `/api/queue/dispatch` | POST | 큐 디스패처 |
 | `cron/cleanup/route.ts` | `/api/cron/cleanup` | — | CRON 정리 작업 |
@@ -879,6 +947,32 @@ User Action: 요약 화면에서 "완료하고 첫 리포트 받기" 클릭
 | `server.ts` | Server (API Route) | `verifyPayment()`, `cancelPayment()`, `validatePaymentAmount()` | 결제 검증/취소 |
 | `billing.ts` | Server (API Route) | `payWithBillingKey()`, `schedulePayment()`, `cancelSchedule()`, `getBillingKeyInfo()`, `deleteBillingKey()` | 빌링키 결제/예약/취소 |
 | `subscription-client.ts` | Client (Browser) | — | 구독 결제 프론트엔드 헬퍼 |
+
+### Layout Components (src/components/layout)
+
+| File | Description |
+|------|-------------|
+| `DashboardShell.tsx` | 대시보드 쉘 — Sidebar + MobileNav 조합, 사이드바 모드 관리 (pinned/collapsed/hover) |
+| `Sidebar.tsx` | 데스크탑 사이드바 내비게이션 (3모드, 커스텀 플랫폼 아이콘, 구독 상태 표시) |
+| `MobileNav.tsx` | 모바일 햄버거 메뉴 |
+| `DesktopNav.tsx` | (레거시) 데스크탑 상단 네비게이션 |
+| `NavDropdown.tsx` | 네비게이션 드롭다운 메뉴 |
+| `OnboardingGuard.tsx` | 온보딩 미완료 시 리다이렉트 가드 |
+| `WalletLabel.tsx` | 티켓 잔량 뱃지 / 구독 상태 라벨 |
+
+### Schedule Components (src/components/schedule)
+
+| File | Description |
+|------|-------------|
+| `DaySelector.tsx` | 요일 선택기 (리포트 스케줄용) |
+| `TimeSelector.tsx` | 시간 선택기 (리포트 스케줄용) |
+| `MyShopSelector.tsx` | 매장 선택기 (리포트 스케줄용) |
+
+### Hooks (src/hooks)
+
+| File | Description |
+|------|-------------|
+| `useSubscription.ts` | 클라이언트 사이드 구독 상태 hook (plan_id, canAccessPlatform, getAllowedGridSizes) |
 
 ### Middleware
 

@@ -55,30 +55,54 @@ export function calculateRankTrend(
     }
 
     // 4. 각 주간 검색에 대해 키워드별 평균 순위 계산
-    const trendData: RankTrendDataPoint[] = []
+    //    같은 날짜의 검색은 병합(합산 평균)
+    const dateGroupMap = new Map<string, { search: typeof weeklySearches[0], results: SearchResult[] }[]>()
 
     for (const search of weeklySearches) {
         const createdAt = new Date(search.created_at)
         const month = String(createdAt.getMonth() + 1).padStart(2, '0')
         const day = String(createdAt.getDate()).padStart(2, '0')
-        const year = createdAt.getFullYear()
+        const dateKey = `${createdAt.getFullYear()}-${month}-${day}`
+
+        const results = resultsBySearchId.get(search.id) || []
+        const existing = dateGroupMap.get(dateKey)
+        if (existing) {
+            existing.push({ search, results })
+        } else {
+            dateGroupMap.set(dateKey, [{ search, results }])
+        }
+    }
+
+    const trendData: RankTrendDataPoint[] = []
+
+    for (const [dateKey, entries] of dateGroupMap) {
+        const [year, month, day] = dateKey.split('-')
 
         const dataPoint: RankTrendDataPoint = {
             date: `${month}/${day}`,
-            fullDate: `${year}-${month}-${day}`,
+            fullDate: dateKey,
         }
 
-        const results = resultsBySearchId.get(search.id) || []
+        // 해당 날짜의 모든 검색에서 키워드 목록 수집
+        const allKeywords = new Set<string>()
+        for (const entry of entries) {
+            for (const kw of entry.search.keywords) {
+                allKeywords.add(kw)
+            }
+        }
 
-        for (const keyword of search.keywords) {
-            // 해당 키워드의 유효한 rank만 추출 (null 제외)
-            const ranks = results
-                .filter((r) => r.keyword === keyword && r.rank !== null)
-                .map((r) => r.rank as number)
+        // 키워드별 모든 rank를 모아서 평균
+        for (const keyword of allKeywords) {
+            const allRanks: number[] = []
+            for (const entry of entries) {
+                const ranks = entry.results
+                    .filter((r) => r.keyword === keyword && r.rank !== null)
+                    .map((r) => r.rank as number)
+                allRanks.push(...ranks)
+            }
 
-            if (ranks.length > 0) {
-                // 평균 순위 계산 (소수점 1자리)
-                const avg = ranks.reduce((sum, r) => sum + r, 0) / ranks.length
+            if (allRanks.length > 0) {
+                const avg = allRanks.reduce((sum, r) => sum + r, 0) / allRanks.length
                 dataPoint[keyword] = Math.round(avg * 10) / 10
             } else {
                 dataPoint[keyword] = null
