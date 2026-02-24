@@ -1,24 +1,25 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
-import { cancelSchedule, deleteBillingKey } from '@/lib/portone/billing'
+import { cancelSchedule } from '@/lib/portone/billing'
 
 /**
  * POST /api/payment/subscribe/cancel
  *
- * 구독 해지 API
+ * 구독 해지 요청 API
  *
  * 흐름:
  * 1. 사용자 인증 확인
  * 2. 활성 구독 조회
  * 3. PortOne: 다음 결제 예약 취소
- * 4. PortOne: 빌링키 삭제 (보안)
- * 5. DB: subscription_billing status → 'canceled'
+ * 4. DB: subscription_billing status → 'cancel_scheduled' + cancelled_at 저장
  *
- * 정책: "즉시 환불" 아님.
+ * 정책 (cancel_scheduled 패턴):
+ *   - 빌링키를 유지하여 해지 철회(reactivate) 가능
  *   - 이미 결제한 기간(~next_billing_date)까지 혜택 유지
- *   - 다음 결제일에 갱신되지 않고 자연 만료
+ *   - 기간 만료 후 CRON이 expired로 전환 + 빌링키 삭제 + 다운그레이드
  *
- * @see PLAN_subscription_payment.md  Phase 4-4
+ * @see PLAN_payment-system-fix.md Phase 3
+ * @see Docs/terms_of_service_draft.md 제20조 1항 ②
  */
 export async function POST() {
     try {
@@ -50,9 +51,9 @@ export async function POST() {
             )
         }
 
-        if (billing.status === 'canceled') {
+        if (billing.status === 'cancelled' || billing.status === 'cancel_scheduled') {
             return NextResponse.json(
-                { error: '이미 해지된 구독입니다.', code: 'ALREADY_CANCELED' },
+                { error: '이미 해지되었거나 해지 예약된 구독입니다.', code: 'ALREADY_CANCELED' },
                 { status: 400 }
             )
         }
@@ -64,7 +65,7 @@ export async function POST() {
             )
         }
 
-        // ── 3. PortOne: 다음 결제 예약 취소 ──
+        // ── 3. PortOne: 다음 결제 예약 취소 (빌링키는 유지!) ──
         if (billing.next_payment_id) {
             try {
                 await cancelSchedule([billing.next_payment_id])
@@ -74,21 +75,14 @@ export async function POST() {
             }
         }
 
-        // ── 4. PortOne: 빌링키 삭제 (보안) ──
-        if (billing.billing_key) {
-            try {
-                await deleteBillingKey(billing.billing_key)
-            } catch (error) {
-                // 빌링키가 이미 삭제된 경우 무시
-                console.warn('[Cancel] 빌링키 삭제 중 오류 (무시됨):', error)
-            }
-        }
-
-        // ── 5. DB: 구독 상태 → canceled ──
+        // ── 4. DB: 구독 상태 → cancel_scheduled ──
+        // 빌링키는 유지 (해지 철회 시 재사용)
+        // CRON이 next_billing_date 이후에 expired로 전환하고 빌링키 삭제
         const { error: updateError } = await supabase
             .from('subscription_billing')
             .update({
-                status: 'canceled',
+                status: 'cancel_scheduled',
+                cancelled_at: new Date().toISOString(),
                 next_payment_id: null,
                 updated_at: new Date().toISOString(),
             })
@@ -104,7 +98,7 @@ export async function POST() {
 
         return NextResponse.json({
             success: true,
-            message: '구독이 해지되었습니다.',
+            message: '구독 해지가 예약되었습니다. 잔여 기간까지 서비스를 이용하실 수 있습니다.',
             effectiveUntil: billing.next_billing_date,
         })
     } catch (error) {
@@ -115,3 +109,4 @@ export async function POST() {
         )
     }
 }
+

@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { payWithBillingKey, schedulePayment, getBillingKeyInfo } from '@/lib/portone/billing'
-import { PLAN_CONFIG } from '@/lib/pricing/config'
+import { PLAN_CONFIG, getPlanName } from '@/lib/pricing/config'
+import { calculateNextBillingDate } from '@/lib/utils/billing'
 
 /**
  * POST /api/payment/subscribe
@@ -11,15 +12,16 @@ import { PLAN_CONFIG } from '@/lib/pricing/config'
  * 흐름:
  * 1. 사용자 인증 확인
  * 2. 입력값 검증 (billingKey, planId)
- * 3. 빌링키 유효성 검증 (PortOne API 조회)
- * 4. 첫 결제 실행 (payWithBillingKey)
- * 5. DB에 구독 정보 저장 (activate_subscription RPC)
- * 6. subscription_payment_history에 결제 이력 저장
- * 7. 다음 달 자동 결제 예약 (schedulePayment)
+ * 3. 중복 구독 방지 (M2)
+ * 4. 빌링키 유효성 검증 (PortOne API 조회)
+ * 5. 첫 결제 실행 (payWithBillingKey)
+ * 6. DB에 구독 정보 저장 (activate_subscription RPC)
+ * 7. subscription_payment_history에 결제 이력 저장
+ * 8. 다음 달 자동 결제 예약 (schedulePayment)
  *
- * @body { billingKey: string, planId: string }
+ * @body { billingKey: string, planId: string, billingCycle?: 'monthly' | 'yearly' }
  *
- * @see PLAN_subscription_payment.md  Phase 4-2
+ * @see PLAN_payment-system-fix.md Phase 3 (M2 중복 방지)
  */
 export async function POST(request: Request) {
     try {
@@ -67,9 +69,42 @@ export async function POST(request: Request) {
         // 결제 금액 계산 (연간이면 yearlyPrice, 월간이면 price)
         const paymentAmount = billingCycle === 'yearly' ? plan.yearlyPrice : plan.price
 
-        // ── 3. 빌링키 유효성 검증 ──
+        // ── 3. 중복 구독 방지 (M2) ──
+        const { data: existingBilling } = await supabase
+            .from('subscription_billing')
+            .select('status, next_billing_date')
+            .eq('user_id', user.id)
+            .single()
+
+        if (existingBilling) {
+            if (existingBilling.status === 'active') {
+                return NextResponse.json(
+                    { error: '이미 활성 구독이 있습니다. 플랜 변경을 이용해주세요.', code: 'ALREADY_SUBSCRIBED' },
+                    { status: 409 }
+                )
+            }
+            if (existingBilling.status === 'cancel_scheduled') {
+                const nextDate = new Date(existingBilling.next_billing_date)
+                if (nextDate > new Date()) {
+                    return NextResponse.json(
+                        { error: '해지 예약 중이며 잔여 기간이 남아있습니다. 해지를 철회하거나 만료 후 재구독해주세요.', code: 'HAS_REMAINING_PERIOD' },
+                        { status: 409 }
+                    )
+                }
+            }
+        }
+
+        // ── 4. 빌링키 유효성 검증 + 카드 정보 추출 (M4) ──
+        let cardLast4: string | null = null
+        let cardBrand: string | null = null
         try {
-            await getBillingKeyInfo(billingKey)
+            const billingKeyInfo = await getBillingKeyInfo(billingKey) as any
+            // PortOne V2 빌링키 응답: methods[0].card.number (마스킹된 카드번호), card.brand
+            const cardInfo = billingKeyInfo?.methods?.[0]?.card
+            if (cardInfo) {
+                cardLast4 = cardInfo.number?.replace(/[^0-9]/g, '')?.slice(-4) || null
+                cardBrand = cardInfo.brand || null
+            }
         } catch (error) {
             console.error('빌링키 검증 실패:', error)
             return NextResponse.json(
@@ -78,10 +113,9 @@ export async function POST(request: Request) {
             )
         }
 
-        // ── 4. 첫 결제 실행 ──
+        // ── 5. 첫 결제 실행 ──
         const paymentId = `sub_${planId}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`
-        const planName = planId === 'premium' ? '프리미엄' :
-            planId === 'pro' ? '프로' : '스타터'
+        const planName = getPlanName(planId)
         const orderName = `맵타민 ${planName} 플랜 정기구독`
 
         let paymentResult
@@ -101,15 +135,15 @@ export async function POST(request: Request) {
             )
         }
 
-        // ── 5. DB에 구독 정보 저장 (activate_subscription RPC) ──
+        // ── 6. DB에 구독 정보 저장 (activate_subscription RPC) ──
         const { data: activateResult, error: activateError } = await supabase.rpc(
             'activate_subscription',
             {
                 p_user_id: user.id,
                 p_plan_id: planId,
                 p_billing_key: billingKey,
-                p_card_last4: null,
-                p_card_brand: null,
+                p_card_last4: cardLast4,
+                p_card_brand: cardBrand,
                 p_billing_cycle: billingCycle,
             }
         )
@@ -124,8 +158,7 @@ export async function POST(request: Request) {
 
         // ── 6. subscription_payment_history에 결제 이력 저장 ──
         const periodStart = new Date()
-        const periodEnd = new Date()
-        periodEnd.setDate(periodEnd.getDate() + (billingCycle === 'yearly' ? 365 : 30))
+        const periodEnd = calculateNextBillingDate(periodStart, billingCycle)
 
         const { error: historyError } = await supabase
             .from('subscription_payment_history')

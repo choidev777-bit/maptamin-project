@@ -14,8 +14,10 @@ import {
     FileText,
     RefreshCw,
     Download,
+    Undo2,
 } from 'lucide-react'
 import { getPlanDisplayName } from '@/lib/utils/subscription'
+import { PLAN_CONFIG, getPlanName, getPlanPrice } from '@/lib/pricing/config'
 import { PlanCardData } from './PlanCard'
 
 /* ──────────────────────────────────────────────
@@ -125,9 +127,14 @@ export function SubscriptionContent({
     const [canceling, setCanceling] = useState(false)
     const [cancelError, setCancelError] = useState<string | null>(null)
     const [canceledUntil, setCanceledUntil] = useState<string | null>(null)
+    const [reactivating, setReactivating] = useState(false)
+    const [refunding, setRefunding] = useState(false)
+    const [showRefundModal, setShowRefundModal] = useState(false)
+    const [actionMessage, setActionMessage] = useState<string | null>(null)
 
     const isSubscribed = billingStatus === 'active'
-    const isCanceled = billingStatus === 'canceled'
+    const isCancelScheduled = billingStatus === 'cancel_scheduled'
+    const isCanceled = billingStatus === 'cancelled' || billingStatus === 'canceled'
 
     const formatDate = (dateStr: string | null) => {
         if (!dateStr) return '-'
@@ -162,11 +169,69 @@ export function SubscriptionContent({
             setCanceledUntil(data.effectiveUntil)
             setShowCancelModal(false)
             setCanceling(false)
+            router.refresh()
         } catch (error) {
             setCancelError(
                 error instanceof Error ? error.message : '구독 해지 처리 중 오류가 발생했습니다.'
             )
             setCanceling(false)
+        }
+    }
+
+    const handleReactivate = async () => {
+        setReactivating(true)
+        setActionMessage(null)
+
+        try {
+            const response = await fetch('/api/payment/subscribe/reactivate', {
+                method: 'POST',
+            })
+            const data = await response.json()
+
+            if (!response.ok) {
+                setActionMessage(data.error || '해지 철회에 실패했습니다.')
+                setReactivating(false)
+                return
+            }
+
+            setActionMessage('구독이 다시 활성화되었습니다!')
+            setReactivating(false)
+            router.refresh()
+        } catch (error) {
+            setActionMessage(
+                error instanceof Error ? error.message : '해지 철회 처리 중 오류가 발생했습니다.'
+            )
+            setReactivating(false)
+        }
+    }
+
+    const handleRefund = async () => {
+        setRefunding(true)
+        setActionMessage(null)
+
+        try {
+            const response = await fetch('/api/payment/subscribe/refund', {
+                method: 'POST',
+            })
+            const data = await response.json()
+
+            if (!response.ok) {
+                setActionMessage(data.error || '환불에 실패했습니다.')
+                setRefunding(false)
+                setShowRefundModal(false)
+                return
+            }
+
+            setActionMessage(`환불이 완료되었습니다. (환불 금액: ${data.refundedAmount?.toLocaleString()}원)`)
+            setRefunding(false)
+            setShowRefundModal(false)
+            router.refresh()
+        } catch (error) {
+            setActionMessage(
+                error instanceof Error ? error.message : '환불 처리 중 오류가 발생했습니다.'
+            )
+            setRefunding(false)
+            setShowRefundModal(false)
         }
     }
 
@@ -240,31 +305,93 @@ export function SubscriptionContent({
     }
 
     const getDisplayAmount = () => {
-        const currentPlan = PLANS.find(p => p.id === currentPlanId)
-        if (!currentPlan) return { amount: '-', period: '월' }
+        const plan = PLAN_CONFIG[currentPlanId]
+        if (!plan) return { amount: '-', period: '월' }
         if (billingCycle === 'yearly') {
-            const amountMatch = currentPlan.yearlyTotal.match(/[0-9,]+/)
-            return { amount: amountMatch ? amountMatch[0] : '-', period: '연' }
+            return { amount: plan.yearlyPrice.toLocaleString(), period: '년' }
         }
-        return { amount: currentPlan.monthly.replace('원', ''), period: '월' }
+        return { amount: plan.price.toLocaleString(), period: '월' }
     }
     const { amount: displayAmount, period: displayPeriod } = getDisplayAmount()
 
     const getHistoryPlanName = (item: PaymentHistoryItem) => {
-        const plan = PLANS.find(p => p.id === item.plan_id)
-        if (!plan) return getPlanDisplayName(item.plan_id)
+        const name = getPlanName(item.plan_id)
+        const plan = PLAN_CONFIG[item.plan_id]
+        if (!plan) return name
 
         // 결제 금액으로 연간/월간 구분
-        const yearlyAmount = parseInt(plan.yearlyTotal.replace(/[^0-9]/g, ''))
-        if (item.amount === yearlyAmount) {
-            return `${plan.name} (연 결제)`
+        if (item.amount === plan.yearlyPrice) {
+            return `${name} (연 결제)`
         }
-        return `${plan.name} (월 결제)`
+        return `${name} (월 결제)`
+    }
+
+    const renderRefundModal = () => {
+        if (!showRefundModal) return null
+
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                            <Undo2 className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">
+                            구독을 환불하시겠습니까?
+                        </h3>
+                    </div>
+
+                    <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200">
+                        <p className="text-sm text-blue-800">
+                            첫 구독 결제 후 <strong>7일 이내</strong>이며, 서비스를 이용하지 않은 경우에만 환불이 가능합니다.
+                        </p>
+                        <p className="text-xs text-blue-600 mt-1">
+                            환불 시 구독이 즉시 해지되고 무료 플랜으로 전환됩니다.
+                        </p>
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setShowRefundModal(false)}
+                            disabled={refunding}
+                            className="flex-1 py-3 px-4 rounded-xl text-sm font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        >
+                            취소
+                        </button>
+                        <button
+                            onClick={handleRefund}
+                            disabled={refunding}
+                            className="flex-1 py-3 px-4 rounded-xl text-sm font-semibold bg-amber-600 text-white hover:bg-amber-700 transition-colors disabled:opacity-50"
+                        >
+                            {refunding ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    처리 중...
+                                </span>
+                            ) : (
+                                '환불하기'
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 font-sans text-[#001011]">
             {renderCancelModal()}
+            {renderRefundModal()}
+
+            {/* Action Message */}
+            {actionMessage && (
+                <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between">
+                    <p className="text-sm text-blue-800">{actionMessage}</p>
+                    <button onClick={() => setActionMessage(null)} className="text-blue-400 hover:text-blue-600 text-sm">
+                        ✕
+                    </button>
+                </div>
+            )}
 
             {/* Header */}
             <div className="mb-8">
@@ -280,11 +407,14 @@ export function SubscriptionContent({
                             <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-1">현재 이용 중인 플랜</h3>
                             <div className="flex items-center gap-3">
                                 <span className="text-2xl font-bold text-[#001011]">{getPlanDisplayName(currentPlanId)}</span>
-                                {isSubscribed && !isCanceled && (
+                                {isSubscribed && !isCancelScheduled && !isCanceled && (
                                     <span className="px-2 py-0.5 bg-[#00C896]/10 text-[#00C896] text-xs font-bold rounded border border-[#00C896]/20">이용 중</span>
                                 )}
+                                {isCancelScheduled && (
+                                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold rounded border border-amber-200">해지 예약</span>
+                                )}
                                 {isCanceled && (
-                                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold rounded border border-amber-200">해지됨</span>
+                                    <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded border border-red-200">해지됨</span>
                                 )}
                             </div>
                         </div>
@@ -317,13 +447,29 @@ export function SubscriptionContent({
 
                         <div className="space-y-4">
                             <div className="flex items-center gap-3">
-                                <RefreshCw className={`w-5 h-5 ${isCanceled ? 'text-amber-500' : 'text-[#00C896]'}`} />
+                                <RefreshCw className={`w-5 h-5 ${isCancelScheduled || isCanceled ? 'text-amber-500' : 'text-[#00C896]'}`} />
                                 <div>
                                     <p className="text-xs text-slate-500">상태</p>
-                                    {isCanceled ? (
-                                        <p className="font-medium text-amber-600">
-                                            {formatDate(canceledUntil || nextBillingDate)} 종료 예정
-                                        </p>
+                                    {isCancelScheduled ? (
+                                        <div>
+                                            <p className="font-medium text-amber-600">
+                                                {formatDate(canceledUntil || nextBillingDate)} 종료 예정
+                                            </p>
+                                            <button
+                                                onClick={handleReactivate}
+                                                disabled={reactivating}
+                                                className="mt-1 text-xs text-[#00C896] hover:text-[#00B386] font-semibold flex items-center gap-1 disabled:opacity-50"
+                                            >
+                                                {reactivating ? (
+                                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                                ) : (
+                                                    <Undo2 className="w-3 h-3" />
+                                                )}
+                                                해지 철회
+                                            </button>
+                                        </div>
+                                    ) : isCanceled ? (
+                                        <p className="font-medium text-red-600">구독 만료됨</p>
                                     ) : (
                                         <p className="font-medium text-[#00C896]">자동 결제 활성화 상태</p>
                                     )}
@@ -386,7 +532,7 @@ export function SubscriptionContent({
             </div>
 
             {/* Billing History Table */}
-            {isSubscribed && (
+            {(isSubscribed || isCancelScheduled) && (
                 <section className="mb-12">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-xl font-bold flex items-center gap-3 text-[#001011]">
@@ -517,7 +663,7 @@ export function SubscriptionContent({
                                         ({plan.yearlyTotal})
                                     </p>
                                 )}
-                                <p className="mt-0.5 text-xs text-gray-400">VAT 별도</p>
+                                <p className="mt-0.5 text-xs text-gray-400">VAT 포함</p>
 
                                 <p className="mt-4 text-sm text-gray-500 leading-relaxed min-h-[3rem]">
                                     {plan.tagline}
@@ -569,14 +715,35 @@ export function SubscriptionContent({
             </section>
 
             {/* Footer Links (Danger Zone) */}
-            {isSubscribed && (
-                <footer className="pt-8 border-t border-gray-200 flex justify-end">
-                    <button
-                        onClick={() => setShowCancelModal(true)}
-                        className="text-sm text-gray-400 hover:text-red-500 transition-colors font-medium flex items-center gap-1"
-                    >
-                        구독 해지
-                    </button>
+            {(isSubscribed || isCancelScheduled) && (
+                <footer className="pt-8 border-t border-gray-200 flex justify-between items-center">
+                    {isSubscribed && (
+                        <button
+                            onClick={() => setShowRefundModal(true)}
+                            className="text-sm text-gray-400 hover:text-amber-500 transition-colors font-medium flex items-center gap-1"
+                        >
+                            환불 요청
+                        </button>
+                    )}
+                    <div className="flex gap-4 ml-auto">
+                        {isCancelScheduled ? (
+                            <button
+                                onClick={handleReactivate}
+                                disabled={reactivating}
+                                className="text-sm text-[#00C896] hover:text-[#00B386] transition-colors font-medium flex items-center gap-1 disabled:opacity-50"
+                            >
+                                {reactivating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Undo2 className="w-4 h-4" />}
+                                해지 철회
+                            </button>
+                        ) : isSubscribed ? (
+                            <button
+                                onClick={() => setShowCancelModal(true)}
+                                className="text-sm text-gray-400 hover:text-red-500 transition-colors font-medium flex items-center gap-1"
+                            >
+                                구독 해지
+                            </button>
+                        ) : null}
+                    </div>
                 </footer>
             )}
         </div>

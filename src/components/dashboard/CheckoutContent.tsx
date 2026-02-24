@@ -4,36 +4,23 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Check, CreditCard, Loader2, ShieldCheck } from 'lucide-react'
 import { requestBillingKey } from '@/lib/portone/subscription-client'
-import { getPlanDisplayName } from '@/lib/utils/subscription'
+import { PLAN_CONFIG } from '@/lib/pricing/config'
 
 /* ──────────────────────────────────────────────
- * Plan Data (Shared with SubscriptionContent - consider moving to shared constant)
+ * 유효한 유료 플랜 ID
  * ────────────────────────────────────────────── */
-const PLANS = {
-    starter: {
-        name: '스타터',
-        monthly: 9900,
-        yearly: 9075,
-    },
-    pro: {
-        name: '프로',
-        monthly: 29000,
-        yearly: 26600,
-    },
-    premium: {
-        name: '프리미엄',
-        monthly: 99000,
-        yearly: 90750,
-    },
-} as const
+const PAID_PLAN_IDS = ['starter', 'pro', 'premium'] as const
+type PaidPlanId = typeof PAID_PLAN_IDS[number]
 
-type PlanId = keyof typeof PLANS
+function isPaidPlan(id: string | null): id is PaidPlanId {
+    return id !== null && PAID_PLAN_IDS.includes(id as PaidPlanId)
+}
 
 export function CheckoutContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
 
-    const planId = searchParams.get('plan') as PlanId
+    const planId = searchParams.get('plan')
     const billingCycle = searchParams.get('billing') as 'monthly' | 'yearly'
 
     const [loading, setLoading] = useState(false)
@@ -41,7 +28,7 @@ export function CheckoutContent() {
     const [error, setError] = useState<string | null>(null)
 
     // Validate params
-    const isValidPlan = planId && PLANS[planId]
+    const isValidPlan = isPaidPlan(planId)
     const isValidCycle = billingCycle === 'monthly' || billingCycle === 'yearly'
 
     useEffect(() => {
@@ -52,10 +39,10 @@ export function CheckoutContent() {
 
     if (!isValidPlan || !isValidCycle) return null
 
-    const plan = PLANS[planId]
-    const price = billingCycle === 'yearly' ? plan.yearly * 12 : plan.monthly
+    const plan = PLAN_CONFIG[planId]
+    // ⚠️ PLAN_CONFIG의 price/yearlyPrice는 VAT 포함 최종가 — 별도 가산 없음
+    const totalAmount = billingCycle === 'yearly' ? plan.yearlyPrice : plan.price
     const cycleText = billingCycle === 'yearly' ? '년' : '월'
-    const totalAmount = price + (price * 0.1) // VAT 10%
     const totalAmountDisplay = totalAmount.toLocaleString()
 
     const handlePayment = async () => {
@@ -198,19 +185,20 @@ export function CheckoutContent() {
                                     </p>
                                 </div>
                                 <p className="font-semibold text-gray-900 dark:text-gray-100">
-                                    ₩{price.toLocaleString()}
+                                    ₩{totalAmountDisplay}
                                 </p>
                             </div>
+                            {billingCycle === 'yearly' && (
+                                <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                                    월 ₩{Math.round(plan.yearlyPrice / 12).toLocaleString()} (연간 할인 적용)
+                                </p>
+                            )}
                         </div>
 
                         <div className="space-y-2 mb-6 text-sm text-gray-600 dark:text-gray-400">
                             <div className="flex justify-between">
-                                <span>공급가액 ({billingCycle === 'yearly' ? '12개월' : '1개월'})</span>
-                                <span>₩{price.toLocaleString()}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>부가세 (10%)</span>
-                                <span>₩{(price * 0.1).toLocaleString()}</span>
+                                <span>결제 금액 (VAT 포함)</span>
+                                <span>₩{totalAmountDisplay}</span>
                             </div>
                         </div>
 
