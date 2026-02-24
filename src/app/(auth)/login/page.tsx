@@ -4,9 +4,9 @@ import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton'
 export default async function LoginPage({
     searchParams,
 }: {
-    searchParams: Promise<{ plan?: string; billing?: string }>
+    searchParams: Promise<{ plan?: string; billing?: string; redirectTo?: string }>
 }) {
-    const { plan, billing } = await searchParams
+    const { plan, billing, redirectTo } = await searchParams
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-yellow-100">
             <div className="max-w-md w-full mx-4">
@@ -25,8 +25,8 @@ export default async function LoginPage({
 
                     {/* Login Button */}
                     <div className="flex flex-col gap-3">
-                        <KakaoLoginButton plan={plan} billing={billing} />
-                        <GoogleLoginButton plan={plan} billing={billing} />
+                        <KakaoLoginButton plan={plan} billing={billing} redirectTo={redirectTo} />
+                        <GoogleLoginButton plan={plan} billing={billing} redirectTo={redirectTo} />
                     </div>
 
                     {/* Terms */}

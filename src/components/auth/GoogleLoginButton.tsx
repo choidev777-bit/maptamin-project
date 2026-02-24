@@ -4,26 +4,35 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 
+const VALID_PLANS = ['starter', 'pro', 'premium']
+
 interface Props {
     plan?: string | undefined
     billing?: string | undefined
+    redirectTo?: string | undefined
 }
 
-export function GoogleLoginButton({ plan, billing }: Props) {
+export function GoogleLoginButton({ plan, billing, redirectTo }: Props) {
     const supabase = createClient()
     const router = useRouter()
 
     const handleLogin = async () => {
-        const redirectUrl = new URL(`${window.location.origin}/auth/callback`)
+        const callbackUrl = new URL(`${window.location.origin}/auth/callback`)
 
-        // 플랜과 결제 주기 정보가 있으면 콜백 URL에 포함
-        if (plan) redirectUrl.searchParams.set('plan', plan)
-        if (billing) redirectUrl.searchParams.set('billing', billing)
+        if (plan && VALID_PLANS.includes(plan)) {
+            // plan이 있으면 checkout 우선 (next 방식으로 통일)
+            const billingParam = billing === 'yearly' ? '&billing=yearly' : ''
+            const nextUrl = `/dashboard/subscription/checkout?plan=${plan}${billingParam}`
+            callbackUrl.searchParams.set('next', nextUrl)
+        } else if (redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')) {
+            // redirectTo가 있으면 해당 경로로 (보안: 상대경로만 허용)
+            callbackUrl.searchParams.set('next', redirectTo)
+        }
 
         await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-                redirectTo: redirectUrl.toString()
+                redirectTo: callbackUrl.toString()
             }
         })
     }

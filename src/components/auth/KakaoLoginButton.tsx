@@ -7,26 +7,30 @@ const VALID_PLANS = ['starter', 'pro', 'premium']
 interface Props {
     plan?: string
     billing?: string
+    redirectTo?: string
 }
 
-export function KakaoLoginButton({ plan, billing }: Props) {
+export function KakaoLoginButton({ plan, billing, redirectTo }: Props) {
     const handleLogin = async () => {
         const supabase = createClient()
 
-        // plan이 유효하면 로그인 후 checkout 페이지로 리다이렉트
         const callbackUrl = `${window.location.origin}/auth/callback`
-        let redirectTo = callbackUrl
+        let finalRedirectTo = callbackUrl
 
         if (plan && VALID_PLANS.includes(plan)) {
+            // plan이 있으면 checkout 우선 (기존 동작)
             const billingParam = billing === 'yearly' ? '&billing=yearly' : ''
             const nextUrl = `/dashboard/subscription/checkout?plan=${plan}${billingParam}`
-            redirectTo = `${callbackUrl}?next=${encodeURIComponent(nextUrl)}`
+            finalRedirectTo = `${callbackUrl}?next=${encodeURIComponent(nextUrl)}`
+        } else if (redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')) {
+            // redirectTo가 있으면 해당 경로로 (보안: 상대경로만 허용)
+            finalRedirectTo = `${callbackUrl}?next=${encodeURIComponent(redirectTo)}`
         }
 
         await supabase.auth.signInWithOAuth({
             provider: 'kakao',
             options: {
-                redirectTo,
+                redirectTo: finalRedirectTo,
             },
         })
     }

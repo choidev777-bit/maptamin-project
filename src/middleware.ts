@@ -32,10 +32,20 @@ export async function middleware(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    if (request.nextUrl.pathname.startsWith('/dashboard') && !user) {
-        // If not logged in and accessing dashboard, redirect to login
+    // (dashboard) 라우트 그룹의 모든 보호 경로
+    const protectedPrefixes = ['/dashboard', '/naver-search', '/search', '/settings', '/history', '/onboarding', '/report-settings']
+    const isProtected = protectedPrefixes.some(prefix => request.nextUrl.pathname.startsWith(prefix))
+
+    if (isProtected && !user) {
         const url = request.nextUrl.clone()
         url.pathname = '/login'
+
+        // 원래 URL 보존 (로그인 후 돌아갈 수 있도록)
+        const originalPath = request.nextUrl.pathname + request.nextUrl.search
+        if (originalPath && originalPath !== '/') {
+            url.searchParams.set('redirectTo', originalPath)
+        }
+
         return NextResponse.redirect(url)
     }
 
