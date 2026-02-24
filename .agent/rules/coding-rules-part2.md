@@ -2,7 +2,7 @@
 
 > **Status**: ACTIVE — All AI code generation MUST comply with these rules.  
 > **Version**: 1.0  
-> **Last Updated**: 2026-02-22  
+> **Last Updated**: 2026-02-24  
 > **Scope**: API Routes, Error Handling, Authentication, PortOne Payments, and DB/Supabase Rules.
 
 ---
@@ -28,7 +28,7 @@
 
 ### 6.2 Authentication Guard
 
-- **EVERY API route** MUST start with authentication check:
+- **EVERY user-facing API route** MUST start with authentication check:
   ```typescript
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -36,7 +36,14 @@
       return NextResponse.json({ error: 'Unauthorized', code: 'UNAUTHORIZED' }, { status: 401 })
   }
   ```
-- **NO EXCEPTIONS.** Even internal routes must validate the user.
+- **Exception**: CRON/system API routes (e.g., `/api/cron/scheduled-search`) use **shared secret** authentication instead:
+  ```typescript
+  const token = request.headers.get('authorization')?.replace('Bearer ', '')
+  if (token !== process.env.CRON_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  // Use createClient from @supabase/supabase-js with service role key (NOT server client)
+  ```
 
 ### 6.3 Request Validation
 
@@ -135,8 +142,10 @@
 ### 8.2 Middleware
 
 - `src/middleware.ts` handles route protection:
-  - Unauthenticated users accessing `/dashboard/*` → redirect to `/login`
+  - Protected routes: `/dashboard`, `/naver-search`, `/search`, `/settings`, `/history`, `/onboarding`, `/report-settings`
+  - Unauthenticated users → redirect to `/login?redirectTo=원래경로`
   - Authenticated users accessing `/login` → redirect to `/dashboard`
+  - Login buttons pass `redirectTo` param to OAuth callback for post-login navigation
 - **DO NOT modify middleware logic** without understanding the full auth flow.
 
 ### 8.3 Row Level Security (RLS)
@@ -176,6 +185,11 @@
 | `PORTONE_API_SECRET` | Server only | Yes |
 | `NEXT_PUBLIC_SUPABASE_URL` | Client | Yes |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client | Yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only | Yes (CRON API, admin ops) |
+| `CRON_SECRET` | Server only | Yes (pg_cron → Vercel API 인증) |
+| `GH_PAT` | Server only | Yes (GitHub Actions dispatch) |
+| `NEXT_PUBLIC_GITHUB_REPO` | Client | Yes (owner/repo format) |
+| `NEXT_PUBLIC_APP_URL` | Client | Yes (dispatch 콜백 URL) |
 
 ---
 

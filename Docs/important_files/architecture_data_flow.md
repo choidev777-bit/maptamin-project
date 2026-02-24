@@ -2,7 +2,7 @@
 
 > **Purpose**: AI가 코드 수정 시 각 기능의 전체 데이터 흐름을 정확히 파악할 수 있도록,  
 > `User UI Action ↔ Client Component ↔ Server API Route ↔ Supabase DB Table` 매핑을 정리한 문서입니다.  
-> **Last Updated**: 2026-02-24 (Sidebar 아키텍처, Report Settings, Navigator 라벨 변경 반영)  
+> **Last Updated**: 2026-02-24 (pg_cron 마이그레이션, 로그인 리다이렉트 보존, ISO 주차 중복 방지, free 플랜 체크 반영)  
 > **Auto-generated from codebase analysis**
 
 ---
@@ -82,8 +82,10 @@ User Action: "로그인" 버튼 클릭
 │
 └─► Middleware Guard
     └── src/middleware.ts
-        ├── /dashboard/* 접근 시 user 없으면 → /login 리다이렉트
-        └── /login 접근 시 user 있으면 → /dashboard 리다이렉트
+        ├── 보호 라우트 접근 시 user 없으면 → /login?redirectTo=원래경로 리다이렉트
+        │   └── 보호 대상: /dashboard, /naver-search, /search, /settings, /history, /onboarding, /report-settings
+        ├── /login 접근 시 user 있으면 → /dashboard 리다이렉트
+        └── 로그인 완료 후 redirectTo 파라미터로 원래 페이지로 자동 이동
 ```
 
 **DB Operations:**
@@ -518,53 +520,68 @@ Components Used:
 
 ## 11. Weekly Scheduled Search
 
-### 주간 자동 검색 (CRON)
+### 주간 자동 검색 (pg_cron → Vercel API → GitHub Actions)
 
 ```
-Trigger: CRON Job (매시간 실행)
+Trigger: Supabase pg_cron (매시 정각, 정확한 타이밍)
+│
+├─► pg_cron + pg_net (Supabase DB 내부)
+│   └── net.http_post → POST /api/cron/scheduled-search
+│       └── Authorization: Bearer CRON_SECRET
 │
 ├─► Server API Route
-│   └── src/app/api/cron/cleanup/route.ts  (or Vercel Cron)
+│   └── src/app/api/cron/scheduled-search/route.ts (POST)
+│       │
+│       ├── 1. CRON_SECRET 인증
+│       ├── 2. KST 기준 현재 요일/시간 계산
+│       ├── 3. SELECT → search_schedules
+│       │       WHERE is_active=true, crawling_time=현재KST시간
+│       │
+│       ├── 4. 구독 체크 — free 플랜 유저 스케줄 제외
+│       │   └── SELECT → user_subscriptions (plan_id 확인)
+│       │
+│       ├── 5. 필터링:
+│       │   ├── 요일 매칭 (crawling_day 또는 crawling_days)
+│       │   ├── ISO 주차 비교 (KST 기준) — 같은 주 중복 방지
+│       │   │   └── getISOWeekKST(last_run_at) === getISOWeekKST(now) → SKIP
+│       │   └── free 플랜 유저 → SKIP
+│       │
+│       ├── 6. 스케줄별 처리:
+│       │   ├── UPDATE → search_schedules.last_run_at (선행 업데이트, 중복 방지)
+│       │   ├── SELECT → managed_places (좌표/주소 조회)
+│       │   └── INSERT → searches (status='pending', report_type='weekly')
+│       │
+│       └── 7. POST /api/queue/dispatch
+│           └── GitHub Actions dispatch → 크롤링 실행
 │
-├─► Service Layer
-│   └── src/lib/services/schedule-manager.ts :: ScheduleManager.runScheduledSearches()
-│       │
-│       ├── 1. SELECT → search_schedules
-│       │       WHERE is_active=true, crawling_time=현재KST, crawling_days 포함
-│       │
-│       ├── 2. 각 스케줄에 대해:
-│       │   ├── SearchService.executeSearch()
-│       │   │   ├── SELECT → user_subscriptions (플랜, 티켓)
-│       │   │   ├── SELECT → plans (제한사항)
-│       │   │   ├── RPC deduct_ticket → UPDATE user_subscriptions, INSERT ticket_ledger
-│       │   │   └── (크롤링 실행)
-│       │   │       └── 실패 시: RPC refund_ticket
-│       │   │
-│       │   ├── UPDATE → search_schedules (last_run_at 갱신)
-│       │   │
-│       │   └── 알림 처리:
-│       │       ├── SELECT → notification_schedules (is_immediate 확인)
-│       │       ├── SELECT → searches (가장 최근 완료 검색)
-│       │       ├── is_immediate=true → sendWeeklyReport() 즉시 발송
-│       │       │   └── INSERT → notification_logs (status='sent')
-│       │       └── is_immediate=false → 예약 등록
-│       │           └── INSERT → notification_logs (status='pending')
-│       │
-│       └── 3. 실패 시 로그만 기록 (전체 배치 중단 않음)
+├─► GitHub Actions (크롤링 워커)
+│   └── scripts/run-search.ts MANUAL <search_id>
+│       ├── 크롤링 실행 (Bright Data proxy)
+│       ├── INSERT → search_results
+│       └── 알림톡 발송 (Solapi API)
+│
+└─► 이전 방식 (제거됨):
+    └── .github/workflows/cron.yml의 schedule 트리거 → 주석 처리 (20~50분 지연 문제)
+    └── workflow_dispatch만 유지 (수동 테스트용)
 ```
+
+**엣지 케이스 방어:**
+| 시나리오 | 방어 로직 |
+|---------|----------|
+| 같은 주 요일 변경 (화→수) | ISO 주차 비교 (KST 기준) |
+| 같은 날 시간 변경 (14시→15시) | ISO 주차 비교 (같은 주) |
+| free 플랜 유저 스케줄 | user_subscriptions.plan_id 체크 |
+| pg_cron 동시 실행 | last_run_at 선행 업데이트 |
 
 **DB Operations:**
 | Operation | Table | Action |
 |-----------|-------|--------|
 | SELECT | `search_schedules` | 실행 대상 스케줄 조회 |
-| SELECT | `user_subscriptions` | 플랜/티켓 (SearchService 내부) |
-| SELECT | `plans` | 플랜 제한 (SearchService 내부) |
-| UPDATE | `user_subscriptions` | 티켓 차감 (deduct_ticket RPC) |
-| INSERT | `ticket_ledger` | 사용 이력 |
-| UPDATE | `search_schedules` | `last_run_at` 갱신 |
-| SELECT | `notification_schedules` | 즉시/예약 발송 여부 |
-| SELECT | `searches` | 최근 완료 검색 (place_name 조회) |
-| INSERT | `notification_logs` | 알림 발송/대기 이력 |
+| SELECT | `user_subscriptions` | 구독 상태 확인 (free 플랜 필터) |
+| SELECT | `managed_places` | 좌표/주소 조회 |
+| UPDATE | `search_schedules` | `last_run_at` 선행 갱신 |
+| INSERT | `searches` | 검색 레코드 생성 (status='pending') |
+| INSERT | `search_results` | 크롤링 결과 (GitHub Actions에서) |
 
 ---
 
@@ -925,6 +942,7 @@ User Action: 요약 화면에서 "완료하고 첫 리포트 받기" 클릭
 | `subscription/cancel/route.ts` | `/api/subscription/cancel` | — | 구독 취소 (대안) |
 | `queue/dispatch/route.ts` | `/api/queue/dispatch` | POST | 큐 디스패처 |
 | `cron/cleanup/route.ts` | `/api/cron/cleanup` | — | CRON 정리 작업 |
+| `cron/scheduled-search/route.ts` | `/api/cron/scheduled-search` | POST | pg_cron 정시 트리거 → 스케줄 조회 + dispatch |
 | `kakao/send-report/route.ts` | `/api/kakao/send-report` | POST | 알림톡 수동 발송 |
 
 ### Service Layer (src/lib/services)
@@ -978,7 +996,7 @@ User Action: 요약 화면에서 "완료하고 첫 리포트 받기" 클릭
 
 | File | Description |
 |------|-------------|
-| `src/middleware.ts` | 인증 가드: `/dashboard/*` → 미인증 시 `/login` 리다이렉트, `/login` → 인증 시 `/dashboard` 리다이렉트 |
+| `src/middleware.ts` | 인증 가드: 보호 라우트(`/dashboard`, `/naver-search`, `/settings` 등) → 미인증 시 `/login?redirectTo=원래경로` 리다이렉트, `/login` → 인증 시 `/dashboard` 리다이렉트 |
 
 ### Supabase Migrations (Key)
 

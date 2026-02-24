@@ -94,56 +94,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // 4. Trigger GitHub Action (Async Processing)
-    const ghRepo = process.env.NEXT_PUBLIC_GITHUB_REPO;
-    const ghPat = process.env.GH_PAT;
-
-    if (ghRepo && ghPat) {
-        try {
-            const [owner, repo] = ghRepo.split('/');
-            const dispatchUrl = `https://api.github.com/repos/${owner}/${repo}/dispatches`;
-
-            console.log(`[API] Dispatching manual_search to ${owner}/${repo} for SearchID: ${search.id}`);
-
-            const response = await fetch(dispatchUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${ghPat}`,
-                    'Accept': 'application/vnd.github.v3+json',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    event_type: 'manual_search',
-                    client_payload: {
-                        search_id: search.id
-                    }
-                })
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error(`[API] GitHub Dispatch Failed: ${response.status} ${errorText}`);
-
-                // Note: We don't fail the request here, but we log the error.
-                // In production, we should probably update the search status to 'failed-trigger' and refund
-                await supabase.from('searches').update({ status: 'failed', error_message: 'Worker Trigger Failed' }).eq('id', search.id);
-                // Refund ticket since service failed
-                await supabase.rpc('refund_ticket', { p_platform: 'google' });
-
-                return NextResponse.json({ error: 'Failed to trigger search worker' }, { status: 500 });
-            }
-        } catch (dispatchError) {
-            console.error('[API] Dispatch Error:', dispatchError);
-            // Refund ticket
-            if (!isWelcome) {
-                await supabase.rpc('refund_ticket', { p_platform: 'google' })
-            };
-            return NextResponse.json({ error: 'Internal Dispatch Error' }, { status: 500 });
-        }
-    } else {
-        console.warn('[API] Missing GitHub Config (GH_PAT or NEXT_PUBLIC_GITHUB_REPO). Search created but not triggered.');
-        // For local dev without secrets, we might want to warn
-    }
+    // 4. 구글 search는 GitHub dispatch 불필요
+    //    - 실시간: 클라이언트가 /api/search/{id}/process 직접 호출
+    //    - 웰컴: 온보딩에서 /api/search/{id}/process fire-and-forget 호출
+    //    - 정기: api/cron/scheduled-search → api/queue/dispatch 별도 경로 (이 API 무관)
+    console.log(`[API/Google] Search created: ${search.id} (type: ${isWelcome ? 'welcome' : 'realtime'}). Client will trigger /process.`)
 
     return NextResponse.json({ searchId: search.id })
 }

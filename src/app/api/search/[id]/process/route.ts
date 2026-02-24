@@ -3,6 +3,9 @@ import { NextResponse } from 'next/server'
 import { fetchMapRankBatch, MapRankTask } from '@/lib/dataforseo/client'
 import { GridPoint } from '@/lib/types'
 
+// Premium 7×7 그리드(~50초) 처리를 위해 타임아웃 확장
+export const maxDuration = 60
+
 export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -120,6 +123,16 @@ export async function POST(
             .from('searches')
             .update({ status: 'failed' })
             .eq('id', searchId)
+
+        // 실패 시 티켓 환불 (웰컴 리포트는 무료이므로 제외)
+        if (search.report_type !== 'welcome') {
+            try {
+                await supabase.rpc('refund_ticket', { p_platform: 'google' })
+                console.log(`[Process] Refunded google ticket for search ${searchId}`)
+            } catch (refundErr) {
+                console.error(`[Process] Ticket refund failed for search ${searchId}:`, refundErr)
+            }
+        }
 
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         console.error('Error message:', errorMessage)

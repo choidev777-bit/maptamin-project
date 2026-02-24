@@ -4,6 +4,7 @@ import { SolapiMessageService } from 'solapi';
 
 import { scrapeNaverBatch } from '../src/lib/naver/scraper_ex2';
 import { NaverScrapeTask } from '../src/lib/naver/types';
+import { fetchMapRankBatch, MapRankTask } from '../src/lib/dataforseo/client';
 
 // Initialize Admin Client (Bypass RLS)
 // This script runs in a secure environment (GitHub Actions)
@@ -148,33 +149,17 @@ async function sendKakaoAlimtalk(search: {
     }
 }
 
-async function refundCredits(userId: string, amount: number) {
-    if (amount <= 0) return;
-
+async function refundTicket(userId: string, platform: 'naver' | 'google') {
     try {
-        // Fetch current credits
-        const { data: credits, error: fetchError } = await supabase
-            .from('user_credits')
-            .select('subscription_balance')
-            .eq('user_id', userId)
-            .single();
-
-        if (fetchError || !credits) throw fetchError || new Error('No credit record found');
-
-        // Update with refund
-        const { error: updateError } = await supabase
-            .from('user_credits')
-            .update({
-                subscription_balance: credits.subscription_balance + amount,
-                updated_at: new Date().toISOString()
-            })
-            .eq('user_id', userId);
-
-        if (updateError) throw updateError;
-
-        console.log(`[Worker] Refunded ${amount} credits to user ${userId}.`);
+        // service role 호출이므로 p_user_id를 명시적으로 전달
+        const { error } = await supabase.rpc('refund_ticket', {
+            p_platform: platform,
+            p_user_id: userId,
+        });
+        if (error) throw error;
+        console.log(`[Worker] Refunded 1 ${platform} ticket for user ${userId}.`);
     } catch (err) {
-        console.error(`[Worker] Refund Failed for user ${userId}:`, err);
+        console.error(`[Worker] Ticket refund failed for user ${userId}:`, err);
     }
 }
 
@@ -260,8 +245,47 @@ async function processSearch(search: any) {
             console.log(`[Worker] Starting Naver Scrape for ${search.place_name} (${tasks.length} tasks)...`);
             results = await scrapeNaverBatch(tasks, undefined, search.id, checkJobStatus);
 
+        } else if (search.platform === 'google') {
+            // Google: DataForSEO API 호출
+            const keywords = Array.isArray(search.keywords) ? search.keywords : [search.keywords];
+            const gridPoints = Array.isArray(search.grid_points) ? search.grid_points : [];
+            const targetPlaceId = search.place_id;
+
+            const tasks: MapRankTask[] = [];
+            let gridIndex = 0;
+
+            console.log(`[Worker] Generating Google tasks for ${gridPoints.length} grid points x ${keywords.length} keywords`);
+
+            for (const point of gridPoints) {
+                if (point.enabled === undefined || point.enabled === true) {
+                    for (const keyword of keywords) {
+                        tasks.push({
+                            keyword,
+                            lat: point.lat,
+                            lng: point.lng,
+                            gridIndex,
+                            targetPlaceId,
+                        });
+                    }
+                }
+                gridIndex++;
+            }
+
+            console.log(`[Worker] Starting DataForSEO batch for ${search.place_name} (${tasks.length} tasks)...`);
+            const googleResults = await fetchMapRankBatch(tasks, 10);
+            console.log(`[Worker] DataForSEO returned ${googleResults.length} results`);
+
+            // DataForSEO 결과를 search_results 스키마에 맞게 변환
+            results = googleResults.map(r => ({
+                keyword: r.keyword,
+                gridIndex: r.gridIndex,
+                lat: r.lat,
+                lng: r.lng,
+                rank: r.rank,
+                competitors: r.competitors,
+            }));
         } else {
-            console.log('[Worker] Google Search not fully supported in this script yet.');
+            console.log(`[Worker] Unknown platform: ${search.platform}. Skipping.`);
             return;
         }
 
@@ -271,21 +295,36 @@ async function processSearch(search: any) {
         if (isAlive && results && results.length > 0) {
             console.log(`[Worker] Saving ${results.length} results to database...`);
 
-            // Map to 'search_results' table schema
-            const insertData = results.map((r: any) => ({
-                search_id: search.id,
-                keyword: r.keyword,
-                rank: r.targetRank || null,
-                grid_index: r.gridIndex,    // Added: Required column
-                grid_lat: r.lat,
-                grid_lng: r.lng,
-                competitors: r.results.map((c: any) => ({  // Added: JSONB column
-                    name: c.businessName,
-                    rank: c.rank,
-                    place_id: c.naverPlaceId || '',
-                }))
-                // Removed: place_name (column does not exist)
-            }));
+            // Map to 'search_results' table schema (platform별 매핑)
+            const insertData = results.map((r: any) => {
+                if (search.platform === 'google') {
+                    // Google: DataForSEO 결과 (이미 올바른 형태)
+                    return {
+                        search_id: search.id,
+                        keyword: r.keyword,
+                        rank: r.rank,
+                        grid_index: r.gridIndex,
+                        grid_lat: r.lat,
+                        grid_lng: r.lng,
+                        competitors: r.competitors,
+                    };
+                } else {
+                    // Naver: scrapeNaverBatch 결과
+                    return {
+                        search_id: search.id,
+                        keyword: r.keyword,
+                        rank: r.targetRank || null,
+                        grid_index: r.gridIndex,
+                        grid_lat: r.lat,
+                        grid_lng: r.lng,
+                        competitors: r.results.map((c: any) => ({
+                            name: c.businessName,
+                            rank: c.rank,
+                            place_id: c.naverPlaceId || '',
+                        }))
+                    };
+                }
+            });
 
             if (insertData.length > 0) {
                 try {
@@ -333,19 +372,10 @@ async function processSearch(search: any) {
             // error_message: error.message || 'Unknown error' 
         }).eq('id', search.id);
 
-        // REFUND LOGIC
-        // Calculate cost: keywords * grid_points (default 1 if missing)
-        const kwCount = Array.isArray(search.keywords) ? search.keywords.length : 1;
-
-        let gridCount = 1;
-        if (Array.isArray(search.grid_points)) {
-            gridCount = search.grid_points.filter((p: any) => p.enabled !== false).length;
-            if (gridCount === 0) gridCount = 1;
-        }
-
-        const refundAmount = kwCount * gridCount;
-        if (refundAmount > 0) {
-            await refundCredits(search.user_id, refundAmount);
+        // REFUND LOGIC — 실시간 진단만 티켓 환불 (웰컴=무료, 정기=티켓 미사용)
+        if (search.report_type === 'realtime') {
+            const platform = search.platform || 'naver';
+            await refundTicket(search.user_id, platform);
         }
     }
 }

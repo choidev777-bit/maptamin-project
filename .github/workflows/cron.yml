@@ -50,3 +50,5 @@ jobs:
           KAKAO_TEMPLATE_WELCOME: ${{ secrets.KAKAO_TEMPLATE_WELCOME }}
           KAKAO_TEMPLATE_WEEKLY: ${{ secrets.KAKAO_TEMPLATE_WEEKLY }}
           SITE_URL: ${{ secrets.SITE_URL }}
+          DATAFORSEO_LOGIN: ${{ secrets.DATAFORSEO_LOGIN }}
+          DATAFORSEO_PASSWORD: ${{ secrets.DATAFORSEO_PASSWORD }}

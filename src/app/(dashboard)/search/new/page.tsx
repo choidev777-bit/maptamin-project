@@ -311,10 +311,17 @@ export default function NewSearchPage() {
 
             const { searchId } = await createResponse.json()
 
-            // Trigger fetch not needed as API handles it, but kept if needed for specific logic
-            // const processResponse = await fetch(`/api/search/${searchId}/process`, {
-            //    method: 'POST',
-            // })
+            // DataForSEO 처리 (Vercel 서버리스에서 실행, ~30-50초 소요)
+            const processResponse = await fetch(`/api/search/${searchId}/process`, {
+                method: 'POST',
+            })
+
+            if (!processResponse.ok) {
+                console.error('Process failed:', await processResponse.text())
+                alert('검색 처리 중 오류가 발생했습니다. 다시 시도해주세요.')
+                setIsSubmitting(false)
+                return
+            }
 
             router.push(`/search/${searchId}`)
         } catch (error) {

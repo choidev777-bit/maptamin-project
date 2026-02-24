@@ -248,7 +248,15 @@ export default function OnboardingPage() {
                 }
             }
 
-            // 4. welcome_report_sent 플래그 — 하나라도 성공한 경우에만 true
+            // 4. 구글 웰컴 리포트: DataForSEO 처리 트리거 (fire-and-forget)
+            if (gSearchId) {
+                fetch(`/api/search/${gSearchId}/process`, {
+                    method: 'POST',
+                    keepalive: true,
+                }).catch(e => console.error('Google welcome process trigger failed:', e))
+            }
+
+            // 5. welcome_report_sent 플래그 — 하나라도 성공한 경우에만 true
             if (nSearchId || gSearchId) {
                 await supabase
                     .from('user_subscriptions')
@@ -256,7 +264,7 @@ export default function OnboardingPage() {
                     .eq('user_id', (await supabase.auth.getUser()).data.user!.id)
             }
 
-            // 5. 대시보드로 즉시 이동 (리포트는 백그라운드 생성)
+            // 6. 대시보드로 즉시 이동 (리포트는 백그라운드 생성)
             window.location.href = '/dashboard'
         } catch (err) {
             console.error('Onboarding completion error:', err)

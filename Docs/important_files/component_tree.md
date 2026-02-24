@@ -1,7 +1,7 @@
 # Maptamin Component Tree & UI Architecture
 
 > **Purpose**: 주요 라우트별 컴포넌트 계층 구조, 각 컴포넌트의 역할, 상태 관리 의존성을 정리한 문서  
-> **Last Updated**: 2026-02-24 (DashboardShell+Sidebar 아키텍처, Report Settings, Navigator 라벨 변경 반영)  
+> **Last Updated**: 2026-02-24 (pg_cron 마이그레이션, 로그인 리다이렉트 보존 반영)  
 > **Total Components**: 96개 (15개 디렉토리)
 
 ---
@@ -162,16 +162,21 @@ RootLayout (src/app/layout.tsx) [Server]
 
 ```
 /login (src/app/(auth)/login/page.tsx) [Server]
+│   ★ searchParams: plan, billing, redirectTo
 │
 ├── KakaoLoginButton [Client]
 │   └── supabase.auth.signInWithOAuth({ provider: 'kakao' })
+│   └── props: plan, billing, redirectTo
+│   └── plan 우선 → checkout, 없으면 redirectTo → next 파라미터
 │
 └── GoogleLoginButton [Client]
     └── supabase.auth.signInWithOAuth({ provider: 'google' })
+    └── props: plan, billing, redirectTo
+    └── 동일 로직 (plan 우선, redirectTo 백업)
 ```
 
 **의존성**: `createClient` (client), Supabase Auth SDK  
-**URL Params**: `?plan=`, `?billing=` (결제 플로우에서 리다이렉트 시 사용)
+**URL Params**: `?plan=`, `?billing=` (결제 플로우), `?redirectTo=` (보호 라우트에서 리다이렉트 시 원래 경로 보존)
 
 ---
 
