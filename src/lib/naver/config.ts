@@ -18,7 +18,7 @@ export const NAVER_SCRAPER_CONFIG = {
     elementTimeout: 20000,     // 20초
 
     // Rate Limiting (차단 방지)
-    delayBetweenRequests: 2000,  // 요청 간 2초 대기
+    delayBetweenRequests: 1000,  // 요청 간 1초 대기
     maxConcurrent: 1,            // 동시 실행 1개
 
     // 재시도 설정

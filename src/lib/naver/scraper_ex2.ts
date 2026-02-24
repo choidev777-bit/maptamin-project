@@ -194,6 +194,11 @@ export async function scrapeNaverBatch(
     try {
         // ========== Task 루프 (List API 전용) ==========
         for (let i = 0; i < tasks.length; i++) {
+            // 요청 간 딜레이 (두 번째 Task부터)
+            if (i > 0) {
+                await delay(NAVER_SCRAPER_CONFIG.delayBetweenRequests);
+            }
+
             // 좀비 체크
             if (searchId && checkJobExists) {
                 const jobExists = await checkJobExists(searchId);
@@ -257,6 +262,72 @@ export async function scrapeNaverBatch(
                 });
             }
         }
+
+        // ========== 빈 결과 재시도 (1회) ==========
+        const failedIndices = results
+            .map((r, idx) => ({ r, idx }))
+            .filter(({ r }) => r.results.length === 0);
+
+        if (failedIndices.length > 0) {
+            console.log(`[Scraper Ex2] ⚠️ ${failedIndices.length}개 빈 결과 발견. 5초 후 재시도...`);
+            await delay(5000);
+
+            let retrySuccess = 0;
+            let retryFail = 0;
+
+            for (let ri = 0; ri < failedIndices.length; ri++) {
+                const { idx } = failedIndices[ri];
+                const task = tasks[idx];
+
+                // 재시도 간 딜레이 (두 번째부터)
+                if (ri > 0) {
+                    await delay(NAVER_SCRAPER_CONFIG.delayBetweenRequests);
+                }
+
+                try {
+                    const retryStart = Date.now();
+                    const { results: retryResults, dataUsageBytes: retryDataUsage } = await fetchListApiResults(context, task.lat, task.lng, task.keyword);
+                    totalDataUsage += retryDataUsage;
+
+                    if (retryResults.length > 0) {
+                        // 재시도 성공 → 결과 치환
+                        let targetRank: number | null = null;
+                        if (task.targetBusinessName) {
+                            const matchedResult = retryResults.find(r =>
+                                isBusinessMatch(r.businessName, task.targetBusinessName!)
+                            );
+                            targetRank = matchedResult?.rank ?? null;
+                        }
+
+                        const retryDuration = (Date.now() - retryStart) / 1000;
+                        results[idx] = {
+                            success: true,
+                            results: retryResults,
+                            targetRank,
+                            scrapedAt: new Date().toISOString(),
+                            keyword: task.keyword,
+                            gridIndex: task.gridIndex,
+                            lat: task.lat,
+                            lng: task.lng,
+                            dataUsageBytes: retryDataUsage,
+                            durationSeconds: retryDuration
+                        };
+                        console.log(`[Scraper Ex2] 🔄 재시도 성공: Task ${idx + 1} → rank=${targetRank ?? '-'} | ${retryResults.length}개`);
+                        retrySuccess++;
+                    } else {
+                        console.log(`[Scraper Ex2] 🔄 재시도 실패: Task ${idx + 1} → 여전히 빈 결과`);
+                        retryFail++;
+                    }
+                } catch (retryError) {
+                    const errMsg = retryError instanceof Error ? retryError.message : 'Unknown';
+                    console.log(`[Scraper Ex2] 🔄 재시도 에러: Task ${idx + 1} → ${errMsg}`);
+                    retryFail++;
+                }
+            }
+
+            console.log(`[Scraper Ex2] 🔄 재시도 결과: ${retrySuccess}개 복구, ${retryFail}개 유지`);
+        }
+
     } finally {
         await context.close();
         await browser.close();
