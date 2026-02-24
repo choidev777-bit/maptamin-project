@@ -41,6 +41,18 @@ function formatReportPeriod(): string {
     return `${fmt(start)} ~ ${fmt(end)}`;
 }
 
+// KST 기준 ISO 주차 계산 (월~일 = 1주)
+function getISOWeekKST(utcDateStr?: string): string {
+    const d = utcDateStr
+        ? new Date(new Date(utcDateStr).toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+        : getKstNow();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    return `${d.getFullYear()}-W${weekNo}`;
+}
+
 // ── 솔라피 알림톡 발송 ──
 async function sendKakaoAlimtalk(search: {
     id: string; user_id: string; place_name: string;
@@ -407,8 +419,8 @@ async function main() {
 
             if (error) throw error;
 
-            // 2. crawling_day (단수) 또는 crawling_days (배열) 매칭
-            const todayStr = new Date().toISOString().slice(0, 10); // UTC date for last_run_at comparison
+            // 2. crawling_day (단수) 또는 crawling_days (배열) 매칭 + ISO 주차 중복 방지
+            const currentWeek = getISOWeekKST();
             const jobs = (allSchedules || []).filter(s => {
                 // 요일 매칭: crawling_day(주 컬럼) 우선, 없으면 crawling_days(레거시)
                 const dayMatch = s.crawling_day !== null && s.crawling_day !== undefined
@@ -417,10 +429,10 @@ async function main() {
 
                 if (!dayMatch) return false;
 
-                // 오늘 이미 실행했으면 skip
+                // 같은 ISO 주차면 skip (주 1회 제한)
                 if (s.last_run_at) {
-                    const lastRunDate = s.last_run_at.slice(0, 10);
-                    if (lastRunDate === todayStr) return false;
+                    const lastRunWeek = getISOWeekKST(s.last_run_at);
+                    if (lastRunWeek === currentWeek) return false;
                 }
 
                 return true;

@@ -19,6 +19,19 @@ function getKstNow(): Date {
     return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
 }
 
+// KST 기준 ISO 주차 계산 (월~일 = 1주)
+function getISOWeekKST(utcDateStr?: string): string {
+    // KST로 변환
+    const d = utcDateStr
+        ? new Date(new Date(utcDateStr).toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+        : getKstNow()
+    d.setHours(0, 0, 0, 0)
+    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7))
+    const yearStart = new Date(d.getFullYear(), 0, 1)
+    const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+    return `${d.getFullYear()}-W${weekNo}`
+}
+
 export async function POST(request: Request) {
     // 1. CRON_SECRET 인증
     const cronSecret = process.env.CRON_SECRET
@@ -58,9 +71,27 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: scheduleError.message }, { status: 500 })
         }
 
-        // 4. 요일 매칭 + 중복 실행 방지 (last_run_at)
-        const todayStr = new Date().toISOString().slice(0, 10) // UTC date
+        // 4. 구독 체크 — free 플랜 유저의 스케줄 제외
+        const userIds = [...new Set((allSchedules || []).map(s => s.user_id))]
+        const freeUserIds = new Set<string>()
+
+        if (userIds.length > 0) {
+            const { data: subs } = await supabase
+                .from('user_subscriptions')
+                .select('user_id, plan_id')
+                .in('user_id', userIds)
+
+            for (const sub of subs || []) {
+                if (sub.plan_id === 'free') freeUserIds.add(sub.user_id)
+            }
+        }
+
+        // 5. 요일 매칭 + 같은 주 중복 방지 (ISO 주차) + 구독 체크
+        const currentWeek = getISOWeekKST()
         const jobs = (allSchedules || []).filter(s => {
+            // 구독 체크: free 플랜이면 skip
+            if (freeUserIds.has(s.user_id)) return false
+
             // 요일 매칭: crawling_day(단수) 우선, 없으면 crawling_days(배열)
             const dayMatch = s.crawling_day !== null && s.crawling_day !== undefined
                 ? s.crawling_day === currentDay
@@ -68,10 +99,10 @@ export async function POST(request: Request) {
 
             if (!dayMatch) return false
 
-            // 오늘 이미 실행했으면 skip
+            // 같은 ISO 주차면 skip (주 1회 제한)
             if (s.last_run_at) {
-                const lastRunDate = s.last_run_at.slice(0, 10)
-                if (lastRunDate === todayStr) return false
+                const lastRunWeek = getISOWeekKST(s.last_run_at)
+                if (lastRunWeek === currentWeek) return false
             }
 
             return true
