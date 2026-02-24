@@ -1,8 +1,8 @@
 name: Scheduled Search
 on:
-  schedule:
-    - cron: '0 * * * *' # 매시간 정각 실행 (UTC)
-  workflow_dispatch: # Allow manual trigger for testing
+  # schedule 트리거는 pg_cron으로 대체 (정시 정확도 개선)
+  # - cron: '0 * * * *' (제거됨)
+  workflow_dispatch: # 수동 테스트용으로 유지
 
 jobs:
   run-search:
