@@ -129,7 +129,7 @@ const PLANS: PlanCard[] = [
         yearly: '26,600원',
         yearlyTotal: '연 319,000원 결제',
         featured: true,
-        badge: '회원 64%가 구독 중',
+        badge: '추천!',
         features: [
             { text: '네이버 지도 진단', included: true },
             { text: '5×5 (25개 좌표) 분석', included: true },

@@ -232,7 +232,8 @@ export function CheckoutContent() {
                                     <p>
                                         본 상품은 정기 구독 상품으로, 매{cycleText} 자동 결제됩니다.
                                         언제든지 해지할 수 있으며, 해지 시 다음 결제일부터 청구되지 않습니다.
-                                        구매 조건 및 이용약관에 동의합니다.
+                                        {' '}<a href="/terms" target="_blank" className="underline text-primary hover:text-primary/80">이용약관</a> 및{' '}
+                                        <a href="/privacy" target="_blank" className="underline text-primary hover:text-primary/80">개인정보처리방침</a>에 동의합니다.
                                     </p>
                                 </div>
                             </label>
@@ -306,10 +307,17 @@ export function CheckoutContent() {
                             )}
                         </button>
 
-                        <p className="text-xs text-center text-gray-500 mt-4">
-                            안전한 결제를 위해 PortOne의 보안 결제 시스템을 이용합니다.
-                        </p>
+
                     </div>
+                </div>
+            </div>
+
+            {/* 사업자 정보 (PG사/카드사 심사 필수 노출) */}
+            <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700 text-center">
+                <p className="text-xs font-semibold text-gray-500 mb-1">아카식 허브</p>
+                <div className="space-y-0.5 text-[11px] text-gray-400">
+                    <p>대표: 최연준 | 사업자등록번호: 186-35-01741 | 통신판매업신고: 제 2026-고양일산서-0229 호</p>
+                    <p>주소: 경기도 고양시 일산서구 대산로 142, 305동 802호 | 대표번호: 070-8065-3362</p>
                 </div>
             </div>
         </div>

@@ -76,7 +76,7 @@ const PLANS: PlanCardData[] = [
         yearly: '26,600원',
         yearlyTotal: '연 319,000원 결제',
         featured: true,
-        badge: '회원 64%가 구독 중',
+        badge: '추천!',
         features: [
             { text: '네이버 지도 진단', included: true },
             { text: '5×5 (25개 좌표) 분석', included: true },
@@ -807,24 +807,22 @@ export function SubscriptionContent({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {PLANS.map((plan) => {
                         const isCurrent = currentPlanId === plan.id
-                        const isFeatured = plan.featured
+                        const planOrder: Record<string, number> = { free: 0, starter: 1, pro: 2, premium: 3 }
+                        const isHigherPlan = (planOrder[plan.id] || 0) > (planOrder[currentPlanId] || 0)
+                        const showFeatured = plan.featured && isHigherPlan
                         const price = isYearly ? plan.yearly : plan.monthly
 
                         return (
                             <div
                                 key={plan.id}
                                 className={`relative rounded-xl p-8 bg-white flex flex-col h-full transition-all duration-200
-                                    ${isFeatured || isCurrent ? 'border-2 border-[#00C896] shadow-xl' : 'border border-gray-200 shadow-sm hover:shadow-md'}
+                                    ${isCurrent ? 'border-2 border-[#001011] shadow-lg' : showFeatured ? 'border-2 border-[#00C896] shadow-xl' : 'border border-gray-200 shadow-sm hover:shadow-md'}
                                 `}
                             >
-                                {isCurrent && (
-                                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#00C896] text-white text-xs font-bold px-4 py-1.5 rounded-full shadow-md whitespace-nowrap">
-                                        현재 이용 중
-                                    </div>
-                                )}
+
 
                                 {/* 플랜 이름 상단에 뱃지가 있는 경우 (PricingSection 참고) */}
-                                {plan.badge && !isCurrent && (
+                                {plan.badge && !isCurrent && isHigherPlan && (
                                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                                         <span className="whitespace-nowrap rounded-full bg-[#00C896] px-4 py-1.5 text-xs font-bold text-white shadow-md">
                                             {plan.badge}
@@ -832,7 +830,7 @@ export function SubscriptionContent({
                                     </div>
                                 )}
 
-                                <h4 className={`text-lg font-bold ${isCurrent || isFeatured ? 'text-[#00C896]' : 'text-gray-900'}`}>
+                                <h4 className={`text-lg font-bold ${isCurrent ? 'text-[#00C896]' : 'text-gray-900'}`}>
                                     {plan.name}
                                 </h4>
                                 <div className="mt-4 flex items-baseline gap-1">
@@ -908,7 +906,7 @@ export function SubscriptionContent({
                                     <button
                                         onClick={() => handlePlanAction(plan.id)}
                                         className={`mt-8 w-full rounded-xl py-3.5 text-center text-sm font-bold transition-all duration-300
-                                            ${plan.ctaStyle === 'solid'
+                                            ${isHigherPlan
                                                 ? 'bg-[#00C896] text-white shadow-lg shadow-[#00C896]/25 hover:-translate-y-0.5 hover:bg-[#00B386]'
                                                 : 'border-2 border-gray-200 bg-white text-gray-700 hover:-translate-y-0.5 hover:border-[#00C896] hover:text-[#00C896]'
                                             }

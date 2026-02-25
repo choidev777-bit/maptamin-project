@@ -28,6 +28,9 @@ interface PlanCardProps {
 
 export function PlanCard({ plan, isYearly, currentPlanId, onSelect }: PlanCardProps) {
     const isCurrentPlan = plan.id === currentPlanId
+    const planOrder: Record<string, number> = { free: 0, starter: 1, pro: 2, premium: 3 }
+    const isHigherPlan = (planOrder[plan.id] || 0) > (planOrder[currentPlanId] || 0)
+    const showFeatured = plan.featured && isHigherPlan
 
     // Helper to determine button text
     const getButtonText = () => {
@@ -50,23 +53,16 @@ export function PlanCard({ plan, isYearly, currentPlanId, onSelect }: PlanCardPr
         <div
             data-testid={`plan-card-${plan.id}`}
             className={`relative flex flex-col rounded-3xl border p-7 transition-all duration-300 sm:p-8 ${isCurrentPlan
-                ? 'border-2 border-blue-500 bg-white shadow-lg ring-4 ring-blue-500/10'
-                : plan.featured
+                ? 'border-2 border-[#001011] bg-white shadow-lg'
+                : showFeatured
                     ? 'scale-[1.03] border-2 border-[#00C896] bg-white shadow-2xl shadow-[#00C896]/10 lg:scale-105'
                     : 'border border-gray-200 bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg'
                 }`}
         >
-            {/* Current Plan Badge */}
-            {isCurrentPlan && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                    <span className="whitespace-nowrap rounded-full bg-blue-500 px-4 py-1.5 text-xs font-bold text-white shadow-md">
-                        현재 플랜
-                    </span>
-                </div>
-            )}
+
 
             {/* Recommended Badge (if not current) */}
-            {plan.badge && !isCurrentPlan && (
+            {plan.badge && !isCurrentPlan && isHigherPlan && (
                 <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                     <span className="whitespace-nowrap rounded-full bg-[#00C896] px-4 py-1.5 text-xs font-bold text-white shadow-md">
                         {plan.badge}
@@ -138,7 +134,7 @@ export function PlanCard({ plan, isYearly, currentPlanId, onSelect }: PlanCardPr
                 onClick={() => onSelect(plan.id)}
                 className={`mt-6 w-full rounded-xl py-3.5 text-sm font-bold transition-all duration-300 ${isCurrentPlan
                     ? 'cursor-not-allowed border-2 border-gray-100 bg-gray-50 text-gray-400'
-                    : plan.ctaStyle === 'solid'
+                    : isHigherPlan
                         ? 'bg-[#00C896] text-white shadow-lg shadow-[#00C896]/25 hover:-translate-y-0.5 hover:bg-[#00B386] hover:shadow-xl'
                         : 'border-2 border-gray-100 bg-white text-[#00C896] hover:-translate-y-0.5 hover:border-[#00C896] hover:bg-[#00C896]/5'
                     }`}

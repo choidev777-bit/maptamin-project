@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Maptamin | 플레이스 상위노출의 시작",
+  title: "맵타민 | 플레이스 상위노출의 시작",
   description: "플레이스 상위노출의 시작, 우리 매장 지도 건강검진 맵타민! 키워드별 네이버 스마트플레이스와 구글 지도순위를 가장 쉽고 빠르게 진단하세요.",
 };
 

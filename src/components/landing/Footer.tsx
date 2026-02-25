@@ -10,7 +10,7 @@ export default function Footer() {
                     <div className="flex flex-col items-center gap-3 sm:items-start">
                         <MaptaminLogo />
                         <p className="text-sm text-gray-500">
-                            우리 매장 지도 건강검진 서비스
+                            플레이스 상위노출의 시작, 우리 매장 지도 건강검진 맵타민
                         </p>
                     </div>
 
