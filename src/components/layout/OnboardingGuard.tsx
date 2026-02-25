@@ -17,6 +17,7 @@ export function OnboardingGuard({ shouldRedirect, children }: Props) {
     const router = useRouter()
     const isExemptPath = pathname.startsWith('/onboarding')
         || pathname.startsWith('/dashboard/subscription')
+        || pathname.startsWith('/settings')
 
     useEffect(() => {
         if (shouldRedirect && !isExemptPath) {

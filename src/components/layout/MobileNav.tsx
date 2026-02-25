@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Home, Search, History, Settings, LogOut } from 'lucide-react'
+import { Menu, X, Home, Search, History, Settings, LogOut, CreditCard, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -15,9 +15,10 @@ interface Props {
         avatarUrl: string | null
     }
     subscription: SubscriptionInfo | null
+    isOnboarding?: boolean
 }
 
-export function MobileNav({ user, subscription }: Props) {
+export function MobileNav({ user, subscription, isOnboarding = false }: Props) {
     const [isOpen, setIsOpen] = useState(false)
     const router = useRouter()
 
@@ -28,17 +29,19 @@ export function MobileNav({ user, subscription }: Props) {
     }
 
     const navItems = [
-        { href: '/dashboard', label: '대시보드', icon: Home },
-        { href: '/history', label: '진단 기록', icon: History },
+        { href: '/dashboard', label: '대시보드', icon: Home, isLocked: isOnboarding },
+        { href: '/history', label: '진단 기록', icon: History, isLocked: isOnboarding },
         {
             label: '내 순위 검색',
             icon: Search,
+            isLocked: isOnboarding,
             subItems: [
                 { href: '/naver-search/new?mode=my-shop', label: '네이버 지도 검색' },
                 { href: '/search/new?mode=my-shop', label: '구글 지도 검색' },
             ]
         },
         { href: '/settings', label: '설정', icon: Settings },
+        { href: '/dashboard/subscription', label: '구독 관리', icon: CreditCard },
     ]
 
     return (
@@ -109,7 +112,14 @@ export function MobileNav({ user, subscription }: Props) {
                 <nav className="p-2 space-y-1">
                     {navItems.map((item, index) => (
                         <div key={index}>
-                            {item.subItems ? (
+                            {item.isLocked ? (
+                                // 잠금 메뉴
+                                <div className="flex items-center gap-3 px-4 py-3 text-gray-400 cursor-not-allowed rounded-xl">
+                                    <item.icon className="w-5 h-5" />
+                                    <span className="font-medium flex-1">{item.label}</span>
+                                    <Lock className="w-3.5 h-3.5 text-gray-300" />
+                                </div>
+                            ) : item.subItems ? (
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-3 px-4 py-2 text-gray-900 font-semibold mt-2">
                                         <item.icon className="w-5 h-5 text-gray-500" />

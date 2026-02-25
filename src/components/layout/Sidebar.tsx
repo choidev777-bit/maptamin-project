@@ -44,6 +44,7 @@ interface Props {
     isHoverExpanded: boolean
     onHoverEnter: () => void
     onHoverLeave: () => void
+    isOnboarding?: boolean
 }
 
 // ── Route Matching ──
@@ -97,6 +98,7 @@ export function Sidebar({
     isHoverExpanded,
     onHoverEnter,
     onHoverLeave,
+    isOnboarding = false,
 }: Props) {
     const pathname = usePathname()
     const router = useRouter()
@@ -110,14 +112,14 @@ export function Sidebar({
 
     // ── Navigation Routes ──
     const mainRoutes: NavRoute[] = [
-        { href: '/dashboard', label: '대시보드', icon: Home, match: 'exact' },
-        { href: '/history', label: '진단 기록', icon: History, match: 'startsWith' },
-        { href: '/report-settings', label: '리포트 설정', icon: CalendarClock, match: 'startsWith', isLocked: !subscribed },
+        { href: '/dashboard', label: '대시보드', icon: Home, match: 'exact', isLocked: isOnboarding },
+        { href: '/history', label: '진단 기록', icon: History, match: 'startsWith', isLocked: isOnboarding },
+        { href: '/report-settings', label: '리포트 설정', icon: CalendarClock, match: 'startsWith', isLocked: !subscribed || isOnboarding },
     ]
 
     const searchSubRoutes: NavRoute[] = [
-        { href: '/naver-search', label: '네이버', icon: NaverPlatformIcon, match: 'startsWith' },
-        { href: '/search', label: '구글', icon: GooglePlatformIcon, match: 'startsWith', isLocked: !canGoogle },
+        { href: '/naver-search', label: '네이버', icon: NaverPlatformIcon, match: 'startsWith', isLocked: isOnboarding },
+        { href: '/search', label: '구글', icon: GooglePlatformIcon, match: 'startsWith', isLocked: !canGoogle || isOnboarding },
     ]
 
     const bottomRoutes: NavRoute[] = [
@@ -157,7 +159,7 @@ export function Sidebar({
         >
             {/* ── Logo ── */}
             <div className="h-16 flex items-center px-4 border-b border-gray-100 flex-shrink-0">
-                <Link href="/dashboard" className="flex items-center gap-3 overflow-hidden">
+                <Link href={isOnboarding ? '/onboarding' : '/dashboard'} className="flex items-center gap-3 overflow-hidden">
                     {/* Mini Grid Logo */}
                     <div className="w-8 h-8 flex-shrink-0">
                         <svg viewBox="0 0 112 112" className="w-8 h-8">
@@ -204,13 +206,16 @@ export function Sidebar({
                 {/* Search Group (Accordion) */}
                 <div className="mt-1">
                     <button
-                        onClick={() => setSearchGroupOpen(!searchGroupOpen)}
+                        onClick={isOnboarding ? undefined : () => setSearchGroupOpen(!searchGroupOpen)}
+                        disabled={isOnboarding}
                         className={`
                             w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium
                             transition-colors group relative
-                            ${isSearchActive
-                                ? 'text-[#00C896] bg-emerald-50'
-                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                            ${isOnboarding
+                                ? 'text-gray-400 cursor-not-allowed'
+                                : isSearchActive
+                                    ? 'text-[#00C896] bg-emerald-50'
+                                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                             }
                         `}
                         title={!isExpanded ? '실시간 순위 진단' : undefined}

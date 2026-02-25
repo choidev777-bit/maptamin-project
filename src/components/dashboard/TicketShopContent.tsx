@@ -267,7 +267,7 @@ export function TicketShopContent({
                             <span className="text-sm font-normal text-gray-500 ml-1">원</span>
                         </span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2 text-right">VAT 별도</p>
+                    <p className="text-xs text-gray-400 mt-2 text-right">VAT 포함</p>
                 </div>
             </div>
 

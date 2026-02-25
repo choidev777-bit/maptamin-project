@@ -830,7 +830,7 @@ export function SubscriptionContent({
                                     </div>
                                 )}
 
-                                <h4 className={`text-lg font-bold ${isCurrent ? 'text-[#00C896]' : 'text-gray-900'}`}>
+                                <h4 className={`text-lg font-bold ${isHigherPlan ? 'text-[#00C896]' : 'text-gray-900'}`}>
                                     {plan.name}
                                 </h4>
                                 <div className="mt-4 flex items-baseline gap-1">
