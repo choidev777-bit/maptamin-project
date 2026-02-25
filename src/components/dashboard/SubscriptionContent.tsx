@@ -136,6 +136,18 @@ export function SubscriptionContent({
     const isCancelScheduled = billingStatus === 'cancel_scheduled'
     const isCanceled = billingStatus === 'cancelled' || billingStatus === 'canceled'
 
+    /** 플랜 카드 CTA 텍스트를 currentPlanId 기반으로 동적 결정 */
+    const getCta = (planId: string): string => {
+        const planOrder: Record<string, number> = { free: 0, starter: 1, pro: 2, premium: 3 }
+        const currentOrder = planOrder[currentPlanId] || 0
+        const targetOrder = planOrder[planId] || 0
+
+        if (currentOrder === 0) return '시작하기'
+        if (targetOrder > currentOrder) return '업그레이드'
+        if (targetOrder < currentOrder) return '다운그레이드'
+        return '현재 이용 중'
+    }
+
     const formatDate = (dateStr: string | null) => {
         if (!dateStr) return '-'
         return new Date(dateStr).toLocaleDateString('ko-KR', {
@@ -710,7 +722,7 @@ export function SubscriptionContent({
                                             }
                                         `}
                                     >
-                                        {plan.cta}
+                                        {getCta(plan.id)}
                                     </button>
                                 )}
                             </div>
