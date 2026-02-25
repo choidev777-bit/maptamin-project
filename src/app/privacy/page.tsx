@@ -164,8 +164,8 @@ export default function PrivacyPage() {
                                         <td className="px-4 py-3">회원 탈퇴 시 또는 위탁 계약 종료 시까지</td>
                                     </tr>
                                     <tr className="border-b border-gray-200">
-                                        <td className="px-4 py-3 font-medium">(주)포트원</td>
-                                        <td className="px-4 py-3">결제 시스템 중개</td>
+                                        <td className="px-4 py-3 font-medium">코리아포트원</td>
+                                        <td className="px-4 py-3">결제 연동 서비스 제공</td>
                                         <td className="px-4 py-3">회원 탈퇴 시 또는 위탁 계약 종료 시까지</td>
                                     </tr>
                                     <tr className="border-b border-gray-200">
