@@ -1,8 +1,8 @@
 # Maptamin Component Tree & UI Architecture
 
 > **Purpose**: 주요 라우트별 컴포넌트 계층 구조, 각 컴포넌트의 역할, 상태 관리 의존성을 정리한 문서  
-> **Last Updated**: 2026-02-24 (pg_cron 마이그레이션, 로그인 리다이렉트 보존 반영)  
-> **Total Components**: 96개 (15개 디렉토리)
+> **Last Updated**: 2026-02-25 (코드베이스 검증: OnboardingBanner 추가, History SSR 조회 수정, 컴포넌트 위치/경로 교정, Google Results 상태 분기 보완)  
+> **Total Components**: 90개 (15개 디렉토리, 테스트 파일 제외)
 
 ---
 
@@ -148,7 +148,11 @@ RootLayout (src/app/layout.tsx) [Server]
 │
 ├── PricingSection [Client]
 │   └── 요금제 비교 카드 (PlanCard × 3)
-│       └── PlanCard [Client] — 월간/연간 토글, CTA 버튼
+│       ├── PlanCard [Client] — 월간/연간 토글, CTA 버튼
+│       └── FractionOneFifty [Server] — 가격 표시 컴포넌트
+│
+├── PricingDetailSection [Client] (가격 상세 — /pricing 페이지에서도 사용)
+│   └── 플랜별 상세 기능 비교 테이블
 │
 └── Footer [Server]
     └── 약관/개인정보 링크, 카피라이트
@@ -189,6 +193,9 @@ RootLayout (src/app/layout.tsx) [Server]
 │
 ├── SubscriptionBanner [Client] (free 플랜일 때만 표시)
 │   └── 구독 유도 CTA 배너
+│
+├── OnboardingBanner [Client] (유료 + 온보딩 미완료일 때만 표시)
+│   └── 온보딩 유도 CTA 배너
 │
 ├── DashboardHeader [Client]
 │   └── 자동 리포트 상태 표시 (활성/비활성, 다음 리포트 날짜)
@@ -231,8 +238,12 @@ RootLayout (src/app/layout.tsx) [Server]
 │   ★ SSR: user_subscriptions, subscription_billing, subscription_payment_history
 │
 └── SubscriptionContent [Client]
+    ├── actionMessage 상단 알림 배너 (해지 철회/환불 결과)
+    │
     ├── 현재 플랜 정보 카드
-    │   └── 플랜명, 잔여 티켓 (네이버/구글), 구독 기간
+    │   └── 플랜명, 상태 배지 (이용 중/해지 예약/해지됨)
+    │   └── 다음 결제일, 결제 금액, 잔여 티켓 (네이버/구글)
+    │   └── 상태: active(자동 결제), cancel_scheduled(종료 예정+해지 철회 버튼), cancelled(만료)
     │
     ├── 결제 수단 정보
     │   └── 카드 끝 4자리, 브랜드, 다음 결제일
@@ -241,15 +252,19 @@ RootLayout (src/app/layout.tsx) [Server]
     │   └── PlanCard × N [Client]
     │       └── 월간/연간 토글, 기능 비교, CTA
     │
-    ├── TicketShopContent [Client]
-    │   └── 추가 티켓 구매 섹션
-    │       └── requestTicketPayment() → PortOne SDK
-    │
     ├── 결제 이력 테이블
-    │   └── 최근 5건 → 날짜, 금액, 상태, 영수증
+    │   └── 날짜, 플랜, 금액, 상태, 영수증 (active/cancel_scheduled 둘 다 표시)
     │
-    └── PaymentSuccessToast [Client]
-        └── 결제 완료 알림 토스트
+    ├── CancelModal [Client] (모달)
+    │   └── 해지 확인 → POST /api/payment/subscribe/cancel
+    │
+    ├── RefundModal [Client] (모달)
+    │   └── 환불 확인 (7일 이내 + 미이용) → POST /api/payment/subscribe/refund
+    │
+    └── Footer (푸터)
+        ├── active: "환불 요청" + "구독 해지" 버튼
+        ├── cancel_scheduled: "해지 철회" 버튼 → POST /api/payment/subscribe/reactivate
+        └── cancelled: footer 숨김
 ```
 
 **의존성**:
@@ -392,6 +407,7 @@ RootLayout (src/app/layout.tsx) [Server]
 │
 └── (status === 'completed')
     └── NaverResultsContent [Client]
+        │   ★ co-located: src/app/(dashboard)/naver-search/[id]/NaverResultsContent.tsx
         ├── SearchResultsOverview [Client]
         │   └── 전체 키워드별 평균 순위 요약
         │
@@ -464,8 +480,18 @@ RootLayout (src/app/layout.tsx) [Server]
 /search/[id] (src/app/(dashboard)/search/[id]/page.tsx) [Server]
 │   ★ SSR (Promise.all): searches, search_results, managed_competitors, user_subscriptions
 │
+├── (status === 'pending')
+│   └── 대기 중 UI (아이콘 + 안내 메시지)
+│
+├── (status === 'processing')
+│   └── 처리 중 스피너 UI
+│
+├── (status === 'failed')
+│   └── 실패 UI (에러 안내)
+│
 └── (status === 'completed')
     └── ResultsContent [Client]
+        │   ★ co-located: src/app/(dashboard)/search/[id]/ResultsContent.tsx
         ├── SearchResultsOverview [Client]
         ├── KeywordTabs [Client]
         ├── RankHeatmap [Client]
@@ -534,8 +560,11 @@ RootLayout (src/app/layout.tsx) [Server]
 
 ```
 /history (src/app/(dashboard)/history/page.tsx) [Server]
-│   ★ SSR (Promise.all): user_subscriptions, searches, search_results, managed_keywords
+│   ★ SSR (Promise.all): user_subscriptions, searches, managed_places
+│   ★ 추가 SELECT: search_results (weekly search IDs만)
 │   ★ export const dynamic = 'force-dynamic'
+│   ★ 플랫폼별 현재 매장 place_id로 검색 필터링
+│   ★ extractKeywordsFromTrend()로 trend 데이터에서 키워드 목록 추출
 │
 └── HistoryPageContent [Client]
     │   ★ 'use client' — 플랫폼 토글 + 필터 상태 관리
@@ -563,9 +592,9 @@ RootLayout (src/app/layout.tsx) [Server]
 ```
 
 **의존성**:
-- SSR: `user_subscriptions`, `searches`, `search_results`, `managed_keywords` SELECT
+- SSR: `user_subscriptions`, `searches`, `managed_places`, `search_results` SELECT
 - Client: `recharts` (dynamic import), `lucide-react`
-- Util: `src/lib/utils/rank-trend.ts` (`calculateRankTrend`)
+- Util: `src/lib/utils/rank-trend.ts` (`calculateRankTrend`, `extractKeywordsFromTrend`)
 
 ---
 
@@ -623,7 +652,7 @@ RootLayout (src/app/layout.tsx) [Server]
 
 ### `useSubscription` — 구독 상태 조회 Hook
 
-| File | `src/hooks/useSubscription.ts` |
+| File | `src/lib/hooks/useSubscription.ts` |
 |------|------|
 | **Type** | Client-side Hook (`'use client'`) |
 | **Data Source** | `user_subscriptions` (Supabase Client SDK) |
@@ -644,19 +673,22 @@ RootLayout (src/app/layout.tsx) [Server]
 |-----------|-------|-------------|----------------|
 | `auth/` | 2 | 로그인 버튼 | `KakaoLoginButton`, `GoogleLoginButton` |
 | `competitor/` | 2 | 경쟁사 관리 | `CompetitorManagementView`, `CompetitorSlotCard` |
-| `dashboard/` | 25 | 대시보드 핵심 | `DashboardPlatformCard`, `SubscriptionContent`, `SearchHistorySection`, `PlanCard`, `CheckoutContent`, `TicketShopContent` |
+| `dashboard/` | 21 | 대시보드 핵심 | `DashboardPlatformCard`, `SubscriptionContent`, `SearchHistorySection`, `PlanCard`, `CheckoutContent`, `TicketShopContent`, `OnboardingBanner`, `CompetitorManageModal`, `KeywordManageModal` |
 | `history/` | 3 | 진단 기록 | `HistoryPageContent`, `RankTrendChart`, `HistoryTable` |
-| `landing/` | 14 | 랜딩 페이지 | `Navigation`, `HeroSection`, `PricingSection`, `Footer`, `MaptaminLogo` |
+| `landing/` | 14 | 랜딩 페이지 | `Navigation`, `HeroSection`, `PricingSection`, `PricingDetailSection`, `Footer`, `MaptaminLogo`, `FractionOneFifty` |
 | `layout/` | 7 | 레이아웃 공통 | `DashboardShell`, `Sidebar` (3모드, 커스텀 플랫폼 아이콘), `MobileNav`, `DesktopNav` (레거시), `OnboardingGuard`, `WalletLabel`, `NavDropdown` |
 | `maps/` | 1 | Google Maps | `GoogleMapsProvider` |
 | `naver/` | 4 | 네이버 지도 | `NaverMap`, `NaverMapGridConfigurator`, `NaverRankHeatmap`, `NaverCompetitorComparisonMap` |
 | `onboarding/` | 6 | 온보딩 스텝 | `StepStoreRegister`, `StepKeywordRegister`, `StepCompetitorRegister`, `StepGridSetting`, `StepScheduleSetting`, `OnboardingComplete` |
-| `results/` | 10 | 검색 결과 | `RankHeatmap`, `KeywordTabs`, `CompetitorComparisonPanel`, `AverageRankCard`, `NaverResultsHeader` |
+| `results/` | 10 | 검색 결과 | `RankHeatmap`, `KeywordTabs`, `CompetitorComparisonPanel`, `AverageRankCard`, `NaverResultsHeader`, `CompetitorComparisonMap` |
 | `schedule/` | 3 | 스케줄 선택 | `DaySelector`, `TimeSelector`, `MyShopSelector` |
-| `search/` | 9 | 검색 설정 | `MapGridConfigurator`, `PlaceSearchInput`, `NaverPlaceSearchInput`, `SearchStatusPoller`, `KeywordInput`, `DistanceSettings`, `GridConfigurator` |
+| `search/` | 8 | 검색 설정 | `MapGridConfigurator`, `PlaceSearchInput`, `NaverPlaceSearchInput`, `SearchStatusPoller`, `KeywordInput`, `DistanceSettings`, `GridConfigurator`, `PlaceSelector` |
 | `settings/` | 5 | 설정 관리 | `MyShopManager`, `KeywordManager`, `CompetitorManager`, `CancelSubscriptionSection`, `DeleteAccountSection` |
 | `ui/` | 4 | UI 프리미티브 | `Button`, `Badge`, `Card`, `Dialog` |
-| **Total** | **96** | | |
+| **Total** | **90** | | |
+
+> **Note**: `NaverResultsContent`(→ naver-search/[id]/), `ResultsContent`(→ search/[id]/), `SettingsContent`(→ settings/) 등은 페이지와 **co-located** 파일이며, `src/components/`가 아닌 `src/app/(dashboard)/`에 위치합니다.
+> **테스트 파일** (4건): `DashboardPlatformCard.test.tsx`, `InlineRankGraph.test.tsx`, `PlanCard.test.tsx`, `SubscriptionContent.test.tsx` — 위 카운트에서 제외
 
 ---
 

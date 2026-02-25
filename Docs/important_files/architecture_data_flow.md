@@ -2,7 +2,7 @@
 
 > **Purpose**: AI가 코드 수정 시 각 기능의 전체 데이터 흐름을 정확히 파악할 수 있도록,  
 > `User UI Action ↔ Client Component ↔ Server API Route ↔ Supabase DB Table` 매핑을 정리한 문서입니다.  
-> **Last Updated**: 2026-02-24 (pg_cron 마이그레이션, 로그인 리다이렉트 보존, ISO 주차 중복 방지, free 플랜 체크 반영)  
+> **Last Updated**: 2026-02-25 (코드베이스 검증: 잘못된 컴포넌트 참조 수정, Webhook 갱신 플로우 추가, 구글 검색 실행 방식 수정, 누락 컴포넌트/유틸 보완)  
 > **Auto-generated from codebase analysis**
 
 ---
@@ -22,7 +22,7 @@
 10. [Feature: Dashboard (Data Aggregation)](#10-dashboard)
 11. [Feature: Weekly Scheduled Search (CRON)](#11-weekly-scheduled-search)
 12. [Feature: KakaoTalk Notification (AlimTalk)](#12-kakaotalk-notification)
-13. [Feature: Subscription Cancellation](#13-subscription-cancellation)
+13. [Feature: Subscription Lifecycle (구독 라이프사이클)](#13-subscription-lifecycle)
 14. [Feature: Settings (My Shop / Competitors)](#14-settings)
 15. [Feature: Onboarding Flow (5-Step + Welcome Report)](#15-feature-onboarding-flow)
 16. [Feature: History Page (진단 기록)](#16-feature-history-page)
@@ -39,7 +39,7 @@
 | `auth.users` | Supabase Auth 관리 (카카오/구글 OAuth) | `id`, `email`, `raw_user_meta_data` |
 | `plans` | 요금제 정의 (starter/pro/premium/free) | `id`, `price`, `max_grid_size`, `monthly_tickets_naver/google`, `max_keywords_naver/google`, `max_competitors`, `channels` |
 | `user_subscriptions` | 사용자 구독 상태 + 티켓 잔량 | `user_id(PK)`, `plan_id(FK→plans)`, `phone`, `remaining_tickets_naver/google`, `onboarding_completed`, `welcome_report_sent`, `current_period_start/end` |
-| `subscription_billing` | 정기 결제 빌링키 + 구독 상태 | `user_id(UNIQUE)`, `billing_key`, `card_last4`, `plan_id`, `status(active/cancelled/past_due/expired)`, `next_payment_id`, `next_billing_date` |
+| `subscription_billing` | 정기 결제 빌링키 + 구독 상태 | `user_id(UNIQUE)`, `billing_key`, `card_last4`, `plan_id`, `pending_plan_id`, `status(active/cancel_scheduled/cancelled/past_due/expired)`, `next_payment_id`, `next_billing_date` |
 | `subscription_payment_history` | 구독 결제 이력 | `user_id`, `payment_id(UNIQUE)`, `plan_id`, `amount`, `status(paid/failed/refunded)`, `period_start/end`, `receipt_url` |
 | `payment_history` | 일회성 티켓 결제 이력 | `user_id`, `payment_id`, `platform`, `quantity`, `amount`, `status` |
 | `managed_places` | 등록된 내 매장 (30일 락) | `user_id`, `platform`, `place_id`, `place_name`, `address`, `lat`, `lng`, `locked_until` |
@@ -261,8 +261,9 @@ User Action: 매장 검색 → 선택 → 등록
 │
 ├─► Client Component
 │   ├── src/app/(dashboard)/onboarding/page.tsx
-│   ├── src/components/onboarding/OnboardingSteps
-│   ├── src/components/search/PlaceSearchBar ← 네이버/구글 지도 검색
+│   ├── src/components/onboarding/StepStoreRegister.tsx ← 온보딩 매장 등록 스텝
+│   ├── src/components/search/PlaceSearchInput.tsx ← 구글 지도 검색
+│   ├── src/components/search/NaverPlaceSearchInput.tsx ← 네이버 지도 검색
 │   └── POST /api/settings/my-shop
 │
 ├─► Server API Route
@@ -304,7 +305,7 @@ User Action: 키워드 입력 → 등록
 │
 ├─► Client Component
 │   ├── src/components/dashboard/DashboardPlatformCard  ← 키워드 모달 포함
-│   └── src/components/onboarding/OnboardingSteps
+│   └── src/components/onboarding/StepKeywordRegister.tsx ← 온보딩 키워드 등록 스텝
 │       └── (직접 Supabase client 호출 또는 API 경유)
 │
 └─► DB Direct (Client-side Supabase)
@@ -332,7 +333,9 @@ User Action: 경쟁사 검색 → 선택 → 등록
 │
 ├─► Client Component
 │   ├── src/components/dashboard/DashboardPlatformCard  ← 경쟁사 모달
-│   ├── src/components/competitor/CompetitorSearchModal
+│   ├── src/components/dashboard/CompetitorManageModal.tsx ← 경쟁사 검색/관리 모달
+│   ├── src/components/competitor/CompetitorManagementView.tsx ← 경쟁사 관리 뷰
+│   ├── src/components/competitor/CompetitorSlotCard.tsx ← 경쟁사 슬롯 카드
 │   └── POST /api/settings/competitors
 │
 ├─► Server API Route
@@ -374,7 +377,8 @@ User Action: 키워드/그리드 설정 → "실시간 진단 시작" 클릭
 ├─► Client Component
 │   ├── src/app/(dashboard)/naver-search/new/page.tsx   ← 검색 설정 페이지
 │   ├── src/components/search/*                         ← 검색 설정 컴포넌트
-│   ├── src/components/maps/NaverMapViewer              ← 지도 + 그리드 시각화
+│   ├── src/components/naver/NaverMap.tsx                ← 네이버 지도 표시
+│   ├── src/components/naver/NaverMapGridConfigurator.tsx ← 지도 + 그리드 시각화
 │   └── POST /api/naver/search
 │
 ├─► Server API Route
@@ -431,6 +435,7 @@ User Action: 키워드/그리드 설정 → "실시간 진단 시작" 클릭
 ├─► Client Component
 │   ├── src/app/(dashboard)/search/new/page.tsx          ← 구글 검색 설정
 │   ├── src/components/search/*
+│   ├── src/components/search/MapGridConfigurator.tsx     ← Google Maps 그리드 설정
 │   └── POST /api/search
 │
 ├─► Server API Route
@@ -440,19 +445,29 @@ User Action: 키워드/그리드 설정 → "실시간 진단 시작" 클릭
 │       ├── 3. supabase.rpc('deduct_ticket', { p_platform: 'google' })
 │       ├── 4. INSERT → searches (status='processing', platform='google')
 │       ├── 5. 실패 시: supabase.rpc('refund_ticket', { p_platform: 'google' })
-│       └── 6. GitHub Actions dispatch (event_type: 'manual_search')
-│               └── DataForSEO API 크롤러 트리거
+│       └── 6. searchId 반환 (클라이언트가 /process 호출 책임)
+│           └── ⚠️ 네이버와 달리 GitHub Actions dispatch 사용 안 함
 │
-├─► Process Route
+├─► Process Route (클라이언트가 직접 호출)
 │   └── src/app/api/search/[id]/process/route.ts  (POST)
+│       ├── DataForSEO API 호출 (src/lib/dataforseo/client.ts)
 │       ├── UPDATE → searches (status='completed')
 │       └── INSERT → search_results
 │
 └─► Results Display
     └── src/app/(dashboard)/search/[id]/page.tsx
+        ├── src/app/(dashboard)/search/[id]/ResultsContent.tsx ← 결과 표시 UI
         ├── SELECT → searches
         └── SELECT → search_results
 ```
+
+**실행 방식 (네이버 vs 구글 차이점):**
+| | 네이버 (§8) | 구글 (§9) |
+|---|---|---|
+| 크롤링 | GitHub Actions + Playwright | DataForSEO API |
+| 트리거 | `/api/queue/dispatch` → GitHub Actions | 클라이언트가 `/api/search/[id]/process` 직접 호출 |
+| 초기 상태 | `status='pending'` | `status='processing'` |
+| 웰컴 리포트 | 온보딩에서 `/api/search/{id}/process` fire-and-forget 호출 | 동일 |
 
 **DB Operations:** (네이버와 동일 구조, platform='google')
 | Operation | Table | Action |
@@ -461,7 +476,7 @@ User Action: 키워드/그리드 설정 → "실시간 진단 시작" 클릭
 | UPDATE | `user_subscriptions` | 티켓 차감/환불 (RPC) |
 | INSERT | `ticket_ledger` | 사용/환불 이력 |
 | INSERT | `searches` | 검색 레코드 |
-| INSERT | `search_results` | 결과 데이터 |
+| INSERT | `search_results` | 결과 데이터 (DataForSEO API 결과) |
 | UPDATE | `searches` | 상태 변경 |
 
 ---
@@ -621,37 +636,161 @@ Trigger: ScheduleManager 즉시 발송 or NotificationService 예약 발송
 
 ---
 
-## 13. Subscription Cancellation
+## 13. Subscription Lifecycle (구독 라이프사이클)
 
-### 구독 해지
+### 13-A. 구독 해지 (Cancel → cancel_scheduled)
 
 ```
 User Action: "구독 해지" 버튼 클릭
 │
 ├─► Client Component
-│   └── src/app/(dashboard)/dashboard/subscription/page.tsx
+│   └── src/components/dashboard/SubscriptionContent.tsx
 │       └── POST /api/payment/subscribe/cancel
 │
 ├─► Server API Route
 │   └── src/app/api/payment/subscribe/cancel/route.ts  (POST)
 │       ├── 1. supabase.auth.getUser()
-│       ├── 2. SELECT → subscription_billing (활성 구독 조회)
+│       ├── 2. SELECT → subscription_billing (status='active' 확인)
 │       ├── 3. cancelSchedule([next_payment_id])  ← PortOne 예약 결제 취소
-│       │       └── src/lib/portone/billing.ts
-│       ├── 4. deleteBillingKey(billing_key)       ← PortOne 빌링키 삭제
-│       │       └── src/lib/portone/billing.ts
-│       └── 5. UPDATE → subscription_billing (status='canceled', next_payment_id=null)
+│       └── 4. UPDATE → subscription_billing (status='cancel_scheduled', cancelled_at=now)
+│           ※ 빌링키는 삭제하지 않음 (해지 철회 시 재사용)
 │
-└─► 정책: "즉시 환불" 아님
+└─► 정책: "즉시 만료" 아님
     └── 현재 구독 기간(~next_billing_date) 만료 전까지 혜택 유지
-    └── 다음 결제일에 갱신 안 됨 → 자연 만료
+    └── 만료 시점에 CRON이 cancelled로 전환
 ```
 
-**DB Operations:**
+### 13-B. 해지 철회 (Reactivate → active)
+
+```
+User Action: "해지 철회" 버튼 클릭
+│
+├─► Client Component
+│   └── src/components/dashboard/SubscriptionContent.tsx
+│       └── POST /api/payment/subscribe/reactivate
+│
+├─► Server API Route
+│   └── src/app/api/payment/subscribe/reactivate/route.ts  (POST)
+│       ├── 1. supabase.auth.getUser()
+│       ├── 2. SELECT → subscription_billing (status='cancel_scheduled' 확인)
+│       ├── 3. schedulePayment() → 다음 결제 재예약 (PortOne)
+│       └── 4. UPDATE → subscription_billing (status='active', cancelled_at=null, next_payment_id 갱신)
+```
+
+### 13-C. 플랜 변경 (Change Plan → pending_plan_id)
+
+```
+User Action: 다른 플랜 선택 → 변경 요청
+│
+├─► Client Component
+│   └── src/components/dashboard/SubscriptionContent.tsx
+│       └── POST /api/payment/subscribe/change-plan
+│
+├─► Server API Route
+│   └── src/app/api/payment/subscribe/change-plan/route.ts  (POST)
+│       ├── 1. supabase.auth.getUser()
+│       ├── 2. 현재 플랜과 동일 여부 확인
+│       └── 3. UPDATE → subscription_billing (pending_plan_id = 새 플랜)
+│           ※ 다음 결제 시 Webhook에서 pending_plan_id 적용
+```
+
+### 13-D. 환불 (Refund)
+
+```
+User Action: "환불 요청" 버튼 클릭
+│
+├─► Client Component
+│   └── src/components/dashboard/SubscriptionContent.tsx
+│       └── POST /api/payment/subscribe/refund
+│
+├─► Server API Route
+│   └── src/app/api/payment/subscribe/refund/route.ts  (POST)
+│       ├── 1. supabase.auth.getUser()
+│       ├── 2. SELECT → subscription_payment_history (첫 구독 1건만 확인)
+│       ├── 3. 환불 조건 검증:
+│       │   ├── 첫 구독인지 (결제 이력 1건)
+│       │   ├── 7일 이내인지
+│       │   └── 서비스 미이용인지 (search_results 0건)
+│       ├── 4. cancelPayment(paymentId) ← PortOne 결제 취소
+│       ├── 5. cancelSchedule() + deleteBillingKey() ← 예약 결제/빌링키 삭제
+│       └── 6. UPDATE → subscription_billing (status='expired')
+│       └── 7. UPDATE → subscription_payment_history (status='refunded')
+│       └── 8. UPDATE → user_subscriptions (plan_id='free', tickets=0)
+```
+
+### 13-E. CRON 만료 감지 (Expire Subscriptions)
+
+```
+Trigger: pg_cron 또는 외부 호출 (매일 실행)
+│   └── ⚠️ vercel.json에는 /api/cron/cleanup만 등록됨
+│   └── pg_cron 또는 수동 호출로 실행 필요
+│
+├─► Server API Route
+│   └── src/app/api/cron/expire-subscriptions/route.ts  (GET)
+│       ├── 1. CRON_SECRET 인증
+│       ├── 2. supabase.rpc('expire_cancelled_subscriptions')
+│       │   └── cancel_scheduled 상태 + next_billing_date 지난 구독 감지
+│       │   └── subscription_billing.status → 'expired'
+│       │   └── user_subscriptions.plan_id → 'free', tickets → 0
+│       └── 3. 만료된 각 사용자의 빌링키 삭제 (PortOne API)
+```
+
+### 13-F. Webhook 자동 갱신 (PortOne → Transaction.Paid / Transaction.Failed)
+
+```
+Trigger: PortOne Webhook (서버-서버 호출)
+│
+├─► Server API Route
+│   └── src/app/api/payment/webhook/route.ts  (POST)
+│       ├── 1. Raw body → Webhook.verify(시그니처 검증, @portone/server-sdk)
+│       ├── 2. JSON 파싱 → type, data.paymentId 추출
+│       ├── 3. 구독 결제만 처리 (paymentId가 'sub_' 접두사인 경우만)
+│       │
+│       ├── [Transaction.Paid] → handlePaymentPaid()
+│       │   ├── verifyPayment(paymentId) → PortOne API 결제 상태 재검증
+│       │   ├── 멱등성: subscription_payment_history에 중복 확인
+│       │   ├── SELECT → subscription_billing (next_payment_id 매칭)
+│       │   ├── pending_plan_id 있으면 새 플랜 적용 (플랜 변경 반영)
+│       │   ├── supabase.rpc('activate_subscription') → 티켓 충전 + 구독 갱신
+│       │   ├── INSERT → subscription_payment_history (결제 이력)
+│       │   ├── schedulePayment() → 다음 달 자동 결제 예약 (PortOne)
+│       │   └── UPDATE → subscription_billing (plan_id, next_payment_id, status='active', pending_plan_id=null)
+│       │
+│       └── [Transaction.Failed] → handlePaymentFailed()
+│           ├── verifyPayment(paymentId) → 결제 상태 확인
+│           ├── 멱등성: 중복 확인
+│           ├── SELECT → subscription_billing (retry_count 조회)
+│           ├── retry_count < 3 → 3일 후 재시도 예약
+│           │   ├── schedulePayment() → 재시도 결제 예약
+│           │   └── UPDATE → subscription_billing (status='past_due', retry_count+1)
+│           ├── retry_count >= 3 → 구독 만료
+│           │   └── supabase.rpc('expire_failed_subscription')
+│           └── INSERT → subscription_payment_history (status='failed')
+│
+└─► 보안 정책
+    ├── PORTONE_WEBHOOK_SECRET 누락 시 경고 로그 (개발 환경 허용)
+    ├── Webhook은 항상 200 반환 (5xx면 PortOne이 재전송)
+    └── 시그니처 실패만 400 반환 (PortOne 재전송 중단)
+```
+
+**재시도 정책:**
+| 항목 | 값 |
+|------|-----|
+| 최대 재시도 횟수 | 3회 (`MAX_RETRY_COUNT`) |
+| 재시도 간격 | 3일 (`RETRY_INTERVAL_DAYS`) |
+| 재시도 중 상태 | `past_due` |
+| 최대 재시도 초과 시 | `expire_failed_subscription` RPC → `expired` + `free` 전환 |
+
+**DB Operations (전체 §13):**
 | Operation | Table | Action |
 |-----------|-------|--------|
-| SELECT | `subscription_billing` | 현재 구독 상태/빌링키/다음결제ID 조회 |
-| UPDATE | `subscription_billing` | `status='canceled'`, `next_payment_id=null` |
+| SELECT | `subscription_billing` | 구독 상태 조회 |
+| UPDATE | `subscription_billing` | `status`, `cancelled_at`, `pending_plan_id`, `next_payment_id`, `retry_count` 갱신 |
+| UPDATE | `user_subscriptions` | 환불/만료 시 `plan_id='free'`, `tickets=0` / 갱신 시 티켓 충전 |
+| INSERT | `subscription_payment_history` | 결제 성공/실패 이력 |
+| UPDATE | `subscription_payment_history` | 환불 시 `status='refunded'` |
+| SELECT | `search_results` | 환불 조건: 서비스 이용 여부 확인 |
+| INSERT | `ticket_ledger` | 갱신 시 티켓 충전 이력 (`type='monthly_reset'`) |
 
 ---
 
@@ -687,109 +826,6 @@ Route: /settings
 
 ---
 
-## 16. Feature: History Page (진단 기록)
-
-### 진단 기록 페이지 (순위 변화 그래프 + 전체 기록)
-
-```
-User Action: /history 페이지 접속
-│
-└── Server Component (SSR, force-dynamic)
-    └── src/app/(dashboard)/history/page.tsx
-        │
-        ├── Promise.all (병렬 조회)
-        │   ├── SELECT → user_subscriptions (plan_id)
-        │   ├── SELECT → searches (deleted_at IS NULL, 전체)
-        │   └── SELECT → managed_keywords (키워드 목록)
-        │
-        ├── SELECT → search_results (weekly search IDs만)
-        │
-        ├── calculateRankTrend(searches, searchResults)
-        │   └── src/lib/utils/rank-trend.ts
-        │       ├── filter: report_type='weekly' && status='completed'
-        │       ├── 날짜순 정렬 (ascending)
-        │       └── 키워드별 전체 grid_point 평균 순위 계산
-        │       └── output: { date, fullDate, [keyword]: avg_rank }[]
-        │
-        └── Render (Client Components)
-            ├── HistoryPageContent [Client] — 플랫폼 토글, 필터 관리
-            ├── RankTrendChart [Client] — recharts LineChart (dynamic import)
-            │   ├── 키워드 토글 버튼 (활성/비활성)
-            │   ├── Y축 역방향 (1위=위)
-            │   └── Custom Tooltip (날짜, 키워드, 순위)
-            └── HistoryTable [Client] — 전체 기록 테이블 (필터 + 페이지네이션)
-```
-
-**DB Operations (모두 SELECT):**
-| Table | Purpose |
-|-------|---------|
-| `user_subscriptions` | 플랜 확인 (구글 접근 가능 여부) |
-| `searches` | 전체 검색 기록 (테이블용) + 주간 리포트 필터 (그래프용) |
-| `search_results` | 주간 리포트의 grid_point별 순위 (평균 계산) |
-| `managed_keywords` | 키워드 목록 (그래프 키워드 토글 버튼) |
-
----
-
-## 16-1. Feature: Report Settings (리포트 설정)
-
-### 리포트 설정 페이지 (스케줄/키워드/그리드/알림 관리)
-
-```
-User Action: /report-settings 페이지 접속
-│
-└── Server Component (SSR, force-dynamic)
-    └── src/app/(dashboard)/report-settings/page.tsx
-        │
-        ├── 1. supabase.auth.getUser()
-        ├── 2. SELECT → user_subscriptions (plan_id, phone)
-        ├── 3. 구독 상태 판단 (isSubscribed, canAccessPlatform, getAllowedGridSizes)
-        │
-        ├── 4. 유료 사용자 → Promise.all 병렬 조회:
-        │   ├── SELECT → search_schedules (네이버/구글 스케줄)
-        │   ├── SELECT → managed_places (네이버/구글 매장)
-        │   └── SELECT → managed_keywords (네이버/구글 키워드)
-        │
-        └── Render:
-            └── <ReportSettingsContent> (Client)
-                └── src/app/(dashboard)/report-settings/ReportSettingsContent.tsx
-                    ├── 스케줄 요일/시간 설정
-                    ├── 키워드 선택
-                    ├── 그리드 설정 (플랜별 크기 제한)
-                    ├── 알림 설정 (전화번호)
-                    └── POST /api/settings/schedule (스케줄 저장/업데이트)
-
-Components Used:
-├── src/components/schedule/DaySelector.tsx    ← 요일 선택
-├── src/components/schedule/TimeSelector.tsx   ← 시간 선택
-└── src/components/schedule/MyShopSelector.tsx  ← 매장 선택
-```
-
-**DB Operations:**
-| Operation | Table | Action |
-|-----------|-------|--------|
-| SELECT | `user_subscriptions` | 플랜 + 전화번호 조회 |
-| SELECT | `search_schedules` | 기존 스케줄 조회 (플랫폼별) |
-| SELECT | `managed_places` | 등록 매장 조회 (플랫폼별) |
-| SELECT | `managed_keywords` | 등록 키워드 조회 (플랫폼별) |
-| UPSERT | `search_schedules` | 스케줄 저장/업데이트 (via API) |
-| UPSERT | `notification_schedules` | 알림 스케줄 저장 (via API) |
-| UPDATE | `user_subscriptions` | 전화번호 업데이트 |
-
----
-
-## 17. RPC Functions Summary
-
-| RPC Function | Migration File | Description | Tables Affected |
-|-------------|---------------|-------------|-----------------|
-| `deduct_ticket(p_platform)` | 015 | 티켓 1장 차감 + 이력 기록 | UPDATE `user_subscriptions`, INSERT `ticket_ledger` |
-| `refund_ticket(p_platform, p_search_id)` | 015 | 티켓 1장 환불 + 이력 기록 | UPDATE `user_subscriptions`, INSERT `ticket_ledger` |
-| `reset_monthly_tickets()` | 015 | 월초 전체 사용자 티켓 리셋 | UPDATE `user_subscriptions` (FROM `plans` JOIN) |
-| `activate_subscription(p_user_id, p_plan_id, p_billing_key, ...)` | 018 | 구독 활성화 + 티켓 충전 | UPSERT `subscription_billing`, UPDATE `user_subscriptions`, INSERT `ticket_ledger` |
-| `handle_new_user()` (Trigger) | 015 | 신규 가입 시 구독 레코드 생성 | INSERT `user_subscriptions` |
-| `add_tickets(p_user_id, p_platform, p_quantity)` | — | 티켓 추가 충전 | UPDATE `user_subscriptions`, INSERT `ticket_ledger` |
-
----
-
 ## 15. Feature: Onboarding Flow (5-Step + Welcome Report)
 
 ### 15-A. 온보딩 플로우 (5 Step)
@@ -814,7 +850,7 @@ User Action: 유료 구독 후 /onboarding 진입
 │   └── Pro/Premium: store → keyword → competitor → grid → schedule
 │
 ├─► Step 1: 매장 등록 (StepStoreRegister.tsx)
-│   ├── PlaceSearchBar → 네이버/구글 장소 검색
+│   ├── PlaceSearchInput / NaverPlaceSearchInput → 네이버/구글 장소 검색
 │   └── POST /api/settings/my-shop → INSERT managed_places
 │
 ├─► Step 2: 키워드 등록 (StepKeywordRegister.tsx)
@@ -822,7 +858,7 @@ User Action: 유료 구독 후 /onboarding 진입
 │   └── Supabase Client → INSERT managed_keywords
 │
 ├─► Step 3: 경쟁사 등록 (StepCompetitorRegister.tsx, Pro/Premium만)
-│   ├── CompetitorSearchModal → 경쟁사 검색/선택
+│   ├── CompetitorManageModal / CompetitorManagementView → 경쟁사 검색/선택
 │   └── POST /api/settings/competitors → INSERT managed_competitors
 │
 ├─► Step 4: 좌표 설정 (StepGridSetting.tsx)
@@ -889,6 +925,117 @@ User Action: 요약 화면에서 "완료하고 첫 리포트 받기" 클릭
 
 ---
 
+## 16. Feature: History Page (진단 기록)
+
+### 진단 기록 페이지 (순위 변화 그래프 + 전체 기록)
+
+```
+User Action: /history 페이지 접속
+│
+└── Server Component (SSR, force-dynamic)
+    └── src/app/(dashboard)/history/page.tsx
+        │
+        ├── Promise.all (병렬 조회)
+        │   ├── SELECT → user_subscriptions (plan_id)
+        │   ├── SELECT → searches (deleted_at IS NULL, 전체)
+        │   └── SELECT → managed_places (place_id, platform — 현재 매장 필터링용)
+        │
+        ├── 플랫폼별 현재 매장 place_id로 검색 필터링
+        │
+        ├── SELECT → search_results (weekly search IDs만)
+        │
+        ├── calculateRankTrend(searches, searchResults)
+        │   └── src/lib/utils/rank-trend.ts
+        │       ├── filter: report_type='weekly' && status='completed'
+        │       ├── 날짜순 정렬 (ascending)
+        │       └── 키워드별 전체 grid_point 평균 순위 계산
+        │       └── output: { date, fullDate, [keyword]: avg_rank }[]
+        │
+        ├── extractKeywordsFromTrend(trendData)
+        │   └── src/lib/utils/rank-trend.ts
+        │       └── trendData에서 키워드 목록 추출 (과거 키워드도 포함)
+        │
+        └── Render (Client Components)
+            ├── HistoryPageContent [Client] — 플랫폼 토글, 필터 관리
+            ├── RankTrendChart [Client] — recharts LineChart (dynamic import)
+            │   ├── 키워드 토글 버튼 (활성/비활성)
+            │   ├── Y축 역방향 (1위=위)
+            │   └── Custom Tooltip (날짜, 키워드, 순위)
+            └── HistoryTable [Client] — 전체 기록 테이블 (필터 + 페이지네이션)
+```
+
+**DB Operations (모두 SELECT):**
+| Table | Purpose |
+|-------|---------|
+| `user_subscriptions` | 플랜 확인 (구글 접근 가능 여부) |
+| `searches` | 전체 검색 기록 (테이블용) + 주간 리포트 필터 (그래프용) |
+| `managed_places` | 현재 매장 place_id로 검색 필터링 |
+| `search_results` | 주간 리포트의 grid_point별 순위 (평균 계산) |
+
+---
+
+## 16-1. Feature: Report Settings (리포트 설정)
+
+### 리포트 설정 페이지 (스케줄/키워드/그리드/알림 관리)
+
+```
+User Action: /report-settings 페이지 접속
+│
+└── Server Component (SSR, force-dynamic)
+    └── src/app/(dashboard)/report-settings/page.tsx
+        │
+        ├── 1. supabase.auth.getUser()
+        ├── 2. SELECT → user_subscriptions (plan_id, phone)
+        ├── 3. 구독 상태 판단 (isSubscribed, canAccessPlatform, getAllowedGridSizes)
+        │
+        ├── 4. 유료 사용자 → Promise.all 병렬 조회:
+        │   ├── SELECT → search_schedules (네이버/구글 스케줄)
+        │   ├── SELECT → managed_places (네이버/구글 매장)
+        │   └── SELECT → managed_keywords (네이버/구글 키워드)
+        │
+        └── Render:
+            └── <ReportSettingsContent> (Client)
+                └── src/app/(dashboard)/report-settings/ReportSettingsContent.tsx
+                    ├── 스케줄 요일/시간 설정
+                    ├── 키워드 선택
+                    ├── 그리드 설정 (플랜별 크기 제한)
+                    ├── 알림 설정 (전화번호)
+                    └── POST /api/settings/schedule (스케줄 저장/업데이트)
+
+Components Used:
+├── src/components/schedule/DaySelector.tsx    ← 요일 선택
+├── src/components/schedule/TimeSelector.tsx   ← 시간 선택
+└── src/components/schedule/MyShopSelector.tsx  ← 매장 선택
+```
+
+**DB Operations:**
+| Operation | Table | Action |
+|-----------|-------|--------|
+| SELECT | `user_subscriptions` | 플랜 + 전화번호 조회 |
+| SELECT | `search_schedules` | 기존 스케줄 조회 (플랫폼별) |
+| SELECT | `managed_places` | 등록 매장 조회 (플랫폼별) |
+| SELECT | `managed_keywords` | 등록 키워드 조회 (플랫폼별) |
+| UPSERT | `search_schedules` | 스케줄 저장/업데이트 (via API) |
+| UPSERT | `notification_schedules` | 알림 스케줄 저장 (via API) |
+| UPDATE | `user_subscriptions` | 전화번호 업데이트 |
+
+---
+
+## 17. RPC Functions Summary
+
+| RPC Function | Migration File | Description | Tables Affected |
+|-------------|---------------|-------------|-----------------|
+| `deduct_ticket(p_platform)` | 015 | 티켓 1장 차감 + 이력 기록 | UPDATE `user_subscriptions`, INSERT `ticket_ledger` |
+| `refund_ticket(p_platform, p_search_id)` | 015 | 티켓 1장 환불 + 이력 기록 | UPDATE `user_subscriptions`, INSERT `ticket_ledger` |
+| `reset_monthly_tickets()` | 015 | 월초 전체 사용자 티켓 리셋 | UPDATE `user_subscriptions` (FROM `plans` JOIN) |
+| `activate_subscription(p_user_id, p_plan_id, p_billing_key, ...)` | 018 | 구독 활성화 + 티켓 충전 | UPSERT `subscription_billing`, UPDATE `user_subscriptions`, INSERT `ticket_ledger` |
+| `handle_new_user()` (Trigger) | 015 | 신규 가입 시 구독 레코드 생성 | INSERT `user_subscriptions` |
+| `add_tickets(p_user_id, p_platform, p_quantity)` | — | 티켓 추가 충전 | UPDATE `user_subscriptions`, INSERT `ticket_ledger` |
+| `expire_cancelled_subscriptions()` | 023 | cancel_scheduled 만료 감지 → expired 전환 + free 플랜 전환 | UPDATE `subscription_billing`, UPDATE `user_subscriptions` |
+| `expire_failed_subscription(p_user_id)` | 023 | past_due 결제 실패 만료 → expired 전환 + free 플랜 전환 | UPDATE `subscription_billing`, UPDATE `user_subscriptions` |
+
+---
+
 ## 18. File Index
 
 ### Pages (src/app)
@@ -932,10 +1079,13 @@ User Action: 요약 화면에서 "완료하고 첫 리포트 받기" 클릭
 | `search/[id]/process/route.ts` | `/api/search/[id]/process` | POST | 구글 결과 저장 |
 | `search/all/route.ts` | `/api/search/all` | GET | 전체 검색 조회 |
 | `payment/subscribe/route.ts` | `/api/payment/subscribe` | POST | 구독 시작 |
-| `payment/subscribe/cancel/route.ts` | `/api/payment/subscribe/cancel` | POST | 구독 해지 |
+| `payment/subscribe/cancel/route.ts` | `/api/payment/subscribe/cancel` | POST | 구독 해지 (cancel_scheduled) |
+| `payment/subscribe/reactivate/route.ts` | `/api/payment/subscribe/reactivate` | POST | 해지 철회 (active 복구) |
+| `payment/subscribe/change-plan/route.ts` | `/api/payment/subscribe/change-plan` | POST | 플랜 변경 (pending_plan_id 저장) |
+| `payment/subscribe/refund/route.ts` | `/api/payment/subscribe/refund` | POST | 구독 환불 (7일 이내 + 미이용) |
 | `payment/ticket/route.ts` | `/api/payment/ticket` | POST | 티켓 구매 검증 |
 | `payment/refund/route.ts` | `/api/payment/refund` | POST | 결제 환불 |
-| `payment/webhook/route.ts` | `/api/payment/webhook` | POST | PortOne 웹훅 |
+| `payment/webhook/route.ts` | `/api/payment/webhook` | POST | PortOne 웹훅 (시그니처 검증) |
 | `settings/my-shop/route.ts` | `/api/settings/my-shop` | GET, POST, DELETE | 매장 관리 |
 | `settings/competitors/route.ts` | `/api/settings/competitors` | GET, POST, DELETE | 경쟁사 관리 |
 | `settings/schedule/route.ts` | `/api/settings/schedule` | POST | 리포트 스케줄 저장/업데이트 |
@@ -943,6 +1093,7 @@ User Action: 요약 화면에서 "완료하고 첫 리포트 받기" 클릭
 | `queue/dispatch/route.ts` | `/api/queue/dispatch` | POST | 큐 디스패처 |
 | `cron/cleanup/route.ts` | `/api/cron/cleanup` | — | CRON 정리 작업 |
 | `cron/scheduled-search/route.ts` | `/api/cron/scheduled-search` | POST | pg_cron 정시 트리거 → 스케줄 조회 + dispatch |
+| `cron/expire-subscriptions/route.ts` | `/api/cron/expire-subscriptions` | GET | cancel_scheduled 만료 감지 + 빌링키 삭제 |
 | `kakao/send-report/route.ts` | `/api/kakao/send-report` | POST | 알림톡 수동 발송 |
 
 ### Service Layer (src/lib/services)
@@ -961,10 +1112,10 @@ User Action: 요약 화면에서 "완료하고 첫 리포트 받기" 클릭
 
 | File | Side | Functions | Description |
 |------|------|-----------|-------------|
-| `client.ts` | Client (Browser) | `requestTicketPayment()` | PortOne 결제창 띄움 |
+| `client.ts` | Client (Browser) | `requestTicketPayment()` | PortOne 결제창 띄움 (`NEXT_PUBLIC_PORTONE_TICKET_CHANNEL_KEY`) |
 | `server.ts` | Server (API Route) | `verifyPayment()`, `cancelPayment()`, `validatePaymentAmount()` | 결제 검증/취소 |
 | `billing.ts` | Server (API Route) | `payWithBillingKey()`, `schedulePayment()`, `cancelSchedule()`, `getBillingKeyInfo()`, `deleteBillingKey()` | 빌링키 결제/예약/취소 |
-| `subscription-client.ts` | Client (Browser) | — | 구독 결제 프론트엔드 헬퍼 |
+| `subscription-client.ts` | Client (Browser) | `requestBillingKey()` | 구독 빌링키 발급 (`NEXT_PUBLIC_PORTONE_BILLING_CHANNEL_KEY`) |
 
 ### Layout Components (src/components/layout)
 
@@ -986,17 +1137,84 @@ User Action: 요약 화면에서 "완료하고 첫 리포트 받기" 클릭
 | `TimeSelector.tsx` | 시간 선택기 (리포트 스케줄용) |
 | `MyShopSelector.tsx` | 매장 선택기 (리포트 스케줄용) |
 
-### Hooks (src/hooks)
+### Hooks (src/lib/hooks)
 
 | File | Description |
 |------|-------------|
 | `useSubscription.ts` | 클라이언트 사이드 구독 상태 hook (plan_id, canAccessPlatform, getAllowedGridSizes) |
+| `use-debounce.ts` | 디바운스 hook |
+
+### Dashboard Components (src/components/dashboard)
+
+| File | Description |
+|------|-------------|
+| `SubscriptionBanner.tsx` | 구독 유도 배너 (free 사용자) |
+| `OnboardingBanner.tsx` | 온보딩 유도 배너 (유료 + 온보딩 미완료) |
+| `DashboardHeader.tsx` | 대시보드 헤더 (자동리포트 상태 표시) |
+| `DashboardPlatformCard.tsx` | 매장 카드 (네이버/구글, 키워드/경쟁사 모달 포함) |
+| `DashboardMetricsToggle.tsx` | 주간 인사이트 플랫폼 토글 |
+| `SearchHistorySection.tsx` | 검색 히스토리 테이블 |
+| `SearchHistoryCard.tsx` | 검색 히스토리 카드 |
+| `SubscriptionContent.tsx` | 구독 관리 UI (해지/철회/환불/플랜 변경) |
+| `CheckoutContent.tsx` | 구독 결제 UI (빌링키 발급) |
+| `TicketShopContent.tsx` | 티켓 샵 UI (일회성 구매) |
+| `PlanCard.tsx` | 플랜 카드 (가격/기능 표시) |
+| `CompetitorManageModal.tsx` | 경쟁사 검색/관리 모달 |
+| `KeywordManageModal.tsx` | 키워드 관리 모달 |
+| `InlineRankGraph.tsx` | 인라인 순위 그래프 (히스토리 카드) |
+| `QuickInsightsRow.tsx` | 대시보드 인사이트 요약 행 |
+| `QuickStatsRow.tsx` | 대시보드 통계 요약 행 |
+| `UsageStatsCard.tsx` | 사용 통계 카드 |
+| `PlaceSelectionModal.tsx` | 매장 선택 모달 |
+| `DeleteAllButton.tsx` | 전체 삭제 버튼 |
+| `UpgradePrompt.tsx` | 업그레이드 유도 프롬프트 |
+| `PaymentSuccessToast.tsx` | 결제 성공 토스트 알림 |
+
+### Naver Components (src/components/naver)
+
+| File | Description |
+|------|-------------|
+| `NaverMap.tsx` | 네이버 지도 표시 |
+| `NaverMapGridConfigurator.tsx` | 네이버 지도 그리드 설정기 |
+| `NaverRankHeatmap.tsx` | 네이버 순위 히트맵 |
+| `NaverCompetitorComparisonMap.tsx` | 경쟁사 비교 지도 |
+
+### Results Components (src/components/results)
+
+| File | Description |
+|------|-------------|
+| 10개 파일 | 검색 결과 표시 전용 컴포넌트 (순위 그리드, 히트맵, 차트 등) |
+
+### DataForSEO Integration (src/lib/dataforseo)
+
+| File | Description |
+|------|-------------|
+| `client.ts` | DataForSEO API 클라이언트 (구글 검색 결과 조회) |
+
+### Utility Files (src/lib/utils)
+
+| File | Description |
+|------|-------------|
+| `rank-trend.ts` | 순위 트렌드 계산 + 키워드 추출 (`calculateRankTrend`, `extractKeywordsFromTrend`) |
+| `subscription.ts` | 구독 상태 유틸 (`isSubscribed`, `canAccessPlatform`, `getAllowedGridSizes`) |
+| `insights.ts` | 주간 인사이트 계산 (`calculateWeeklyInsights`) |
+| `billing.ts` | 결제 주기 유틸 (`calculateNextBillingDate`) |
+| `grid-calculator.ts` | 그리드 포인트 계산 |
+| `rank-colors.ts` | 순위별 색상 매핑 |
+
+### Pricing Config (src/lib/pricing)
+
+| File | Description |
+|------|-------------|
+| `config.ts` | 플랜별 설정 (`PLAN_CONFIG`, `getPlanPrice`, `getPlanName`, `getPlanLimit`) |
+| `ticket-price.ts` | 티켓 가격 계산 |
+| `cost-calculator.ts` | 비용 계산기 |
 
 ### Middleware
 
 | File | Description |
 |------|-------------|
-| `src/middleware.ts` | 인증 가드: 보호 라우트(`/dashboard`, `/naver-search`, `/settings` 등) → 미인증 시 `/login?redirectTo=원래경로` 리다이렉트, `/login` → 인증 시 `/dashboard` 리다이렉트 |
+| `src/middleware.ts` | 인증 가드: 보호 라우트(`/dashboard`, `/naver-search`, `/search`, `/settings`, `/history`, `/onboarding`, `/report-settings`) → 미인증 시 `/login?redirectTo=원래경로` 리다이렉트, `/login` → 인증 시 `/dashboard` 리다이렉트 |
 
 ### Supabase Migrations (Key)
 
@@ -1005,3 +1223,5 @@ User Action: 요약 화면에서 "완료하고 첫 리포트 받기" 클릭
 | `015_v2_schema_upgrade.sql` | 티켓 시스템 전환: `user_subscriptions`, `managed_keywords`, `notification_schedules/logs`, `ticket_ledger`, RPC 함수들 |
 | `018_subscription_billing.sql` | 정기 결제: `subscription_billing`, `subscription_payment_history`, `activate_subscription` RPC |
 | `019_billing_cycle.sql` | 연간/월간 결제 주기 추가 |
+| `023_subscription_lifecycle.sql` | 구독 라이프사이클: `cancel_scheduled` 상태, `pending_plan_id`, `expire_cancelled_subscriptions` / `expire_failed_subscriptions` RPC |
+

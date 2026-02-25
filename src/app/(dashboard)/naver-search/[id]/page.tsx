@@ -76,11 +76,8 @@ export default async function NaverSearchResultsPage({ params }: PageProps) {
                     <div className="w-16 h-16 mx-auto mb-4 animate-spin">
                         <div className="w-full h-full border-4 border-emerald-200 border-t-emerald-600 rounded-full" />
                     </div>
-                    <h2 className="text-xl font-semibold text-emerald-800 mb-2">스크래핑 중...</h2>
-                    <p className="text-emerald-600">네이버 지도에서 순위를 확인하고 있습니다.</p>
-                    <p className="text-emerald-500 text-sm mt-2">
-                        네이버 검색은 구글보다 시간이 더 걸립니다. 잠시만 기다려주세요.
-                    </p>
+                    <h2 className="text-xl font-semibold text-emerald-800 mb-2">순위를 진단 중입니다...</h2>
+                    <p className="text-emerald-600">이 화면을 나가셔도 됩니다.<br />결과는 진단 기록 페이지에서 확인하실 수 있습니다.</p>
                 </div>
             )}
 

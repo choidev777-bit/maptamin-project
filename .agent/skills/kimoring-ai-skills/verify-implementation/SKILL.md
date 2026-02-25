@@ -30,6 +30,7 @@ description: 프로젝트의 모든 verify 스킬을 순차 실행하여 통합 
 | 1 | `verify-ticket-system` | 구독+티켓 시스템 구현 일관성 검증 |
 | 2 | `verify-subscription-gating` | 구독 기반 UI 게이팅 일관성 검증 |
 | 3 | `verify-ticket-shop` | Ticket shop system implementation verification |
+| 4 | `verify-subscription-billing` | 구독 결제 시스템 일관성 검증 — API, Webhook, CRON, DB, UI 간 상태/가격 일관성 |
 
 ## 워크플로우
 

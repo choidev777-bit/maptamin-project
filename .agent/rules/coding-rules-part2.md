@@ -1,8 +1,8 @@
 # Maptamin Coding Rules & AI Guidelines (Part 2/3)
 
 > **Status**: ACTIVE — All AI code generation MUST comply with these rules.  
-> **Version**: 1.0  
-> **Last Updated**: 2026-02-24  
+> **Version**: 1.1  
+> **Last Updated**: 2026-02-25  
 > **Scope**: API Routes, Error Handling, Authentication, PortOne Payments, and DB/Supabase Rules.
 
 ---
@@ -24,7 +24,7 @@
       { status: 4xx | 5xx }
   )
   ```
-- **Established error codes:** `UNAUTHORIZED`, `NO_TICKETS`, `PLAN_LIMIT_EXCEEDED`, `TICKET_DEDUCTION_FAILED`, `DUPLICATE_PAYMENT`, `INVALID_PAYMENT`, `NO_SUBSCRIPTION`, `ALREADY_CANCELED`, `LOCKED_PLACE`, `DB_ERROR`, `INTERNAL_ERROR`
+- **Established error codes:** `UNAUTHORIZED`, `NO_TICKETS`, `PLAN_LIMIT_EXCEEDED`, `TICKET_DEDUCTION_FAILED`, `DUPLICATE_PAYMENT`, `INVALID_PAYMENT`, `NO_SUBSCRIPTION`, `ALREADY_CANCELED`, `LOCKED_PLACE`, `DB_ERROR`, `INTERNAL_ERROR`, `INVALID_STATUS`, `RENEWAL_NOT_REFUNDABLE`, `REFUND_PERIOD_EXPIRED`, `SERVICE_ALREADY_USED`, `PORTONE_CANCEL_FAILED`, `USAGE_CHECK_ERROR`, `NO_PAYMENT_HISTORY`
 
 ### 6.2 Authentication Guard
 
@@ -43,6 +43,15 @@
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   // Use createClient from @supabase/supabase-js with service role key (NOT server client)
+  ```
+- **Webhook routes** (e.g., `/api/payment/webhook`) use **PortOne Webhook signature verification**:
+  ```typescript
+  import { Webhook } from '@portone/server-sdk'
+  const webhookSecret = process.env.PORTONE_WEBHOOK_SECRET
+  if (webhookSecret) {
+      await Webhook.verify(webhookSecret, body, headers)
+  }
+  // Use createClient from @supabase/supabase-js with service role key (no user session)
   ```
 
 ### 6.3 Request Validation
@@ -176,13 +185,30 @@
 - **Amount validation**: Compare PortOne's reported amount with expected amount.
 - **Atomic subscription activation**: Use the `activate_subscription` RPC (not individual table updates).
 
-### 9.3 Environment Variables
+### 9.3 Subscription State Transition Rules
+
+- **구독 상태 전환은 다음 규칙을 따릅니다:**
+  ```
+  active → cancel_scheduled (해지 요청, 빌링키 유지)
+  cancel_scheduled → active (해지 철회, 결제 재예약)
+  cancel_scheduled → expired (CRON 만료 감지)
+  active → past_due (결제 실패)
+  past_due → active (재결제 성공)
+  past_due → expired (3회 실패 초과)
+  active/cancel_scheduled → expired (환불 처리)
+  ```
+- **해지(cancel) 시 빌링키를 삭제하지 마세요.** `cancel_scheduled` 상태에서 해지 철회(reactivate) 시 기존 빌링키를 재사용합니다.
+- **빌링키 삭제는 `expired` 전환 시점에만 수행합니다** (CRON 또는 환불).
+- **`pending_plan_id`** — 플랜 변경 요청 시 저장하며, 다음 결제 Webhook에서 적용 후 `null`로 초기화합니다.
+
+### 9.4 Environment Variables
 
 | Variable | Side | Required |
 |----------|------|----------|
 | `NEXT_PUBLIC_PORTONE_STORE_ID` | Client | Yes |
 | `NEXT_PUBLIC_PORTONE_CHANNEL_KEY` | Client | Yes |
 | `PORTONE_API_SECRET` | Server only | Yes |
+| `PORTONE_WEBHOOK_SECRET` | Server only | Yes (Webhook 시그니처 검증) |
 | `NEXT_PUBLIC_SUPABASE_URL` | Client | Yes |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client | Yes |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only | Yes (CRON API, admin ops) |
@@ -202,6 +228,8 @@
   - `refund_ticket(p_platform, p_search_id)` — Ticket refund + ledger entry
   - `activate_subscription(...)` — Billing + subscription + ledger update
   - `reset_monthly_tickets()` — Monthly ticket reset for all users
+  - `expire_cancelled_subscriptions()` — CRON: cancel_scheduled 만료 → expired 전환 + free 다운그레이드
+  - `expire_failed_subscription(p_user_id)` — Webhook: 결제 3회 실패 → expired 전환 + free 다운그레이드
 - **NEVER update `user_subscriptions.remaining_tickets_*` directly.** Always use the RPC functions to ensure `ticket_ledger` consistency.
 
 ### 10.2 30-Day Lock Policy

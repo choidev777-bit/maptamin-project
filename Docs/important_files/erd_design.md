@@ -1,8 +1,8 @@
 # Maptamin ERD (Entity Relationship Diagram)
 
-> **Version**: 2.3 (티켓 기반 시스템 + 정기 구독 + 온보딩)  
-> **Last Updated**: 2026-02-23  
-> **Source**: `supabase/migrations/001 ~ 022` + `src/lib/types/index.ts`
+> **Version**: 2.4 (티켓 기반 시스템 + 정기 구독 + 구독 라이프사이클)
+> **Last Updated**: 2026-02-25
+> **Source**: `supabase/migrations/001 ~ 023` + `src/lib/types/index.ts`
 
 ---
 
@@ -55,7 +55,8 @@ erDiagram
         text card_last4
         text card_brand
         text plan_id FK "→ plans"
-        text status "active | cancelled | past_due | expired"
+        text pending_plan_id FK "→ plans (다음 결제 시 적용)"
+        text status "active | cancel_scheduled | cancelled | past_due | expired"
         text billing_cycle "monthly | yearly"
         text next_payment_id
         timestamptz next_billing_date
@@ -268,7 +269,7 @@ erDiagram
 | `raw_user_meta_data` | JSONB | | 카카오/구글 프로필 정보 |
 | `created_at` | TIMESTAMPTZ | | 가입일 |
 
-**트리거**: `on_auth_user_created` → `handle_new_user()` → `user_subscriptions` INSERT (plan='starter')
+**트리거**: `on_auth_user_created` → `handle_new_user()` → `user_subscriptions` INSERT (plan='free')
 
 ---
 
@@ -330,7 +331,8 @@ erDiagram
 | `card_last4` | TEXT | | 카드 끝 4자리 |
 | `card_brand` | TEXT | | 카드 브랜드 (신한, 국민 등) |
 | `plan_id` | TEXT | FK → `plans` | 구독 중 플랜 |
-| `status` | TEXT | NOT NULL, DEFAULT `'active'` | `active` / `cancelled` / `past_due` / `expired` |
+| `pending_plan_id` | TEXT | FK → `plans`, NULLABLE | 다음 결제 시 적용할 플랜 (플랜 변경 시 저장) |
+| `status` | TEXT | NOT NULL, DEFAULT `'active'` | `active` / `cancel_scheduled` / `cancelled` / `past_due` / `expired` |
 | `billing_cycle` | TEXT | NOT NULL, DEFAULT `'monthly'` | `monthly` / `yearly` |
 | `next_payment_id` | TEXT | | 다음 예약 결제 paymentId |
 | `next_billing_date` | TIMESTAMPTZ | | 다음 결제 예정일 |
@@ -553,6 +555,8 @@ erDiagram
 | `reset_monthly_tickets()` | RPC | 015 | 월초 전체 사용자 티켓 리셋 → `user_subscriptions` UPDATE (JOIN `plans`) |
 | `activate_subscription(...)` | RPC | 018/019 | 구독 활성화 → `subscription_billing` UPSERT + `user_subscriptions` UPDATE + `ticket_ledger` INSERT |
 | `add_tickets(p_user_id, p_platform, p_quantity)` | RPC | — | 티켓 추가 충전 → `user_subscriptions` UPDATE + `ticket_ledger` INSERT |
+| `expire_cancelled_subscriptions()` | RPC | 023 | cancel_scheduled 만료 감지 → expired 전환 + free 플랜 전환 |
+| `expire_failed_subscription(p_user_id)` | RPC | 023 | past_due 결제 실패 만료 → expired 전환 + free 플랜 전환 |
 
 ---
 

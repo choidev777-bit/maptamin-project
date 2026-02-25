@@ -31,6 +31,7 @@ description: 세션 변경사항을 분석하여 검증 스킬 누락을 탐지�
 | `verify-ticket-system` | 구독+티켓 시스템 구현 일관성 검증 | `src/app/api/search/**`, `src/app/api/naver/search/**`, `src/app/(dashboard)/search/**`, `src/app/(dashboard)/naver-search/**`, `src/components/layout/WalletLabel.tsx`, `src/lib/pricing/config.ts`, `src/lib/utils/subscription.ts`, `src/hooks/useSubscription.ts`, `supabase/migrations/*` |
 | `verify-subscription-gating` | 구독 기반 UI 게이팅 일관성 검증 | `src/app/(dashboard)/search/**`, `src/app/(dashboard)/naver-search/**`, `src/app/(dashboard)/dashboard/**`, `src/app/(dashboard)/settings/**`, `src/components/dashboard/*`, `src/components/settings/*`, `src/components/layout/WalletLabel.tsx`, `src/lib/utils/subscription.ts`, `src/hooks/useSubscription.ts` |
 | `verify-ticket-shop` | 티켓 상점 시스템 구현 검증 | `src/app/(dashboard)/dashboard/shop/**`, `src/components/dashboard/TicketShopContent.tsx`, `src/lib/pricing/ticket-price.ts`, `src/components/layout/WalletLabel.tsx` |
+| `verify-subscription-billing` | 구독 결제 시스템 일관성 검증 | `src/app/api/payment/subscribe/**`, `src/app/api/payment/webhook/**`, `src/app/api/cron/expire-subscriptions/**`, `src/components/dashboard/SubscriptionContent.tsx`, `src/components/dashboard/CheckoutContent.tsx`, `src/lib/pricing/config.ts`, `src/lib/utils/billing.ts`, `src/lib/portone/**`, `supabase/migrations/*` |
 
 ## 워크플로우
 

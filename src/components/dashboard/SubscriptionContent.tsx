@@ -195,12 +195,14 @@ export function SubscriptionContent({
             }
 
             setActionMessage('구독이 다시 활성화되었습니다!')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
             setReactivating(false)
             router.refresh()
         } catch (error) {
             setActionMessage(
                 error instanceof Error ? error.message : '해지 철회 처리 중 오류가 발생했습니다.'
             )
+            window.scrollTo({ top: 0, behavior: 'smooth' })
             setReactivating(false)
         }
     }
@@ -217,12 +219,14 @@ export function SubscriptionContent({
 
             if (!response.ok) {
                 setActionMessage(data.error || '환불에 실패했습니다.')
+                window.scrollTo({ top: 0, behavior: 'smooth' })
                 setRefunding(false)
                 setShowRefundModal(false)
                 return
             }
 
             setActionMessage(`환불이 완료되었습니다. (환불 금액: ${data.refundedAmount?.toLocaleString()}원)`)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
             setRefunding(false)
             setShowRefundModal(false)
             router.refresh()
@@ -230,6 +234,7 @@ export function SubscriptionContent({
             setActionMessage(
                 error instanceof Error ? error.message : '환불 처리 중 오류가 발생했습니다.'
             )
+            window.scrollTo({ top: 0, behavior: 'smooth' })
             setRefunding(false)
             setShowRefundModal(false)
         }
