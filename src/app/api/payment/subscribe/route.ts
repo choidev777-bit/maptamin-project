@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
         // ── 2. 입력값 검증 ──
         const body = await request.json()
-        const { billingKey, planId, billingCycle: rawBillingCycle } = body
+        const { billingKey, planId, billingCycle: rawBillingCycle, email } = body
         const billingCycle = rawBillingCycle === 'yearly' ? 'yearly' : 'monthly'
 
         if (!billingKey || typeof billingKey !== 'string') {
@@ -154,6 +154,14 @@ export async function POST(request: Request) {
                 { error: '구독 활성화에 실패했습니다. 고객센터에 문의해주세요.', code: 'ACTIVATION_FAILED' },
                 { status: 500 }
             )
+        }
+
+        // ── 6-1. notification_email 저장 (있을 경우) ──
+        if (email && typeof email === 'string' && email.includes('@')) {
+            await supabase
+                .from('user_subscriptions')
+                .update({ notification_email: email })
+                .eq('user_id', user.id)
         }
 
         // ── 6. subscription_payment_history에 결제 이력 저장 ──

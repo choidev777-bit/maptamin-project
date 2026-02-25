@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { User, Mail, Calendar, Crown, LogOut, Settings, ChevronRight, Zap, Lock, Key } from 'lucide-react'
+import { User, Mail, Calendar, Crown, LogOut, Settings, ChevronRight, Zap, Lock, Key, Loader2, Pencil, X, Check } from 'lucide-react'
 import Image from 'next/image'
 import { MyShopManager } from '@/components/settings/MyShopManager'
 import { CompetitorManager } from '@/components/settings/CompetitorManager'
@@ -12,12 +12,14 @@ import { DeleteAccountSection } from '@/components/settings/DeleteAccountSection
 import { UpgradePrompt } from '@/components/dashboard/UpgradePrompt'
 import { CancelSubscriptionSection } from '@/components/settings/CancelSubscriptionSection'
 import { isSubscribed, canManageCompetitors, canAccessPlatform, getRequiredPlanForCompetitors } from '@/lib/utils/subscription'
+import { EmailInput, isValidEmail } from '@/components/ui/EmailInput'
 
 interface UserInfo {
     email: string
     name: string
     avatarUrl: string | null
     createdAt: string
+    notificationEmail: string
 }
 
 interface Props {
@@ -41,6 +43,12 @@ export function SettingsContent({ user, planStats }: Props) {
     const canCompetitors = canManageCompetitors(planStats.plan)
     const canGoogle = canAccessPlatform(planStats.plan, 'google')
 
+    // 이메일 수정 state
+    const [editingEmail, setEditingEmail] = useState(false)
+    const [emailValue, setEmailValue] = useState(user.notificationEmail)
+    const [emailSaving, setEmailSaving] = useState(false)
+    const [emailMessage, setEmailMessage] = useState<string | null>(null)
+
     const handleLogout = async () => {
         setIsLoggingOut(true)
         const supabase = createClient()
@@ -54,6 +62,34 @@ export function SettingsContent({ user, planStats }: Props) {
             month: 'long',
             day: 'numeric',
         })
+    }
+
+    const handleSaveEmail = async () => {
+        if (!emailValue || !isValidEmail(emailValue)) {
+            setEmailMessage('유효한 이메일을 입력해주세요.')
+            return
+        }
+        setEmailSaving(true)
+        setEmailMessage(null)
+        try {
+            const response = await fetch('/api/settings/email', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: emailValue }),
+            })
+            const data = await response.json()
+            if (!response.ok) {
+                setEmailMessage(data.error || '이메일 변경에 실패했습니다.')
+            } else {
+                setEmailMessage('알림 이메일이 변경되었습니다.')
+                setEditingEmail(false)
+                router.refresh()
+            }
+        } catch {
+            setEmailMessage('이메일 변경 중 오류가 발생했습니다.')
+        } finally {
+            setEmailSaving(false)
+        }
     }
 
     const planDisplayName = {
@@ -109,10 +145,54 @@ export function SettingsContent({ user, planStats }: Props) {
 
                     <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">{user.name}</h3>
-                        <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                            <Mail className="w-4 h-4" />
-                            {user.email}
-                        </p>
+                        <div className="mt-1">
+                            {editingEmail ? (
+                                <div className="space-y-2">
+                                    <EmailInput
+                                        value={emailValue}
+                                        onChange={setEmailValue}
+                                        label=""
+                                    />
+                                    {emailMessage && (
+                                        <p className={`text-xs ${emailMessage.includes('실패') || emailMessage.includes('오류') || emailMessage.includes('유효') ? 'text-red-500' : 'text-emerald-600'}`}>
+                                            {emailMessage}
+                                        </p>
+                                    )}
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleSaveEmail}
+                                            disabled={emailSaving}
+                                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-[#00C896] text-white rounded-lg hover:bg-[#00B386] transition-colors disabled:opacity-50"
+                                        >
+                                            {emailSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                                            저장
+                                        </button>
+                                        <button
+                                            onClick={() => { setEditingEmail(false); setEmailValue(user.notificationEmail); setEmailMessage(null) }}
+                                            disabled={emailSaving}
+                                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-500 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                                        >
+                                            <X className="w-3 h-3" />
+                                            취소
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                                        <Mail className="w-4 h-4" />
+                                        {user.notificationEmail || user.email || '이메일 없음'}
+                                    </p>
+                                    <button
+                                        onClick={() => setEditingEmail(true)}
+                                        className="text-xs text-gray-400 hover:text-[#00C896] transition-colors"
+                                        title="이메일 수정"
+                                    >
+                                        <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
                             <Calendar className="w-3 h-3" />
                             {formatDate(user.createdAt)} 가입

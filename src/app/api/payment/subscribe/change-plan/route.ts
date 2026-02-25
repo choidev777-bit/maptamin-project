@@ -18,7 +18,7 @@ import { PLAN_CONFIG, getPlanName } from '@/lib/pricing/config'
  *   - 일할 계산(proration) 없음 (MVP)
  *   - Webhook handlePaymentPaid에서 pending_plan_id가 있으면 새 플랜으로 전환
  *
- * @body { planId: string }
+ * @body { planId: string } 또는 { cancel: true }
  *
  * @see PLAN_payment-system-fix.md Phase 3
  */
@@ -40,7 +40,30 @@ export async function POST(request: Request) {
 
         // ── 2. 입력값 검증 ──
         const body = await request.json()
-        const { planId } = body
+        const { planId, cancel } = body
+
+        // ── 2-A. 예약 취소 요청 ──
+        if (cancel === true) {
+            const { error: cancelError } = await supabase
+                .from('subscription_billing')
+                .update({
+                    pending_plan_id: null,
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('user_id', user.id)
+
+            if (cancelError) {
+                return NextResponse.json(
+                    { error: '예약 취소에 실패했습니다.', code: 'CANCEL_FAILED' },
+                    { status: 500 }
+                )
+            }
+
+            return NextResponse.json({
+                success: true,
+                message: '플랜 변경 예약이 취소되었습니다.',
+            })
+        }
 
         if (!planId || !PLAN_CONFIG[planId]) {
             return NextResponse.json(

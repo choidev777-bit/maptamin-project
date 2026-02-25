@@ -21,7 +21,7 @@ export default async function SubscriptionPage() {
     // 빌링 정보 조회
     const { data: billing } = await supabase
         .from('subscription_billing')
-        .select('billing_key, card_last4, card_brand, plan_id, status, next_billing_date, billing_cycle')
+        .select('billing_key, card_last4, card_brand, plan_id, status, next_billing_date, billing_cycle, pending_plan_id')
         .eq('user_id', user?.id)
         .single()
 
@@ -44,6 +44,7 @@ export default async function SubscriptionPage() {
             cardLast4={billing?.card_last4 || null}
             cardBrand={billing?.card_brand || null}
             nextBillingDate={billing?.next_billing_date || null}
+            pendingPlanId={billing?.pending_plan_id || null}
             paymentHistory={history || []}
         />
     )

@@ -44,6 +44,7 @@ interface Props {
     cardLast4: string | null
     cardBrand: string | null
     nextBillingDate: string | null
+    pendingPlanId: string | null
     paymentHistory?: PaymentHistoryItem[]
 }
 
@@ -119,6 +120,7 @@ export function SubscriptionContent({
     cardLast4,
     cardBrand,
     nextBillingDate,
+    pendingPlanId,
     paymentHistory = []
 }: Props) {
     const router = useRouter()
@@ -131,6 +133,11 @@ export function SubscriptionContent({
     const [refunding, setRefunding] = useState(false)
     const [showRefundModal, setShowRefundModal] = useState(false)
     const [actionMessage, setActionMessage] = useState<string | null>(null)
+    const [showChangePlanModal, setShowChangePlanModal] = useState(false)
+    const [changePlanTarget, setChangePlanTarget] = useState<string | null>(null)
+    const [changePlanLoading, setChangePlanLoading] = useState(false)
+    const [changePlanError, setChangePlanError] = useState<string | null>(null)
+    const [cancelPendingLoading, setCancelPendingLoading] = useState(false)
 
     const isSubscribed = billingStatus === 'active'
     const isCancelScheduled = billingStatus === 'cancel_scheduled'
@@ -142,6 +149,8 @@ export function SubscriptionContent({
         const currentOrder = planOrder[currentPlanId] || 0
         const targetOrder = planOrder[planId] || 0
 
+        // 이미 변경 예약된 플랜
+        if (pendingPlanId === planId) return '변경 예정'
         if (currentOrder === 0) return '시작하기'
         if (targetOrder > currentOrder) return '업그레이드'
         if (targetOrder < currentOrder) return '다운그레이드'
@@ -158,8 +167,81 @@ export function SubscriptionContent({
     }
 
     const handleSubscribe = async (planId: string) => {
-        const billingCycle = isYearly ? 'yearly' : 'monthly'
-        router.push(`/dashboard/subscription/checkout?plan=${planId}&billing=${billingCycle}`)
+        const billingCycleParam = isYearly ? 'yearly' : 'monthly'
+        router.push(`/dashboard/subscription/checkout?plan=${planId}&billing=${billingCycleParam}`)
+    }
+
+    /** 플랜 변경 분기: 활성 구독자 → change-plan 모달, 그 외 → 결제 페이지 */
+    const handlePlanAction = (planId: string) => {
+        // 변경 예정인 플랜은 클릭 무시
+        if (pendingPlanId === planId) return
+
+        if (isSubscribed) {
+            // 활성 구독자 → change-plan 모달 (업/다운 동일)
+            setChangePlanTarget(planId)
+            setChangePlanError(null)
+            setShowChangePlanModal(true)
+        } else {
+            // 무료/만료/해지된 유저 → 결제 페이지
+            handleSubscribe(planId)
+        }
+    }
+
+    /** change-plan API 호출 (다음 결제일부터 적용) */
+    const handleChangePlan = async () => {
+        if (!changePlanTarget) return
+        setChangePlanLoading(true)
+        setChangePlanError(null)
+
+        try {
+            const response = await fetch('/api/payment/subscribe/change-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ planId: changePlanTarget }),
+            })
+            const data = await response.json()
+
+            if (!response.ok) {
+                setChangePlanError(data.error || '플랜 변경에 실패했습니다.')
+                setChangePlanLoading(false)
+                return
+            }
+
+            setActionMessage(data.message || '플랜 변경이 예약되었습니다.')
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+            setShowChangePlanModal(false)
+            setChangePlanLoading(false)
+            router.refresh()
+        } catch (error) {
+            setChangePlanError(
+                error instanceof Error ? error.message : '플랜 변경 처리 중 오류가 발생했습니다.'
+            )
+            setChangePlanLoading(false)
+        }
+    }
+
+    /** 플랜 변경 예약 취소 */
+    const handleCancelPending = async () => {
+        setCancelPendingLoading(true)
+        try {
+            const response = await fetch('/api/payment/subscribe/change-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cancel: true }),
+            })
+            const data = await response.json()
+            if (response.ok) {
+                setActionMessage(data.message || '플랜 변경 예약이 취소되었습니다.')
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+                router.refresh()
+            } else {
+                setActionMessage(data.error || '예약 취소에 실패했습니다.')
+            }
+        } catch {
+            setActionMessage('예약 취소 중 오류가 발생했습니다.')
+        } finally {
+            setCancelPendingLoading(false)
+        }
     }
 
     const handleCancelSubscription = async () => {
@@ -310,6 +392,87 @@ export function SubscriptionContent({
         )
     }
 
+    /* ── Change Plan Modal ── */
+    const renderChangePlanModal = () => {
+        if (!showChangePlanModal || !changePlanTarget) return null
+
+        const targetPlanName = getPlanName(changePlanTarget)
+        const currentPlanName = getPlanName(currentPlanId)
+        const planOrder: Record<string, number> = { free: 0, starter: 1, pro: 2, premium: 3 }
+        const isUpgrade = (planOrder[changePlanTarget] || 0) > (planOrder[currentPlanId] || 0)
+
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isUpgrade ? 'bg-emerald-100' : 'bg-blue-100'
+                            }`}>
+                            <ArrowRight className={`w-5 h-5 ${isUpgrade ? 'text-emerald-600' : 'text-blue-600'
+                                }`} />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">
+                            플랜 변경 확인
+                        </h3>
+                    </div>
+
+                    <div className="mb-4 p-4 rounded-xl bg-gray-50 border border-gray-200">
+                        <div className="flex items-center justify-center gap-3 mb-3">
+                            <span className="font-semibold text-gray-700">{currentPlanName}</span>
+                            <ArrowRight className="w-4 h-4 text-gray-400" />
+                            <span className="font-semibold text-[#00C896]">{targetPlanName}</span>
+                        </div>
+                        <div className="space-y-1.5">
+                            <p className="text-sm text-gray-600">
+                                • 다음 결제일(<strong>{formatDate(nextBillingDate)}</strong>)부터 적용됩니다
+                            </p>
+                            <p className="text-sm text-gray-600">
+                                • 현재 {currentPlanName} 혜택은 그때까지 유지됩니다
+                            </p>
+                        </div>
+                    </div>
+
+                    {pendingPlanId && (
+                        <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                            <p className="text-xs text-amber-700">
+                                ⚠️ 기존에 예약된 플랜 변경({getPlanName(pendingPlanId)})이 대체됩니다.
+                            </p>
+                        </div>
+                    )}
+
+                    {changePlanError && (
+                        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
+                            <p className="text-sm text-red-700">{changePlanError}</p>
+                        </div>
+                    )}
+
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => { setShowChangePlanModal(false); setChangePlanError(null) }}
+                            disabled={changePlanLoading}
+                            className="flex-1 py-3 px-4 rounded-xl text-sm font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        >
+                            취소
+                        </button>
+                        <button
+                            onClick={handleChangePlan}
+                            disabled={changePlanLoading}
+                            className="flex-1 py-3 px-4 rounded-xl text-sm font-semibold bg-[#00C896] text-white hover:bg-[#00B386] transition-colors disabled:opacity-50"
+                        >
+                            {changePlanLoading ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    처리 중...
+                                </span>
+                            ) : (
+                                '변경하기'
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     /* ── Render Logic for Table ── */
     const getStatusBadge = (status: string) => {
         if (status === 'paid') {
@@ -399,6 +562,7 @@ export function SubscriptionContent({
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8 font-sans text-[#001011]">
             {renderCancelModal()}
             {renderRefundModal()}
+            {renderChangePlanModal()}
 
             {/* Action Message */}
             {actionMessage && (
@@ -705,6 +869,27 @@ export function SubscriptionContent({
                                     ))}
                                 </ul>
 
+                                {pendingPlanId === plan.id && (
+                                    <div className="mt-4 p-2.5 rounded-lg bg-blue-50 border border-blue-200">
+                                        <p className="text-xs text-blue-700 font-medium text-center">
+                                            📅 다음 결제일부터 적용 예정
+                                        </p>
+                                        <button
+                                            onClick={handleCancelPending}
+                                            disabled={cancelPendingLoading}
+                                            className="mt-1.5 w-full text-xs text-blue-500 hover:text-red-500 font-medium transition-colors disabled:opacity-50"
+                                        >
+                                            {cancelPendingLoading ? '취소 중...' : '✕ 변경 취소'}
+                                        </button>
+                                    </div>
+                                )}
+                                {/* 예약 안내 문구 */}
+                                {pendingPlanId && pendingPlanId !== plan.id && !isCurrent && isSubscribed && (
+                                    <p className="mt-2 text-xs text-gray-400 text-center">
+                                        선택 시 기존 예약이 대체됩니다
+                                    </p>
+                                )}
+
                                 {isCurrent ? (
                                     <button
                                         disabled
@@ -712,9 +897,16 @@ export function SubscriptionContent({
                                     >
                                         현재 이용 중인 플랜
                                     </button>
+                                ) : pendingPlanId === plan.id ? (
+                                    <button
+                                        disabled
+                                        className="mt-8 w-full font-bold py-3.5 rounded-xl border-2 border-blue-100 bg-blue-50 text-blue-400 cursor-not-allowed transition-all"
+                                    >
+                                        변경 예정
+                                    </button>
                                 ) : (
                                     <button
-                                        onClick={() => handleSubscribe(plan.id)}
+                                        onClick={() => handlePlanAction(plan.id)}
                                         className={`mt-8 w-full rounded-xl py-3.5 text-center text-sm font-bold transition-all duration-300
                                             ${plan.ctaStyle === 'solid'
                                                 ? 'bg-[#00C896] text-white shadow-lg shadow-[#00C896]/25 hover:-translate-y-0.5 hover:bg-[#00B386]'

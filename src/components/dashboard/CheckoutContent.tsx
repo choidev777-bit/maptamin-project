@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Check, CreditCard, Loader2, ShieldCheck } from 'lucide-react'
 import { requestBillingKey } from '@/lib/portone/subscription-client'
 import { PLAN_CONFIG } from '@/lib/pricing/config'
+import { createClient } from '@/lib/supabase/client'
+import { EmailInput, isValidEmail } from '@/components/ui/EmailInput'
 
 /* ──────────────────────────────────────────────
  * 유효한 유료 플랜 ID
@@ -26,6 +28,41 @@ export function CheckoutContent() {
     const [loading, setLoading] = useState(false)
     const [agreed, setAgreed] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [email, setEmail] = useState('')
+    const [emailLoading, setEmailLoading] = useState(true)
+    const [hasExistingEmail, setHasExistingEmail] = useState(false)
+
+    // 기존 이메일 로드
+    useEffect(() => {
+        const loadEmail = async () => {
+            try {
+                const supabase = createClient()
+                const { data: { user } } = await supabase.auth.getUser()
+                if (!user) return
+
+                // 1순위: user_subscriptions.notification_email
+                const { data: sub } = await supabase
+                    .from('user_subscriptions')
+                    .select('notification_email')
+                    .eq('user_id', user.id)
+                    .single()
+
+                if (sub?.notification_email) {
+                    setEmail(sub.notification_email)
+                    setHasExistingEmail(true)
+                } else if (user.email) {
+                    // 2순위: auth user.email
+                    setEmail(user.email)
+                    setHasExistingEmail(true)
+                }
+            } catch {
+                // 이메일 로드 실패는 무시 (사용자가 직접 입력)
+            } finally {
+                setEmailLoading(false)
+            }
+        }
+        loadEmail()
+    }, [])
 
     // Validate params
     const isValidPlan = isPaidPlan(planId)
@@ -51,6 +88,11 @@ export function CheckoutContent() {
             return
         }
 
+        if (!email || !isValidEmail(email)) {
+            setError('유효한 이메일 주소를 입력해주세요.')
+            return
+        }
+
         setLoading(true)
         setError(null)
 
@@ -73,6 +115,7 @@ export function CheckoutContent() {
                     billingKey: billingResult.billingKey,
                     planId,
                     billingCycle,
+                    email,
                 }),
             })
 
@@ -133,6 +176,35 @@ export function CheckoutContent() {
                                 </div>
                             </div>
                             <Check className="w-5 h-5 text-primary" />
+                        </div>
+                    </section>
+
+                    {/* Email Section */}
+                    <section>
+                        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                            결제 알림 이메일
+                        </h2>
+                        <div className="p-6 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                            {emailLoading ? (
+                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    이메일 확인 중...
+                                </div>
+                            ) : (
+                                <>
+                                    <EmailInput
+                                        value={email}
+                                        onChange={(val) => {
+                                            setEmail(val)
+                                            if (error === '유효한 이메일 주소를 입력해주세요.') setError(null)
+                                        }}
+                                        required
+                                    />
+                                    <p className="mt-2 text-xs text-gray-500">
+                                        결제 영수증, 갱신 안내 등 결제 관련 알림이 이 이메일로 발송됩니다.
+                                    </p>
+                                </>
+                            )}
                         </div>
                     </section>
 

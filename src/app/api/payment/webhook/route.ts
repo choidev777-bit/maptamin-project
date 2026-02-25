@@ -5,6 +5,9 @@ import { verifyPayment } from '@/lib/portone/server'
 import { schedulePayment } from '@/lib/portone/billing'
 import { PLAN_CONFIG, getPlanPrice, getPlanName } from '@/lib/pricing/config'
 import { calculateNextBillingDate } from '@/lib/utils/billing'
+import { sendEmail } from '@/lib/email/client'
+import { PaymentSuccessEmail } from '@/lib/email/templates/PaymentSuccessEmail'
+import { PaymentFailedEmail } from '@/lib/email/templates/PaymentFailedEmail'
 
 /**
  * POST /api/payment/webhook
@@ -249,6 +252,34 @@ async function handlePaymentPaid(supabase: SupabaseClient, paymentId: string) {
     }
 
     console.log(`[Webhook] 결제 성공 처리 완료: paymentId=${paymentId}, userId=${user_id}, plan=${effectivePlanId}`);
+
+    // 8. 결제 성공 이메일 발송 (비동기 — 실패해도 결제 처리에 영향 없음)
+    try {
+        const { data: sub } = await supabase
+            .from('user_subscriptions')
+            .select('notification_email')
+            .eq('user_id', user_id)
+            .single();
+
+        if (sub?.notification_email) {
+            const formatDate = (d: Date) => d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+            await sendEmail({
+                to: sub.notification_email,
+                subject: `[맵타민] ${getPlanName(effectivePlanId)} 플랜 결제 완료`,
+                react: PaymentSuccessEmail({
+                    planName: getPlanName(effectivePlanId),
+                    amount: paymentData.amount.total,
+                    paidAt: formatDate(new Date()),
+                    nextBillingDate: formatDate(periodEnd),
+                    receiptUrl: paymentData.receiptUrl || undefined,
+                    managementUrl: 'https://maptamin.com/dashboard/subscription',
+                }),
+            });
+        }
+    } catch (emailError) {
+        console.error('[Webhook] 결제 성공 이메일 발송 실패 (무시):', emailError);
+    }
+
     return NextResponse.json({ received: true, processed: true });
 }
 
@@ -353,6 +384,37 @@ async function handlePaymentFailed(supabase: SupabaseClient, paymentId: string) 
         })
         .select()
         .single();
+
+    // 6. 결제 실패 이메일 발송 (비동기 — 실패해도 webhook 응답에 영향 없음)
+    try {
+        const { data: sub } = await supabase
+            .from('user_subscriptions')
+            .select('notification_email')
+            .eq('user_id', user_id)
+            .single();
+
+        if (sub?.notification_email) {
+            const isExpired = retry_count >= MAX_RETRY_COUNT;
+            const formatDate = (d: Date) => d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+            await sendEmail({
+                to: sub.notification_email,
+                subject: isExpired
+                    ? `[맵타민] 구독이 만료되었습니다`
+                    : `[맵타민] 결제 실패 안내`,
+                react: PaymentFailedEmail({
+                    planName,
+                    amount: retryAmount,
+                    failedAt: formatDate(new Date()),
+                    retryCount: retry_count + 1,
+                    maxRetries: MAX_RETRY_COUNT,
+                    isExpired,
+                    managementUrl: 'https://maptamin.com/dashboard/subscription',
+                }),
+            });
+        }
+    } catch (emailError) {
+        console.error('[Webhook] 결제 실패 이메일 발송 실패 (무시):', emailError);
+    }
 
     return NextResponse.json({ received: true, failed: true, retry: retry_count < MAX_RETRY_COUNT });
 }
