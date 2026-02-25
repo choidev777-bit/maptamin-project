@@ -12,10 +12,11 @@ import PricingSection from '@/components/landing/PricingSection'
 import Footer from '@/components/landing/Footer'
 
 export const metadata: Metadata = {
-    title: '맵타민 - 우리 매장 지도 건강검진 서비스',
+    title: 'Maptamin | 플레이스 상위노출의 시작',
     description:
-        '플레이스 순위 지도로 내 매장의 진짜 순위를 확인하세요. 네이버 지도 상위 노출을 위한 데이터 기반 로컬 SEO 분석 도구.',
+        '플레이스 상위노출의 시작, 우리 매장 지도 건강검진 맵타민! 키워드별 네이버 스마트플레이스와 구글 지도순위를 가장 쉽고 빠르게 진단하세요.',
 }
+
 
 export default function HomePage() {
     return (

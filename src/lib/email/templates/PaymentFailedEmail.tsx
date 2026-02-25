@@ -130,8 +130,8 @@ export function PaymentFailedEmail({
                                     ))}
                                 </div>
                                 <Text style={messageText}>
-                                    등록된 카드로 결제에 실패했습니다.
-                                    카드 잔액 또는 유효기간을 확인해주세요.
+                                    등록된 카드로 결제에 실패했습니다.<br />
+                                    카드 잔액 또는 유효기간을 확인해주세요.<br />
                                     {maxRetries - retryCount}회 더 실패하면 구독이 만료됩니다.
                                 </Text>
                             </>

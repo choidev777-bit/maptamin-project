@@ -1,0 +1,14 @@
+<svg viewBox="0 0 112 112" xmlns="http://www.w3.org/2000/svg">
+  <!-- Row 0 -->
+  <rect x="0"  y="0"  width="32" height="32" rx="4.8" ry="4.8" fill="#002959"/>
+  <rect x="40" y="0"  width="32" height="32" rx="4.8" ry="4.8" fill="#002959"/>
+  <rect x="80" y="0"  width="32" height="32" rx="4.8" ry="4.8" fill="#002959"/>
+  <!-- Row 1 -->
+  <rect x="0"  y="40" width="32" height="32" rx="4.8" ry="4.8" fill="#002959"/>
+  <rect x="40" y="40" width="32" height="32" rx="4.8" ry="4.8" fill="#00C896"/>
+  <rect x="80" y="40" width="32" height="32" rx="4.8" ry="4.8" fill="#002959"/>
+  <!-- Row 2 -->
+  <rect x="0"  y="80" width="32" height="32" rx="4.8" ry="4.8" fill="#002959"/>
+  <rect x="40" y="80" width="32" height="32" rx="4.8" ry="4.8" fill="#002959"/>
+  <rect x="80" y="80" width="32" height="32" rx="4.8" ry="4.8" fill="#002959"/>
+</svg>
