@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import { payWithBillingKey, schedulePayment, getBillingKeyInfo } from '@/lib/portone/billing'
 import { PLAN_CONFIG, getPlanName } from '@/lib/pricing/config'
 import { calculateNextBillingDate } from '@/lib/utils/billing'
+import { sendEmail } from '@/lib/email/client'
+import { PaymentSuccessEmail } from '@/lib/email/templates/PaymentSuccessEmail'
 
 /**
  * POST /api/payment/subscribe
@@ -156,11 +158,15 @@ export async function POST(request: Request) {
             )
         }
 
-        // ── 6-1. notification_email 저장 (있을 경우) ──
+        // ── 6-1. notification_email + terms_agreed_at 저장 ──
         if (email && typeof email === 'string' && email.includes('@')) {
+            const { termsAgreedAt } = body
             await supabase
                 .from('user_subscriptions')
-                .update({ notification_email: email })
+                .update({
+                    notification_email: email,
+                    ...(termsAgreedAt ? { terms_agreed_at: termsAgreedAt } : {}),
+                })
                 .eq('user_id', user.id)
         }
 
@@ -211,6 +217,28 @@ export async function POST(request: Request) {
         } catch (error) {
             // 예약 실패는 치명적이지 않음 (구독은 활성화됨, Webhook으로 재처리 가능)
             console.error('다음 달 결제 예약 실패 (구독은 활성화됨):', error)
+        }
+
+        // ── 8. 결제 완료 이메일 발송 (비동기 — 실패해도 구독 응답에 영향 없음) ──
+        if (email && typeof email === 'string' && email.includes('@')) {
+            try {
+                const formatDate = (d: Date) =>
+                    d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })
+                await sendEmail({
+                    to: email,
+                    subject: `[맵타민] ${planName} 플랜 구독 시작!`,
+                    react: PaymentSuccessEmail({
+                        planName,
+                        amount: paymentAmount,
+                        paidAt: formatDate(new Date()),
+                        nextBillingDate: formatDate(periodEnd),
+                        receiptUrl: paymentResult?.receiptUrl || undefined,
+                        managementUrl: 'https://maptamin.com/dashboard/subscription',
+                    }),
+                })
+            } catch (emailError) {
+                console.error('최초 결제 이메일 발송 실패 (무시):', emailError)
+            }
         }
 
         return NextResponse.json({

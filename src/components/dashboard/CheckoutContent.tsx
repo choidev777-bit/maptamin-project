@@ -116,6 +116,7 @@ export function CheckoutContent() {
                     planId,
                     billingCycle,
                     email,
+                    termsAgreedAt: new Date().toISOString(), // 약관 동의 시각 기록
                 }),
             })
 
