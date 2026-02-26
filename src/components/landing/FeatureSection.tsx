@@ -195,7 +195,7 @@ export default function FeatureSection() {
             */}
 
             {/* 4. 알림 서비스 */}
-            <section className="mx-auto max-w-7xl px-6 py-24">
+            <section className="mx-auto max-w-7xl px-6 py-10 lg:py-24">
                 <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2">
                     {/* 왼쪽 요소: 카드 리스트 */}
                     <div className="order-2 space-y-6 lg:order-1">

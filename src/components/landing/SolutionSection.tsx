@@ -36,7 +36,7 @@ const STEPS = [
 
 export default function SolutionSection() {
     return (
-        <section className="border-t border-gray-100 bg-slate-50 py-24 sm:py-32">
+        <section className="border-t border-gray-100 bg-slate-50 py-10 lg:py-24">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
                     {/* 왼쪽: 3단계 프로세스 카드 */}
