@@ -2,7 +2,7 @@ import { AlertTriangle, ShieldAlert } from 'lucide-react'
 
 export default function ProblemSection() {
     return (
-        <section className="relative overflow-hidden bg-white py-24 sm:py-32">
+        <section className="relative overflow-hidden bg-white py-10 lg:py-24">
             {/* 배경 장식 */}
             <div className="absolute inset-0 -z-10 h-full origin-top-left -skew-y-3 transform bg-gray-50" />
 

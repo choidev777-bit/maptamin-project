@@ -24,7 +24,7 @@ const COMPARISON_GRID = [
 export default function FeatureSection() {
     return (
         <>
-            <section className="mx-auto max-w-7xl px-6 py-20">
+            <section className="mx-auto max-w-7xl px-6 py-10 lg:py-20">
                 <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-[1fr_2fr]">
                     {/* 1. 텍스트 & 신호등 설명 */}
                     <div className="space-y-8">
@@ -106,9 +106,9 @@ export default function FeatureSection() {
             </section>
 
             {/* 경쟁사 비교 분석 섹션 (SocialProof에서 이동) */}
-            <section id="competitor-analysis" className="bg-[#f8fafc] py-24">
+            <section id="competitor-analysis" className="bg-[#f8fafc] py-12 lg:py-24">
                 <div className="mx-auto max-w-7xl px-6">
-                    <div className="grid items-center gap-12 lg:grid-cols-[1fr_3fr]">
+                    <div className="grid items-center gap-8 lg:gap-12 lg:grid-cols-[1fr_3fr]">
                         {/* 왼쪽: 텍스트 및 특징 설명 */}
                         <div>
                             <h2 className="mb-6 break-keep text-2xl font-bold leading-tight text-gray-900 sm:text-3xl lg:text-4xl">

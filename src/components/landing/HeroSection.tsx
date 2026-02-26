@@ -20,7 +20,7 @@ export default function HeroSection() {
                 }}
             />
 
-            <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-36">
+            <div className="relative z-10 mx-auto max-w-7xl px-4 pt-10 pb-8 sm:px-6 sm:py-28 lg:px-8 lg:py-36">
                 <div className="flex flex-col items-center gap-12 lg:flex-row lg:gap-20">
                     {/* ── 좌측: 텍스트 ── */}
                     <div className="space-y-8 text-center lg:w-[60%] lg:text-left">

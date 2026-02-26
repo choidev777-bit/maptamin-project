@@ -2,7 +2,7 @@ import { Lightbulb } from 'lucide-react'
 
 export default function BridgeSection1() {
     return (
-        <section className="bg-slate-50 py-20 sm:py-24">
+        <section className="bg-slate-50 py-10 lg:py-20">
             <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
                 <div className="inline-flex items-center justify-center rounded-full bg-[#00C896]/10 p-3">
                     <Lightbulb className="h-6 w-6 text-[#00C896]" />

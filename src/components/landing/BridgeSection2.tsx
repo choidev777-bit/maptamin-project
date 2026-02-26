@@ -2,7 +2,7 @@ import { Grid3X3 } from 'lucide-react'
 
 export default function BridgeSection2() {
     return (
-        <section className="bg-white py-24 sm:py-32">
+        <section className="bg-white py-12 lg:py-24">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-4xl text-center">
                     {/* 태그 */}
