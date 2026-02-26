@@ -10,6 +10,7 @@ import {
     ArrowRight,
 } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 /* 5×5 경쟁사 비교 그리드 데이터 (중앙은 '나') */
 const COMPARISON_GRID = [
@@ -24,7 +25,7 @@ export default function FeatureSection() {
     return (
         <>
             <section className="mx-auto max-w-7xl px-6 py-20">
-                <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
+                <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-[1fr_2fr]">
                     {/* 1. 텍스트 & 신호등 설명 */}
                     <div className="space-y-8">
                         <div className="space-y-4">
@@ -87,57 +88,18 @@ export default function FeatureSection() {
 
                     {/* 2. 히트맵 시각화 카드 */}
                     <div className="group relative">
-                        <div className="absolute -inset-4 rounded-[2.5rem] bg-gradient-to-tr from-[#00C896]/20 to-transparent blur-2xl opacity-50 transition-opacity group-hover:opacity-100" />
-                        <div className="relative overflow-hidden rounded-[2rem] border border-slate-100 bg-white p-4 shadow-2xl">
-                            <div
-                                className="pointer-events-none absolute inset-0 grayscale contrast-125 opacity-20"
-                                style={{
-                                    backgroundImage:
-                                        "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBJ7KNLS4oRktCz_k5fHA_aUS36k3EPGv5nZle05sbEWO02aHiGCY-3tZxlxC_ZkuE-35IZ9ZLC5odObfbuGHltENa-8E2KgJmR9Yq06OmfXaaXHPJ4d3oanENN8LQHD7nzjj_3QoEGwWLv4BZBjTMEq8vuTg_Q3XwbbvTo0infeVhLYT21J2QvnGA95RPU7ugmUT7LYyZdvpdTAEu43kAXTslKsA2A98ulhKxHb1th3IYSob2tLdUOmzvCPv6G0eNB3FwnG7tVT-1s')",
-                                    backgroundSize: 'cover',
-                                }}
+                        <div className="absolute -inset-4 rounded-[2.5rem] bg-gradient-to-tr from-[#00C896]/10 to-transparent blur-xl opacity-30 transition-opacity group-hover:opacity-60" />
+                        <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-lg">
+                            <Image
+                                src="/images/main-feature-hq.png"
+                                alt="맵타민 플레이스 순위 지도 분석 결과 화면"
+                                width={2560}
+                                height={1800}
+                                className="h-auto w-full"
+                                quality={100}
+                                sizes="(max-width: 1024px) 100vw, 67vw"
+                                priority
                             />
-                            <div className="relative space-y-4 p-6">
-                                <div className="mb-8 flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <div className="size-3 rounded-full bg-red-500" />
-                                        <div className="size-3 rounded-full bg-yellow-400" />
-                                        <div className="size-3 rounded-full bg-[#00C896]" />
-                                    </div>
-                                    <div className="rounded-full bg-slate-50 px-4 py-1.5 text-xs font-semibold text-slate-400">
-                                        Live Analysis Tracking
-                                    </div>
-                                </div>
-                                {/* 7x7 Grid */}
-                                <div className="grid aspect-square grid-cols-7 gap-2">
-                                    {[...Array(49)].map((_, i) => {
-                                        // 가상의 데이터 분포 (중심부는 초록, 외곽은 빨강/노랑)
-                                        let colorClass = 'bg-red-500/40' // 기본 빨강 (외곽)
-                                        if (i === 24)
-                                            colorClass =
-                                                'bg-[#00C896] ring-4 ring-white shadow-xl animate-pulse' // 중심 (내 매장)
-                                        else if (
-                                            [16, 17, 18, 23, 25, 30, 31, 32].includes(i)
-                                        )
-                                            colorClass = 'bg-[#00C896]/60' // 주변 초록
-                                        else if (
-                                            [
-                                                8, 9, 10, 11, 12, 15, 19, 22, 26, 29, 33, 36, 37, 38,
-                                                39, 40,
-                                            ].includes(i)
-                                        )
-                                            colorClass = 'bg-yellow-400/60' // 중간 노랑
-                                        else if ([0, 6, 42, 48].includes(i))
-                                            colorClass = 'bg-red-500/80' // 모서리 진한 빨강 (위험)
-
-                                        return (
-                                            <div key={i} className="flex items-center justify-center">
-                                                <div className={`size-4 rounded-full ${colorClass}`} />
-                                            </div>
-                                        )
-                                    })}
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -146,7 +108,7 @@ export default function FeatureSection() {
             {/* 경쟁사 비교 분석 섹션 (SocialProof에서 이동) */}
             <section id="competitor-analysis" className="bg-[#f8fafc] py-24">
                 <div className="mx-auto max-w-7xl px-6">
-                    <div className="grid items-center gap-16 lg:grid-cols-2">
+                    <div className="grid items-center gap-12 lg:grid-cols-[1fr_3fr]">
                         {/* 왼쪽: 텍스트 및 특징 설명 */}
                         <div>
                             <h2 className="mb-6 break-keep text-2xl font-bold leading-tight text-gray-900 sm:text-3xl lg:text-4xl">
@@ -171,66 +133,19 @@ export default function FeatureSection() {
                             </div>
                         </div>
 
-                        {/* 오른쪽: 경쟁사 비교 비주얼 카드 */}
+                        {/* 오른쪽: 경쟁사 비교 실제 화면 */}
                         <div className="group relative">
                             <div className="absolute -inset-2 rounded-3xl bg-gradient-to-r from-slate-200 to-slate-100 blur-xl opacity-70" />
-                            <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white p-6 shadow-xl">
-                                {/* 카드 헤더 */}
-                                <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
-                                    <div className="flex items-center gap-4">
-                                        <h3 className="text-lg font-bold text-gray-900">경쟁사 비교 분석</h3>
-                                        <div className="flex rounded-lg bg-slate-100 p-1 text-xs font-bold">
-                                            <div className="rounded bg-white px-3 py-1 text-[#00C896] shadow-sm">
-                                                내 매장
-                                            </div>
-                                            <div className="px-3 py-1 text-slate-400">경쟁사 A</div>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-                                        <span className="size-2 rounded-full bg-[#00C896]" /> 승(Win)
-                                        <span className="ml-2 size-2 rounded-full bg-red-500" /> 패(Loss)
-                                    </div>
-                                </div>
-
-                                {/* 5×5 비교 그리드 */}
-                                <div className="aspect-square rounded-xl border border-slate-100 bg-slate-50 p-4">
-                                    <div className="grid h-full grid-cols-5 gap-2">
-                                        {COMPARISON_GRID.flat().map((status, idx) => {
-                                            if (status === 'my') {
-                                                return (
-                                                    <div
-                                                        key={idx}
-                                                        className="relative z-10 flex items-center justify-center"
-                                                    >
-                                                        <div className="flex size-12 items-center justify-center rounded-full border-4 border-white bg-[#00C896] text-base font-bold text-white shadow-xl">
-                                                            나
-                                                        </div>
-                                                    </div>
-                                                )
-                                            }
-
-                                            const isWin = status === 'win'
-                                            const bgColor = isWin ? 'bg-[#00C896]' : 'bg-red-500'
-                                            const shadowColor = isWin
-                                                ? 'shadow-[#00C896]/20'
-                                                : 'shadow-red-500/20'
-                                            const label = isWin ? '승' : '패'
-
-                                            return (
-                                                <div
-                                                    key={idx}
-                                                    className="flex items-center justify-center"
-                                                >
-                                                    <div
-                                                        className={`flex size-10 transform cursor-default items-center justify-center rounded-full ${bgColor} text-sm font-bold text-white shadow-md ${shadowColor} transition-transform hover:scale-110`}
-                                                    >
-                                                        {label}
-                                                    </div>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
+                            <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl">
+                                <Image
+                                    src="/images/competitive-hq.png"
+                                    alt="맵타민 경쟁사 비교 분석 지도 화면"
+                                    width={2200}
+                                    height={1060}
+                                    className="h-auto w-full"
+                                    quality={100}
+                                    sizes="(max-width: 1024px) 100vw, 75vw"
+                                />
                             </div>
                         </div>
                     </div>
