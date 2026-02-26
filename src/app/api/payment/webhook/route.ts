@@ -167,7 +167,7 @@ async function handlePaymentPaid(supabase: SupabaseClient, paymentId: string) {
     // 3. subscription_billing에서 이 결제에 해당하는 구독 정보 조회
     const { data: billing } = await supabase
         .from('subscription_billing')
-        .select('user_id, billing_key, plan_id, billing_cycle, retry_count, pending_plan_id')
+        .select('user_id, billing_key, plan_id, retry_count, pending_plan_id')
         .eq('next_payment_id', paymentId)
         .single();
 
@@ -176,7 +176,7 @@ async function handlePaymentPaid(supabase: SupabaseClient, paymentId: string) {
         return NextResponse.json({ received: true, error: 'no_matching_subscription' });
     }
 
-    const { user_id, billing_key, billing_cycle, pending_plan_id } = billing;
+    const { user_id, billing_key, pending_plan_id } = billing;
 
     // 4. pending_plan_id가 있으면 새 플랜으로 전환, 없으면 기존 플랜 유지
     const effectivePlanId = pending_plan_id || billing.plan_id;
@@ -188,7 +188,7 @@ async function handlePaymentPaid(supabase: SupabaseClient, paymentId: string) {
             p_user_id: user_id,
             p_plan_id: effectivePlanId,
             p_billing_key: billing_key,
-            p_billing_cycle: billing_cycle || 'monthly',
+            p_billing_cycle: 'monthly',
         }
     );
 
@@ -202,7 +202,7 @@ async function handlePaymentPaid(supabase: SupabaseClient, paymentId: string) {
 
     // 6. 결제 이력 저장 — calculateNextBillingDate 사용
     const periodStart = new Date();
-    const periodEnd = calculateNextBillingDate(periodStart, billing_cycle || 'monthly');
+    const periodEnd = calculateNextBillingDate(periodStart);
 
     await supabase
         .from('subscription_payment_history')
@@ -222,7 +222,7 @@ async function handlePaymentPaid(supabase: SupabaseClient, paymentId: string) {
     // 7. 다음 자동 결제 예약
     const nextPaymentId = `sub_${effectivePlanId}_${periodEnd.getTime()}_${Math.random().toString(36).substring(2, 8)}`;
     const planName = getPlanName(effectivePlanId);
-    const nextAmount = getPlanPrice(effectivePlanId, billing_cycle || 'monthly');
+    const nextAmount = getPlanPrice(effectivePlanId);
 
     try {
         await schedulePayment({
@@ -311,7 +311,7 @@ async function handlePaymentFailed(supabase: SupabaseClient, paymentId: string) 
     // 3. 구독 정보 조회
     const { data: billing } = await supabase
         .from('subscription_billing')
-        .select('user_id, billing_key, plan_id, billing_cycle, retry_count, next_payment_id')
+        .select('user_id, billing_key, plan_id, retry_count, next_payment_id')
         .eq('next_payment_id', paymentId)
         .single();
 
@@ -320,10 +320,9 @@ async function handlePaymentFailed(supabase: SupabaseClient, paymentId: string) 
         return NextResponse.json({ received: true, error: 'no_matching_subscription' });
     }
 
-    const { user_id, billing_key, plan_id, billing_cycle, retry_count } = billing;
+    const { user_id, billing_key, plan_id, retry_count } = billing;
     const planName = getPlanName(plan_id);
-    // ⚠️ billing_cycle 기준으로 올바른 금액 사용 (M3 수정)
-    const retryAmount = getPlanPrice(plan_id, billing_cycle || 'monthly');
+    const retryAmount = getPlanPrice(plan_id);
 
     // 4. 재시도 가능 여부 판단
     if (retry_count < MAX_RETRY_COUNT) {

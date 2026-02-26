@@ -64,7 +64,7 @@ export async function GET(request: Request) {
         // 3. active 구독 중 next_billing_date가 7일 뒤인 유저 조회
         const { data: billings, error: billingError } = await supabase
             .from('subscription_billing')
-            .select('user_id, plan_id, billing_cycle, next_billing_date')
+            .select('user_id, plan_id, next_billing_date')
             .eq('status', 'active')
             .gte('next_billing_date', startOfDay.toISOString())
             .lte('next_billing_date', endOfDay.toISOString())
@@ -107,10 +107,7 @@ export async function GET(request: Request) {
             const planConfig = PLAN_CONFIG[billing.plan_id]
             if (!planConfig) continue
 
-            const amount =
-                billing.billing_cycle === 'yearly'
-                    ? planConfig.yearlyPrice
-                    : planConfig.price
+            const amount = planConfig.price
 
             const result = await sendEmail({
                 to: email,

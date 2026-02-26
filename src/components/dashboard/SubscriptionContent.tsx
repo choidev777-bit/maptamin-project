@@ -36,7 +36,6 @@ export interface PaymentHistoryItem {
 
 interface Props {
     currentPlanId: string
-    billingCycle?: string
     remainingTicketsNaver: number
     remainingTicketsGoogle: number
     currentPeriodEnd: string | null
@@ -54,8 +53,6 @@ const PLANS: PlanCardData[] = [
         name: '스타터',
         tagline: '1인 매장 사장님용',
         monthly: '9,900원',
-        yearly: '9,075원',
-        yearlyTotal: '연 108,900원 결제',
         featured: false,
         features: [
             { text: '네이버 지도 진단', included: true },
@@ -73,8 +70,6 @@ const PLANS: PlanCardData[] = [
         name: '프로',
         tagline: '마케팅 성과 심층 분석용',
         monthly: '29,000원',
-        yearly: '26,600원',
-        yearlyTotal: '연 319,000원 결제',
         featured: true,
         badge: '추천!',
         features: [
@@ -93,8 +88,6 @@ const PLANS: PlanCardData[] = [
         name: '프리미엄',
         tagline: '상권 장악에 진심인 사장님용',
         monthly: '99,000원',
-        yearly: '90,750원',
-        yearlyTotal: '연 1,089,000원 결제',
         featured: false,
         features: [
             { text: '네이버 + 구글 지도 진단', included: true },
@@ -112,7 +105,6 @@ const PLANS: PlanCardData[] = [
 
 export function SubscriptionContent({
     currentPlanId,
-    billingCycle = 'monthly',
     remainingTicketsNaver,
     remainingTicketsGoogle,
     currentPeriodEnd,
@@ -124,7 +116,6 @@ export function SubscriptionContent({
     paymentHistory = []
 }: Props) {
     const router = useRouter()
-    const [isYearly, setIsYearly] = useState(true)
     const [showCancelModal, setShowCancelModal] = useState(false)
     const [canceling, setCanceling] = useState(false)
     const [cancelError, setCancelError] = useState<string | null>(null)
@@ -167,8 +158,7 @@ export function SubscriptionContent({
     }
 
     const handleSubscribe = async (planId: string) => {
-        const billingCycleParam = isYearly ? 'yearly' : 'monthly'
-        router.push(`/dashboard/subscription/checkout?plan=${planId}&billing=${billingCycleParam}`)
+        router.push(`/dashboard/subscription/checkout?plan=${planId}`)
     }
 
     /** 플랜 변경 분기: 활성 구독자 → change-plan 모달, 그 외 → 결제 페이지 */
@@ -487,23 +477,13 @@ export function SubscriptionContent({
     const getDisplayAmount = () => {
         const plan = PLAN_CONFIG[currentPlanId]
         if (!plan) return { amount: '-', period: '월' }
-        if (billingCycle === 'yearly') {
-            return { amount: plan.yearlyPrice.toLocaleString(), period: '년' }
-        }
         return { amount: plan.price.toLocaleString(), period: '월' }
     }
     const { amount: displayAmount, period: displayPeriod } = getDisplayAmount()
 
     const getHistoryPlanName = (item: PaymentHistoryItem) => {
         const name = getPlanName(item.plan_id)
-        const plan = PLAN_CONFIG[item.plan_id]
-        if (!plan) return name
-
-        // 결제 금액으로 연간/월간 구분
-        if (item.amount === plan.yearlyPrice) {
-            return `${name} (연 결제)`
-        }
-        return `${name} (월 결제)`
+        return name
     }
 
     const renderRefundModal = () => {
@@ -784,24 +764,6 @@ export function SubscriptionContent({
                         <h3 className="text-2xl font-bold text-[#001011] tracking-tight">이용 플랜 변경</h3>
                         <p className="text-slate-500 mt-1">비즈니스 성장에 맞춰 플랜을 업그레이드하세요.</p>
                     </div>
-                    {/* Toggle */}
-                    <div className="flex items-center p-1 bg-white border border-gray-200 rounded-full shadow-sm self-start">
-                        <button
-                            onClick={() => setIsYearly(false)}
-                            className={`relative w-24 rounded-full py-2 text-sm font-semibold transition-colors duration-200 ${!isYearly ? 'bg-[#001011] text-white' : 'text-gray-500 hover:text-gray-900'}`}
-                        >
-                            월 결제
-                        </button>
-                        <button
-                            onClick={() => setIsYearly(true)}
-                            className={`relative w-28 rounded-full py-2 text-sm font-semibold transition-colors duration-200 ${isYearly ? 'bg-[#001011] text-white' : 'text-gray-500 hover:text-gray-900'}`}
-                        >
-                            연 결제
-                            <span className="absolute -top-3 -right-2 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-600">
-                                1개월 무료
-                            </span>
-                        </button>
-                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -810,7 +772,7 @@ export function SubscriptionContent({
                         const planOrder: Record<string, number> = { free: 0, starter: 1, pro: 2, premium: 3 }
                         const isHigherPlan = (planOrder[plan.id] || 0) > (planOrder[currentPlanId] || 0)
                         const showFeatured = plan.featured && isHigherPlan
-                        const price = isYearly ? plan.yearly : plan.monthly
+                        const price = plan.monthly
 
                         return (
                             <div
@@ -821,7 +783,7 @@ export function SubscriptionContent({
                             >
 
 
-                                {/* 플랜 이름 상단에 뱃지가 있는 경우 (PricingSection 참고) */}
+                                {/* 플랜 이름 상단에 뾳지가 있는 경우 (PricingSection 참고) */}
                                 {plan.badge && !isCurrent && isHigherPlan && (
                                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
                                         <span className="whitespace-nowrap rounded-full bg-[#00C896] px-4 py-1.5 text-xs font-bold text-white shadow-md">
@@ -837,11 +799,6 @@ export function SubscriptionContent({
                                     <span className="text-3xl font-extrabold text-[#001011] sm:text-4xl">{price.replace('원', '')}</span>
                                     <span className="text-sm font-semibold text-gray-500 uppercase">원<span className="font-normal">/월</span></span>
                                 </div>
-                                {isYearly && (
-                                    <p className="mt-1 text-xs text-gray-400 font-medium tracking-tight">
-                                        ({plan.yearlyTotal})
-                                    </p>
-                                )}
                                 <p className="mt-0.5 text-xs text-gray-400">VAT 포함</p>
 
                                 <p className="mt-4 text-sm text-gray-500 leading-relaxed min-h-[3rem]">

@@ -8,11 +8,10 @@ const VALID_PLANS = ['starter', 'pro', 'premium']
 
 interface Props {
     plan?: string | undefined
-    billing?: string | undefined
     redirectTo?: string | undefined
 }
 
-export function GoogleLoginButton({ plan, billing, redirectTo }: Props) {
+export function GoogleLoginButton({ plan, redirectTo }: Props) {
     const supabase = createClient()
     const router = useRouter()
 
@@ -20,9 +19,7 @@ export function GoogleLoginButton({ plan, billing, redirectTo }: Props) {
         const callbackUrl = new URL(`${window.location.origin}/auth/callback`)
 
         if (plan && VALID_PLANS.includes(plan)) {
-            // plan이 있으면 checkout 우선 (next 방식으로 통일)
-            const billingParam = billing === 'yearly' ? '&billing=yearly' : ''
-            const nextUrl = `/dashboard/subscription/checkout?plan=${plan}${billingParam}`
+            const nextUrl = `/dashboard/subscription/checkout?plan=${plan}`
             callbackUrl.searchParams.set('next', nextUrl)
         } else if (redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')) {
             // redirectTo가 있으면 해당 경로로 (보안: 상대경로만 허용)

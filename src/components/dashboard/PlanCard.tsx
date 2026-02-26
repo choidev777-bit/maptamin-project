@@ -10,8 +10,6 @@ export interface PlanCardData {
     name: string
     tagline: string
     monthly: string
-    yearly: string
-    yearlyTotal: string
     featured: boolean
     badge?: string
     features: PlanFeature[]
@@ -21,12 +19,11 @@ export interface PlanCardData {
 
 interface PlanCardProps {
     plan: PlanCardData
-    isYearly: boolean
     currentPlanId: string
     onSelect: (planId: string) => void
 }
 
-export function PlanCard({ plan, isYearly, currentPlanId, onSelect }: PlanCardProps) {
+export function PlanCard({ plan, currentPlanId, onSelect }: PlanCardProps) {
     const isCurrentPlan = plan.id === currentPlanId
     const planOrder: Record<string, number> = { free: 0, starter: 1, pro: 2, premium: 3 }
     const isHigherPlan = (planOrder[plan.id] || 0) > (planOrder[currentPlanId] || 0)
@@ -79,16 +76,11 @@ export function PlanCard({ plan, isYearly, currentPlanId, onSelect }: PlanCardPr
                         data-testid={`plan-price-${plan.id}`}
                         className="text-3xl font-extrabold text-gray-900 sm:text-4xl"
                     >
-                        {isYearly ? plan.yearly : plan.monthly}
+                        {plan.monthly}
                     </span>
                     <span className="text-sm text-gray-500">/월</span>
                 </div>
-                {isYearly && (
-                    <p className="mt-1 text-xs text-gray-400">
-                        ({plan.yearlyTotal})
-                    </p>
-                )}
-                <p className="mt-0.5 text-xs text-gray-400">VAT 별도</p>
+                <p className="mt-0.5 text-xs text-gray-400">VAT 포함</p>
             </div>
 
             <ul className="mt-6 flex-1 space-y-3">

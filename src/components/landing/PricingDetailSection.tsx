@@ -1,6 +1,3 @@
-'use client'
-
-import { useState } from 'react'
 import { Check, X, HelpCircle, Shield, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
@@ -92,8 +89,6 @@ interface PlanCard {
     planId: string
     tagline: string
     monthly: string
-    yearly: string
-    yearlyTotal: string
     featured: boolean
     badge?: string
     features: PlanFeature[]
@@ -107,8 +102,6 @@ const PLANS: PlanCard[] = [
         planId: 'starter',
         tagline: '1인 매장 사장님용',
         monthly: '9,900원',
-        yearly: '9,075원',
-        yearlyTotal: '연 108,900원 결제',
         featured: false,
         features: [
             { text: '네이버 지도 진단', included: true },
@@ -126,8 +119,6 @@ const PLANS: PlanCard[] = [
         planId: 'pro',
         tagline: '마케팅 성과 심층 분석용',
         monthly: '29,000원',
-        yearly: '26,600원',
-        yearlyTotal: '연 319,000원 결제',
         featured: true,
         badge: '추천!',
         features: [
@@ -146,8 +137,6 @@ const PLANS: PlanCard[] = [
         planId: 'premium',
         tagline: '상권 장악에 진심인 사장님용',
         monthly: '99,000원',
-        yearly: '90,750원',
-        yearlyTotal: '연 1,089,000원 결제',
         featured: false,
         features: [
             { text: '네이버 + 구글 지도 진단', included: true },
@@ -164,7 +153,6 @@ const PLANS: PlanCard[] = [
 ]
 
 export default function PricingDetailSection() {
-    const [isYearly, setIsYearly] = useState(true)
 
     return (
         <>
@@ -181,33 +169,7 @@ export default function PricingDetailSection() {
                         </p>
                     </div>
 
-                    {/* 토글 */}
-                    <div className="mt-10 flex items-center justify-center gap-3">
-                        <span
-                            className={`min-w-[4.5rem] text-right text-sm font-medium transition-colors ${!isYearly ? 'text-gray-900' : 'text-gray-400'}`}
-                        >
-                            월간
-                        </span>
-                        <button
-                            type="button"
-                            role="switch"
-                            aria-checked={isYearly}
-                            onClick={() => setIsYearly(!isYearly)}
-                            className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C896] focus-visible:ring-offset-2 ${isYearly ? 'bg-[#00C896]' : 'bg-gray-300'}`}
-                        >
-                            <span
-                                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-300 ${isYearly ? 'translate-x-5' : 'translate-x-0'}`}
-                            />
-                        </button>
-                        <span
-                            className={`min-w-[4.5rem] text-sm font-medium transition-colors ${isYearly ? 'text-gray-900' : 'text-gray-400'}`}
-                        >
-                            연간{' '}
-                            <span className="rounded-full bg-[#00C896]/10 px-2 py-0.5 text-xs font-semibold text-[#00C896]">
-                                1개월 무료
-                            </span>
-                        </span>
-                    </div>
+
 
                     {/* 카드 3개 */}
                     <div className="mt-12 grid items-stretch gap-6 lg:grid-cols-3">
@@ -233,16 +195,11 @@ export default function PricingDetailSection() {
                                 <div className="mt-5">
                                     <div className="flex items-baseline gap-1">
                                         <span className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-                                            {isYearly ? plan.yearly : plan.monthly}
+                                            {plan.monthly}
                                         </span>
                                         <span className="text-sm text-gray-500">/월</span>
                                     </div>
-                                    {isYearly && (
-                                        <p className="mt-1 text-xs text-gray-400">
-                                            ({plan.yearlyTotal})
-                                        </p>
-                                    )}
-                                    <p className="mt-0.5 text-xs text-gray-400">VAT 별도</p>
+                                    <p className="mt-0.5 text-xs text-gray-400">VAT 포함</p>
                                 </div>
 
                                 <ul className="mt-6 flex-1 space-y-3">
@@ -276,7 +233,7 @@ export default function PricingDetailSection() {
                                 </p>
 
                                 <Link
-                                    href={`/login?plan=${plan.planId}${isYearly ? '&billing=yearly' : ''}`}
+                                    href={`/login?plan=${plan.planId}`}
                                     className={`mt-5 block w-full rounded-xl py-3.5 text-center text-sm font-bold transition-all duration-300 ${plan.ctaStyle === 'solid'
                                         ? 'bg-[#00C896] text-white shadow-lg shadow-[#00C896]/25 hover:-translate-y-0.5 hover:bg-[#00B386] hover:shadow-xl'
                                         : 'border-2 border-gray-200 bg-white text-gray-700 hover:-translate-y-0.5 hover:border-[#00C896] hover:text-[#00C896]'

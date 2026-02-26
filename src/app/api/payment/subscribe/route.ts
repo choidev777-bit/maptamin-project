@@ -21,7 +21,7 @@ import { PaymentSuccessEmail } from '@/lib/email/templates/PaymentSuccessEmail'
  * 7. subscription_payment_history에 결제 이력 저장
  * 8. 다음 달 자동 결제 예약 (schedulePayment)
  *
- * @body { billingKey: string, planId: string, billingCycle?: 'monthly' | 'yearly' }
+ * @body { billingKey: string, planId: string, email?: string }
  *
  * @see PLAN_payment-system-fix.md Phase 3 (M2 중복 방지)
  */
@@ -43,8 +43,7 @@ export async function POST(request: Request) {
 
         // ── 2. 입력값 검증 ──
         const body = await request.json()
-        const { billingKey, planId, billingCycle: rawBillingCycle, email } = body
-        const billingCycle = rawBillingCycle === 'yearly' ? 'yearly' : 'monthly'
+        const { billingKey, planId, email } = body
 
         if (!billingKey || typeof billingKey !== 'string') {
             return NextResponse.json(
@@ -68,8 +67,8 @@ export async function POST(request: Request) {
             )
         }
 
-        // 결제 금액 계산 (연간이면 yearlyPrice, 월간이면 price)
-        const paymentAmount = billingCycle === 'yearly' ? plan.yearlyPrice : plan.price
+        // 결제 금액 (월간 결제만 지원)
+        const paymentAmount = plan.price
 
         // ── 3. 중복 구독 방지 (M2) ──
         const { data: existingBilling } = await supabase
@@ -146,7 +145,7 @@ export async function POST(request: Request) {
                 p_billing_key: billingKey,
                 p_card_last4: cardLast4,
                 p_card_brand: cardBrand,
-                p_billing_cycle: billingCycle,
+                p_billing_cycle: 'monthly',
             }
         )
 
@@ -172,7 +171,7 @@ export async function POST(request: Request) {
 
         // ── 6. subscription_payment_history에 결제 이력 저장 ──
         const periodStart = new Date()
-        const periodEnd = calculateNextBillingDate(periodStart, billingCycle)
+        const periodEnd = calculateNextBillingDate(periodStart)
 
         const { error: historyError } = await supabase
             .from('subscription_payment_history')
@@ -245,7 +244,6 @@ export async function POST(request: Request) {
             success: true,
             planId,
             planName,
-            billingCycle,
             amount: paymentAmount,
             ticketsNaver: activateResult.tickets_naver,
             ticketsGoogle: activateResult.tickets_google,

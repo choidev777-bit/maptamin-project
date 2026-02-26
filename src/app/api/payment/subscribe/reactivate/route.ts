@@ -38,7 +38,7 @@ export async function POST() {
         // ── 2. 구독 정보 조회 ──
         const { data: billing, error: billingError } = await supabase
             .from('subscription_billing')
-            .select('billing_key, next_billing_date, plan_id, billing_cycle, status')
+            .select('billing_key, next_billing_date, plan_id, status')
             .eq('user_id', user.id)
             .single()
 
@@ -79,7 +79,7 @@ export async function POST() {
 
         // ── 4. 다음 결제 재예약 ──
         const planName = getPlanName(billing.plan_id)
-        const amount = getPlanPrice(billing.plan_id, billing.billing_cycle || 'monthly')
+        const amount = getPlanPrice(billing.plan_id)
         const nextPaymentId = `sub_${billing.plan_id}_${nextBillingDate.getTime()}_${Math.random().toString(36).substring(2, 8)}`
 
         try {

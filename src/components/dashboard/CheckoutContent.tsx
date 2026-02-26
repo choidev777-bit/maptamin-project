@@ -23,7 +23,6 @@ export function CheckoutContent() {
     const searchParams = useSearchParams()
 
     const planId = searchParams.get('plan')
-    const billingCycle = searchParams.get('billing') as 'monthly' | 'yearly'
 
     const [loading, setLoading] = useState(false)
     const [agreed, setAgreed] = useState(false)
@@ -66,20 +65,18 @@ export function CheckoutContent() {
 
     // Validate params
     const isValidPlan = isPaidPlan(planId)
-    const isValidCycle = billingCycle === 'monthly' || billingCycle === 'yearly'
 
     useEffect(() => {
-        if (!isValidPlan || !isValidCycle) {
+        if (!isValidPlan) {
             router.replace('/dashboard/subscription')
         }
-    }, [isValidPlan, isValidCycle, router])
+    }, [isValidPlan, router])
 
-    if (!isValidPlan || !isValidCycle) return null
+    if (!isValidPlan) return null
 
     const plan = PLAN_CONFIG[planId]
-    // ⚠️ PLAN_CONFIG의 price/yearlyPrice는 VAT 포함 최종가 — 별도 가산 없음
-    const totalAmount = billingCycle === 'yearly' ? plan.yearlyPrice : plan.price
-    const cycleText = billingCycle === 'yearly' ? '년' : '월'
+    // ⚠️ PLAN_CONFIG의 price는 VAT 포함 최종가 — 별도 가산 없음
+    const totalAmount = plan.price
     const totalAmountDisplay = totalAmount.toLocaleString()
 
     const handlePayment = async () => {
@@ -114,7 +111,6 @@ export function CheckoutContent() {
                 body: JSON.stringify({
                     billingKey: billingResult.billingKey,
                     planId,
-                    billingCycle,
                     email,
                     termsAgreedAt: new Date().toISOString(), // 약관 동의 시각 기록
                 }),
@@ -230,7 +226,7 @@ export function CheckoutContent() {
                                         구매 조건 및 정기 결제 확인
                                     </p>
                                     <p>
-                                        본 상품은 정기 구독 상품으로, 매{cycleText} 자동 결제됩니다.
+                                        본 상품은 정기 구독 상품으로, 매월 자동 결제됩니다.
                                         언제든지 해지할 수 있으며, 해지 시 다음 결제일부터 청구되지 않습니다.
                                         {' '}<a href="/terms" target="_blank" className="underline text-primary hover:text-primary/80">이용약관</a> 및{' '}
                                         <a href="/privacy" target="_blank" className="underline text-primary hover:text-primary/80">개인정보처리방침</a>에 동의합니다.
@@ -255,18 +251,13 @@ export function CheckoutContent() {
                                         {plan.name} 플랜
                                     </p>
                                     <p className="text-sm text-gray-500">
-                                        {billingCycle === 'yearly' ? '연간 결제' : '월간 결제'}
+                                        월간 결제
                                     </p>
                                 </div>
                                 <p className="font-semibold text-gray-900 dark:text-gray-100">
                                     ₩{totalAmountDisplay}
                                 </p>
                             </div>
-                            {billingCycle === 'yearly' && (
-                                <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                                    월 ₩{Math.round(plan.yearlyPrice / 12).toLocaleString()} (연간 할인 적용)
-                                </p>
-                            )}
                         </div>
 
                         <div className="space-y-2 mb-6 text-sm text-gray-600 dark:text-gray-400">

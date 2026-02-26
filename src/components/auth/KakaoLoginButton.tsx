@@ -6,11 +6,10 @@ const VALID_PLANS = ['starter', 'pro', 'premium']
 
 interface Props {
     plan?: string
-    billing?: string
     redirectTo?: string
 }
 
-export function KakaoLoginButton({ plan, billing, redirectTo }: Props) {
+export function KakaoLoginButton({ plan, redirectTo }: Props) {
     const handleLogin = async () => {
         const supabase = createClient()
 
@@ -18,9 +17,7 @@ export function KakaoLoginButton({ plan, billing, redirectTo }: Props) {
         let finalRedirectTo = callbackUrl
 
         if (plan && VALID_PLANS.includes(plan)) {
-            // plan이 있으면 checkout 우선 (기존 동작)
-            const billingParam = billing === 'yearly' ? '&billing=yearly' : ''
-            const nextUrl = `/dashboard/subscription/checkout?plan=${plan}${billingParam}`
+            const nextUrl = `/dashboard/subscription/checkout?plan=${plan}`
             finalRedirectTo = `${callbackUrl}?next=${encodeURIComponent(nextUrl)}`
         } else if (redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')) {
             // redirectTo가 있으면 해당 경로로 (보안: 상대경로만 허용)
