@@ -53,7 +53,7 @@ export function CompetitorSlotCard({ competitor, platform, onSelect, onDelete, o
                     size="sm"
                 >
                     <Search className="w-4 h-4 mr-1" />
-                    순위 검색
+                    순위 분석
                 </Button>
                 <Button
                     variant="outline"

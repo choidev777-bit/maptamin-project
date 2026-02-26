@@ -19,6 +19,7 @@ import {
 import { getPlanDisplayName } from '@/lib/utils/subscription'
 import { PLAN_CONFIG, getPlanName, getPlanPrice } from '@/lib/pricing/config'
 import { PlanCardData } from './PlanCard'
+import { BorderBeam } from '@/components/ui/border-beam'
 
 /* ──────────────────────────────────────────────
  * Types
@@ -778,7 +779,7 @@ export function SubscriptionContent({
                             <div
                                 key={plan.id}
                                 className={`relative rounded-xl p-8 bg-white flex flex-col h-full transition-all duration-200
-                                    ${isCurrent ? 'border-2 border-[#001011] shadow-lg' : showFeatured ? 'border-2 border-[#00C896] shadow-xl' : 'border border-gray-200 shadow-sm hover:shadow-md'}
+                                    ${isCurrent ? 'border border-gray-200 shadow-lg overflow-hidden' : showFeatured ? 'border-2 border-[#00C896] shadow-xl' : 'border border-gray-200 shadow-sm hover:shadow-md'}
                                 `}
                             >
 
@@ -796,8 +797,8 @@ export function SubscriptionContent({
                                     {plan.name}
                                 </h4>
                                 <div className="mt-4 flex items-baseline gap-1">
-                                    <span className="text-3xl font-extrabold text-[#001011] sm:text-4xl">{price.replace('원', '')}</span>
-                                    <span className="text-sm font-semibold text-gray-500 uppercase">원<span className="font-normal">/월</span></span>
+                                    <span className="text-3xl font-extrabold text-[#001011] sm:text-4xl">{price}</span>
+                                    <span className="text-base font-semibold text-gray-500">/월</span>
                                 </div>
                                 <p className="mt-0.5 text-xs text-gray-400">VAT 포함</p>
 
@@ -871,6 +872,25 @@ export function SubscriptionContent({
                                     >
                                         {getCta(plan.id)}
                                     </button>
+                                )}
+
+                                {/* BorderBeam: 현재 이용 중인 플랜 강조 애니메이션 (2중 빔) */}
+                                {isCurrent && (
+                                    <>
+                                        <BorderBeam
+                                            duration={6}
+                                            size={400}
+                                            borderWidth={4}
+                                            className="from-transparent via-[#00C896] to-transparent"
+                                        />
+                                        <BorderBeam
+                                            duration={6}
+                                            delay={3}
+                                            size={400}
+                                            borderWidth={4}
+                                            className="from-transparent via-[#00E5A0] to-transparent"
+                                        />
+                                    </>
                                 )}
                             </div>
                         )

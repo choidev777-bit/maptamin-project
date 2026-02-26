@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react'
+import { BorderBeam } from '@/components/ui/border-beam'
 
 export interface PlanFeature {
     text: string
@@ -50,7 +51,7 @@ export function PlanCard({ plan, currentPlanId, onSelect }: PlanCardProps) {
         <div
             data-testid={`plan-card-${plan.id}`}
             className={`relative flex flex-col rounded-3xl border p-7 transition-all duration-300 sm:p-8 ${isCurrentPlan
-                ? 'border-2 border-[#001011] bg-white shadow-lg'
+                ? 'border border-gray-200 bg-white shadow-lg overflow-hidden'
                 : showFeatured
                     ? 'scale-[1.03] border-2 border-[#00C896] bg-white shadow-2xl shadow-[#00C896]/10 lg:scale-105'
                     : 'border border-gray-200 bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg'
@@ -133,6 +134,25 @@ export function PlanCard({ plan, currentPlanId, onSelect }: PlanCardProps) {
             >
                 {getButtonText()}
             </button>
+
+            {/* BorderBeam: 현재 이용 중인 플랜 강조 애니메이션 (2중 빔) */}
+            {isCurrentPlan && (
+                <>
+                    <BorderBeam
+                        duration={6}
+                        size={400}
+                        borderWidth={4}
+                        className="from-transparent via-[#00C896] to-transparent"
+                    />
+                    <BorderBeam
+                        duration={6}
+                        delay={3}
+                        size={400}
+                        borderWidth={4}
+                        className="from-transparent via-[#00E5A0] to-transparent"
+                    />
+                </>
+            )}
         </div>
     )
 }

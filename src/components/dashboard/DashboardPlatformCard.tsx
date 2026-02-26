@@ -202,7 +202,7 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                                     onClick={() => router.push(platform === 'naver' ? '/naver-search/new?mode=my-shop' : '/search/new?mode=my-shop')}
                                     className="flex-1 bg-[#00C896] hover:bg-[#00B386] text-white text-sm font-bold py-2 rounded-lg transition-colors"
                                 >
-                                    순위 검색
+                                    순위 분석
                                 </button>
                             </div>
                         </div>
