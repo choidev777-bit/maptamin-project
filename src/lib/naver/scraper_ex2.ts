@@ -263,69 +263,110 @@ export async function scrapeNaverBatch(
             }
         }
 
-        // ========== 빈 결과 재시도 (1회) ==========
-        const failedIndices = results
-            .map((r, idx) => ({ r, idx }))
-            .filter(({ r }) => r.results.length === 0);
+        // ========== 다중 라운드 재시도 (세션 로테이션) ==========
+        const { maxRetries, retryDelay } = NAVER_SCRAPER_CONFIG;
 
-        if (failedIndices.length > 0) {
-            console.log(`[Scraper Ex2] ⚠️ ${failedIndices.length}개 빈 결과 발견. 5초 후 재시도...`);
-            await delay(5000);
+        for (let round = 1; round <= maxRetries; round++) {
+            // 남은 실패 Task 확인
+            const failedIndices = results
+                .map((r, idx) => ({ r, idx }))
+                .filter(({ r }) => r.results.length === 0);
 
-            let retrySuccess = 0;
-            let retryFail = 0;
+            if (failedIndices.length === 0) break; // 모든 Task 성공 → 조기 종료
 
-            for (let ri = 0; ri < failedIndices.length; ri++) {
-                const { idx } = failedIndices[ri];
-                const task = tasks[idx];
-
-                // 재시도 간 딜레이 (두 번째부터)
-                if (ri > 0) {
-                    await delay(NAVER_SCRAPER_CONFIG.delayBetweenRequests);
-                }
-
-                try {
-                    const retryStart = Date.now();
-                    const { results: retryResults, dataUsageBytes: retryDataUsage } = await fetchListApiResults(context, task.lat, task.lng, task.keyword);
-                    totalDataUsage += retryDataUsage;
-
-                    if (retryResults.length > 0) {
-                        // 재시도 성공 → 결과 치환
-                        let targetRank: number | null = null;
-                        if (task.targetBusinessName) {
-                            const matchedResult = retryResults.find(r =>
-                                isBusinessMatch(r.businessName, task.targetBusinessName!)
-                            );
-                            targetRank = matchedResult?.rank ?? null;
-                        }
-
-                        const retryDuration = (Date.now() - retryStart) / 1000;
-                        results[idx] = {
-                            success: true,
-                            results: retryResults,
-                            targetRank,
-                            scrapedAt: new Date().toISOString(),
-                            keyword: task.keyword,
-                            gridIndex: task.gridIndex,
-                            lat: task.lat,
-                            lng: task.lng,
-                            dataUsageBytes: retryDataUsage,
-                            durationSeconds: retryDuration
-                        };
-                        console.log(`[Scraper Ex2] 🔄 재시도 성공: Task ${idx + 1} [${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}] keyword="${task.keyword}" → rank=${targetRank ?? '-'} | ${retryResults.length}개`);
-                        retrySuccess++;
-                    } else {
-                        console.log(`[Scraper Ex2] 🔄 재시도 실패: Task ${idx + 1} [${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}] keyword="${task.keyword}" → 여전히 빈 결과`);
-                        retryFail++;
-                    }
-                } catch (retryError) {
-                    const errMsg = retryError instanceof Error ? retryError.message : 'Unknown';
-                    console.log(`[Scraper Ex2] 🔄 재시도 에러: Task ${idx + 1} [${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}] keyword="${task.keyword}" → ${errMsg}`);
-                    retryFail++;
+            // 좀비 킬러 체크
+            if (searchId && checkJobExists) {
+                const jobExists = await checkJobExists(searchId);
+                if (!jobExists) {
+                    console.log(`[Zombie Killer] 🛑 Job ${searchId} was cancelled. Skipping retry.`);
+                    break;
                 }
             }
 
-            console.log(`[Scraper Ex2] 🔄 재시도 결과: ${retrySuccess}개 복구, ${retryFail}개 유지`);
+            // 점진적 백오프 대기
+            const backoffDelay = retryDelay * round;
+            console.log(`[Scraper Ex2] 🔄 Retry Round ${round}/${maxRetries} — ${failedIndices.length}개 Task 재시도, ${backoffDelay / 1000}초 대기...`);
+            await delay(backoffDelay);
+
+            // 새 프록시 세션 + BrowserContext 생성
+            const retrySessionID = Math.random().toString(36).substring(7);
+            const retryContextOptions: any = {
+                viewport: { width: 1280, height: 720 },
+                locale: 'ko-KR',
+                userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                timezoneId: 'Asia/Seoul',
+                ignoreHTTPSErrors: true,
+            };
+
+            if (host && port && username && password) {
+                const retryProxyUsername = `${username}-session-${retrySessionID}`;
+                retryContextOptions.proxy = {
+                    server: `http://${host}:${port}`,
+                    username: retryProxyUsername,
+                    password: password,
+                };
+                console.log(`[Scraper Ex2] 🛡️ Retry Session: ${retrySessionID}`);
+            }
+
+            const retryContext = await browser.newContext(retryContextOptions);
+            let retrySuccess = 0;
+            let retryFail = 0;
+
+            try {
+                for (let ri = 0; ri < failedIndices.length; ri++) {
+                    const { idx } = failedIndices[ri];
+                    const task = tasks[idx];
+
+                    // 재시도 간 딜레이 (두 번째부터)
+                    if (ri > 0) {
+                        await delay(NAVER_SCRAPER_CONFIG.delayBetweenRequests);
+                    }
+
+                    try {
+                        const retryStart = Date.now();
+                        const { results: retryResults, dataUsageBytes: retryDataUsage } = await fetchListApiResults(retryContext, task.lat, task.lng, task.keyword);
+                        totalDataUsage += retryDataUsage;
+
+                        if (retryResults.length > 0) {
+                            // 재시도 성공 → 결과 치환
+                            let targetRank: number | null = null;
+                            if (task.targetBusinessName) {
+                                const matchedResult = retryResults.find(r =>
+                                    isBusinessMatch(r.businessName, task.targetBusinessName!)
+                                );
+                                targetRank = matchedResult?.rank ?? null;
+                            }
+
+                            const retryDuration = (Date.now() - retryStart) / 1000;
+                            results[idx] = {
+                                success: true,
+                                results: retryResults,
+                                targetRank,
+                                scrapedAt: new Date().toISOString(),
+                                keyword: task.keyword,
+                                gridIndex: task.gridIndex,
+                                lat: task.lat,
+                                lng: task.lng,
+                                dataUsageBytes: retryDataUsage,
+                                durationSeconds: retryDuration
+                            };
+                            console.log(`[Scraper Ex2] 🔄 재시도 성공: Task ${idx + 1} [${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}] keyword="${task.keyword}" → rank=${targetRank ?? '-'} | ${retryResults.length}개`);
+                            retrySuccess++;
+                        } else {
+                            console.log(`[Scraper Ex2] 🔄 재시도 실패: Task ${idx + 1} [${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}] keyword="${task.keyword}" → 여전히 빈 결과`);
+                            retryFail++;
+                        }
+                    } catch (retryError) {
+                        const errMsg = retryError instanceof Error ? retryError.message : 'Unknown';
+                        console.log(`[Scraper Ex2] 🔄 재시도 에러: Task ${idx + 1} [${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}] keyword="${task.keyword}" → ${errMsg}`);
+                        retryFail++;
+                    }
+                }
+
+                console.log(`[Scraper Ex2] 🔄 Round ${round} 결과: ${retrySuccess}개 복구, ${retryFail}개 유지`);
+            } finally {
+                await retryContext.close();
+            }
         }
 
     } finally {
