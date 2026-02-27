@@ -119,7 +119,7 @@ function extractPlacesFromApolloState(apolloState: Record<string, any>): NaverPl
 
     for (const [key, value] of Object.entries(apolloState)) {
         // "RestaurantListSummary:", "HairshopListSummary:", "PlaceListSummary:" 등 매칭
-        if (!key.includes('ListSummary:')) continue;
+        if (!key.includes('ListSummary:') && !key.includes('PlaceSummary:')) continue;
         if (!value || typeof value !== 'object') continue;
         if (!value.name || !value.id) continue;
 
