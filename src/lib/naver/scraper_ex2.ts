@@ -229,7 +229,7 @@ export async function scrapeNaverBatch(
                 }
 
                 const taskDuration = (Date.now() - taskStartTime) / 1000;
-                console.log(`[Scraper Ex2] ✅ Task ${i + 1}/${tasks.length}: rank=${targetRank ?? '-'} | ${taskResults.length}개 | ⏱️ ${taskDuration.toFixed(2)}s | 📊 ${(taskDataUsage / 1024).toFixed(0)} KB`);
+                console.log(`[Scraper Ex2] ✅ Task ${i + 1}/${tasks.length} [${lat.toFixed(5)}, ${lng.toFixed(5)}] keyword="${keyword}": rank=${targetRank ?? '-'} | ${taskResults.length}개 | ⏱️ ${taskDuration.toFixed(2)}s | 📊 ${(taskDataUsage / 1024).toFixed(0)} KB`);
 
                 results.push({
                     success: true,
@@ -246,7 +246,7 @@ export async function scrapeNaverBatch(
 
             } catch (error) {
                 const err = error instanceof Error ? error.message : 'Unknown';
-                console.error(`[Scraper Ex2] ❌ Task ${i + 1} Error: ${err}`);
+                console.error(`[Scraper Ex2] ❌ Task ${i + 1}/${tasks.length} [${lat.toFixed(5)}, ${lng.toFixed(5)}] keyword="${keyword}" Error: ${err}`);
                 results.push({
                     success: false,
                     results: [],
@@ -312,15 +312,15 @@ export async function scrapeNaverBatch(
                             dataUsageBytes: retryDataUsage,
                             durationSeconds: retryDuration
                         };
-                        console.log(`[Scraper Ex2] 🔄 재시도 성공: Task ${idx + 1} → rank=${targetRank ?? '-'} | ${retryResults.length}개`);
+                        console.log(`[Scraper Ex2] 🔄 재시도 성공: Task ${idx + 1} [${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}] keyword="${task.keyword}" → rank=${targetRank ?? '-'} | ${retryResults.length}개`);
                         retrySuccess++;
                     } else {
-                        console.log(`[Scraper Ex2] 🔄 재시도 실패: Task ${idx + 1} → 여전히 빈 결과`);
+                        console.log(`[Scraper Ex2] 🔄 재시도 실패: Task ${idx + 1} [${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}] keyword="${task.keyword}" → 여전히 빈 결과`);
                         retryFail++;
                     }
                 } catch (retryError) {
                     const errMsg = retryError instanceof Error ? retryError.message : 'Unknown';
-                    console.log(`[Scraper Ex2] 🔄 재시도 에러: Task ${idx + 1} → ${errMsg}`);
+                    console.log(`[Scraper Ex2] 🔄 재시도 에러: Task ${idx + 1} [${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}] keyword="${task.keyword}" → ${errMsg}`);
                     retryFail++;
                 }
             }
