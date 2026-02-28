@@ -16,6 +16,7 @@ import {
     getRequiredPlanForCompetitors,
     getPlanDisplayName,
     canCancelSubscription,
+    isPlaceLockExempt,
 } from './subscription';
 
 describe('isSubscribed', () => {
@@ -200,5 +201,23 @@ describe('canCancelSubscription', () => {
     });
     it('알 수 없는 플랜 → 해지 불가', () => {
         expect(canCancelSubscription('unknown')).toBe(false);
+    });
+});
+
+describe('isPlaceLockExempt', () => {
+    it('premium → 면제 (true)', () => {
+        expect(isPlaceLockExempt('premium')).toBe(true);
+    });
+    it('starter → 미면제 (false)', () => {
+        expect(isPlaceLockExempt('starter')).toBe(false);
+    });
+    it('pro → 미면제 (false)', () => {
+        expect(isPlaceLockExempt('pro')).toBe(false);
+    });
+    it('free → 미면제 (false, 구독 상태 아님)', () => {
+        expect(isPlaceLockExempt('free')).toBe(false);
+    });
+    it('알 수 없는 플랜 → 미면제 (false)', () => {
+        expect(isPlaceLockExempt('unknown')).toBe(false);
     });
 });

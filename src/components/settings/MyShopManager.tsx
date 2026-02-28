@@ -1,11 +1,17 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Trash2, Lock, Store, Search } from 'lucide-react'
+import { Plus, Trash2, Lock, Store, Search, Sparkles } from 'lucide-react'
 import { PlaceSelectionModal } from '@/components/dashboard/PlaceSelectionModal'
 import { ManagedPlace, Place } from '@/lib/types'
+import { isPlaceLockExempt } from '@/lib/utils/subscription'
 
-export function MyShopManager() {
+interface MyShopManagerProps {
+    planId: string
+}
+
+export function MyShopManager({ planId }: MyShopManagerProps) {
+    const lockExempt = isPlaceLockExempt(planId)
     const [myShops, setMyShops] = useState<ManagedPlace[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
@@ -67,7 +73,8 @@ export function MyShopManager() {
     }
 
     const handleDelete = async (id: string, lockedUntil: string | null | undefined) => {
-        if (lockedUntil && new Date(lockedUntil) > new Date()) {
+        // 프리미엄 면제: 클라이언트 사이드 락 체크 건너뜀
+        if (!lockExempt && lockedUntil && new Date(lockedUntil) > new Date()) {
             alert('30일 락 기간 중에는 삭제할 수 없습니다.')
             return
         }
@@ -103,7 +110,10 @@ export function MyShopManager() {
                 <div>
                     <h2 className="text-lg font-semibold text-gray-900">내 매장 관리</h2>
                     <p className="text-sm text-gray-500 mt-1">
-                        순위를 추적할 사장님의 매장를 등록하세요. (등록 후 30일간 변경 불가)
+                        {lockExempt
+                            ? '순위를 추적할 사장님의 매장를 등록하세요. (프리미엄: 언제든 변경 가능)'
+                            : '순위를 추적할 사장님의 매장를 등록하세요. (등록 후 30일간 변경 불가)'
+                        }
                     </p>
                 </div>
                 <div className="flex bg-gray-100 rounded-lg p-1">
@@ -146,7 +156,7 @@ export function MyShopManager() {
                     </div>
                 ) : (
                     (() => {
-                        const isLocked = currentShop.locked_until && new Date(currentShop.locked_until) > new Date()
+                        const isLocked = !lockExempt && currentShop.locked_until && new Date(currentShop.locked_until) > new Date()
                         return (
                             <div className="flex justify-between items-center p-4 border border-emerald-100 bg-emerald-50/50 rounded-xl">
                                 <div className="flex items-center gap-3">
@@ -193,6 +203,7 @@ export function MyShopManager() {
                 onClose={() => setIsAddModalOpen(false)}
                 platform={selectedPlatform}
                 onConfirm={handleRegisterMyShop}
+                isPlaceLockExempt={lockExempt}
             />
         </div>
     )

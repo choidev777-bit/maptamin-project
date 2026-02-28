@@ -241,7 +241,7 @@ export function SettingsContent({ user, planStats }: Props) {
             {/* My Shop Management */}
             <div className="mb-6">
                 {subscribed ? (
-                    <MyShopManager />
+                    <MyShopManager planId={planStats.plan} />
                 ) : (
                     <div
                         className="relative bg-white rounded-2xl border border-gray-200 p-6 cursor-pointer"

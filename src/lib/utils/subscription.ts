@@ -87,3 +87,12 @@ export function canCancelSubscription(planId: string): boolean {
     return isSubscribed(planId);
 }
 
+/** 30일 매장 변경 락 면제 여부 (프리미엄 플랜만 면제) */
+export function isPlaceLockExempt(planId: string): boolean {
+    const config = PLAN_CONFIG[planId];
+    if (!config) return false;
+    // 유료 구독 중이면서 placeLock이 false인 플랜만 면제
+    // free 플랜은 placeLock=false이지만 구독 상태가 아니므로 면제 아님
+    return isSubscribed(planId) && !config.placeLock;
+}
+

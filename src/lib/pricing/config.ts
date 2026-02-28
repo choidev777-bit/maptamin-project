@@ -22,6 +22,7 @@ export const PLAN_CONFIG: Record<string, {
     competitorsNaver: number;
     competitorsGoogle: number;
     channels: 'none' | 'naver' | 'naver+google';
+    placeLock: boolean; // true: 30일 매장 변경 락 적용 (starter, pro) / false: 면제 (premium)
 }> = {
     free: {
         name: '무료',
@@ -34,6 +35,7 @@ export const PLAN_CONFIG: Record<string, {
         competitorsNaver: 0,
         competitorsGoogle: 0,
         channels: 'none',
+        placeLock: false, // 매장 등록 자체 불가하므로 해당 없음
     },
     starter: {
         name: '스타터',
@@ -46,6 +48,7 @@ export const PLAN_CONFIG: Record<string, {
         competitorsNaver: 0,
         competitorsGoogle: 0,
         channels: 'naver',
+        placeLock: true, // 30일 매장 변경 락 적용
     },
     pro: {
         name: '프로',
@@ -58,6 +61,7 @@ export const PLAN_CONFIG: Record<string, {
         competitorsNaver: 1,
         competitorsGoogle: 0,
         channels: 'naver',
+        placeLock: true, // 30일 매장 변경 락 적용
     },
     premium: {
         name: '프리미엄',
@@ -70,6 +74,7 @@ export const PLAN_CONFIG: Record<string, {
         competitorsNaver: 10,
         competitorsGoogle: 10,
         channels: 'naver+google',
+        placeLock: false, // 프리미엄: 매장 무제한 변경 (30일 락 면제)
     },
 };
 

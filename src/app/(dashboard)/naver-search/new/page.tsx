@@ -397,6 +397,7 @@ export default function NewNaverSearchPage() {
                 onClose={handleModalClose}
                 platform="naver"
                 onConfirm={handleRegisterShop}
+                isPlaceLockExempt={subscription.planId === 'premium'}
             />
 
             {/* Main UI - only show when place is set */}

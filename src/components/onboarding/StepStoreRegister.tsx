@@ -103,10 +103,15 @@ export default function StepStoreRegister({ planId, onComplete }: Props) {
         }
     }
 
-    // 다음 버튼 클릭 → 30일 락 확인 다이얼로그 표시
+    // 다음 버튼 클릭 → 프리미엄은 바로 저장, 그 외는 30일 락 확인 다이얼로그 표시
     const handleNext = () => {
         if (!canProceed) return
-        setShowLockConfirm(true)
+        if (isPremium) {
+            // 프리미엄: 락 없이 바로 DB 저장
+            saveToDb()
+        } else {
+            setShowLockConfirm(true)
+        }
     }
 
     // 30일 락 확인 → DB 커밋
@@ -160,16 +165,18 @@ export default function StepStoreRegister({ planId, onComplete }: Props) {
                 </div>
             )}
 
-            {/* 30일 락 경고 */}
-            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
-                <div>
-                    <p className="text-sm font-medium text-amber-800">등록 후 30일간 변경이 불가합니다</p>
-                    <p className="mt-1 text-xs text-amber-600">
-                        신중하게 선택해주세요. 30일 이후 설정 메뉴에서 변경할 수 있습니다.
-                    </p>
+            {/* 30일 락 경고 (프리미엄 제외) */}
+            {!isPremium && (
+                <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                    <div>
+                        <p className="text-sm font-medium text-amber-800">등록 후 30일간 변경이 불가합니다</p>
+                        <p className="mt-1 text-xs text-amber-600">
+                            신중하게 선택해주세요. 30일 이후 설정 메뉴에서 변경할 수 있습니다.
+                        </p>
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* 에러 메시지 */}
             {error && (

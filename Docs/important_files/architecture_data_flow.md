@@ -262,6 +262,11 @@ User Action: 매장 검색 → 선택 → 등록
 ├─► Client Component
 │   ├── src/app/(dashboard)/onboarding/page.tsx
 │   ├── src/components/onboarding/StepStoreRegister.tsx ← 온보딩 매장 등록 스텝
+│   │   └── isPremium → 30일 락 경고 숨김 + 확인 다이얼로그 건너뜀
+│   ├── src/components/settings/MyShopManager.tsx ← 설정 매장 관리
+│   │   └── isPlaceLockExempt(planId) → isLocked 오버라이드 + handleDelete 락 면제
+│   ├── src/components/dashboard/PlaceSelectionModal.tsx ← 매장 검색/선택 모달
+│   │   └── isPlaceLockExempt prop → 30일 경고 조건부 표시
 │   ├── src/components/search/PlaceSearchInput.tsx ← 구글 지도 검색
 │   ├── src/components/search/NaverPlaceSearchInput.tsx ← 네이버 지도 검색
 │   └── POST /api/settings/my-shop
@@ -270,14 +275,24 @@ User Action: 매장 검색 → 선택 → 등록
 │   └── src/app/api/settings/my-shop/route.ts  (POST)
 │       ├── 1. supabase.auth.getUser()
 │       ├── 2. 입력값 검증 (platform, placeId, placeName, address, lat, lng)
+│       ├── 2.5. SELECT → user_subscriptions (plan_id 조회)
+│       │   └── isPlaceLockExempt(planId) → lockExempt 판단
 │       ├── 3. SELECT → managed_places (기존 등록 확인)
 │       ├── 4a. 기존 있음
-│       │   ├── locked_until 확인 (30일 락)
-│       │   └── UPDATE → managed_places (place 변경 + 락 갱신)
+│       │   ├── lockExempt=false: locked_until 확인 (30일 락) → 락 기간 내 403 반환
+│       │   ├── lockExempt=true: locked_until 체크 건너뜀 (프리미엄 면제)
+│       │   └── UPDATE → managed_places (place 변경 + locked_until: lockExempt ? null : 30일 후)
 │       └── 4b. 신규
-│           └── INSERT → managed_places (30일 locked_until 설정)
+│           └── INSERT → managed_places (locked_until: lockExempt ? null : 30일 후)
 │
-└─► Service Layer (대안 경로)
+│   └── src/app/api/settings/my-shop/route.ts  (DELETE)
+│       ├── 1. supabase.auth.getUser()
+│       ├── 2. SELECT → user_subscriptions (plan_id 조회) + isPlaceLockExempt
+│       ├── 3. lockExempt=false: locked_until 체크 → 락 기간 내 403
+│       │   lockExempt=true: 체크 건너뜀
+│       └── 4. DELETE → managed_places
+│
+└─► Service Layer (대안 경로 — 현재 미사용 dead code)
     └── src/lib/services/place-manager.ts :: PlaceManager.registerPlace()
         ├── SELECT → user_subscriptions (plan_id 조회)
         ├── SELECT → plans (플랜 제한 조회)
@@ -285,14 +300,20 @@ User Action: 매장 검색 → 선택 → 등록
         └── INSERT → managed_places (30일 locked_until)
 ```
 
+**핵심 유틸리티:**
+| Function | File | Purpose |
+|----------|------|---------|
+| `isPlaceLockExempt(planId)` | `src/lib/utils/subscription.ts` | `isSubscribed(planId) && !PLAN_CONFIG[planId].placeLock` → premium만 true |
+| `PLAN_CONFIG[planId].placeLock` | `src/lib/pricing/config.ts` | starter/pro: `true` (30일 락), premium: `false` (면제), free: `false` (해당없음) |
+
 **DB Operations:**
 | Operation | Table | Action |
 |-----------|-------|--------|
+| SELECT | `user_subscriptions` | 현재 플랜 조회 (API route에서 직접) |
 | SELECT | `managed_places` | 기존 등록 여부 + 락 상태 확인 |
-| SELECT | `user_subscriptions` | 현재 플랜 조회 (서비스 레이어) |
-| SELECT | `plans` | 플랜 제한사항 조회 (서비스 레이어) |
-| INSERT | `managed_places` | 신규 매장 등록 (30일 락 설정) |
-| UPDATE | `managed_places` | 매장 정보 변경 (락 조건 충족 시) |
+| INSERT | `managed_places` | 신규 매장 등록 (Premium: `locked_until=null`, 그 외: 30일 후) |
+| UPDATE | `managed_places` | 매장 변경 (Premium: `locked_until=null`, 그 외: 30일 후) |
+| DELETE | `managed_places` | 매장 삭제 (Premium: 락 무시, 그 외: 락 기간 내 403) |
 
 ---
 

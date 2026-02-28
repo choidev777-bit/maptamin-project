@@ -369,6 +369,7 @@ export default function NewSearchPage() {
                     onClose={handleModalClose}
                     platform="google"
                     onConfirm={handleRegisterShop}
+                    isPlaceLockExempt={subscription.planId === 'premium'}
                 />
 
                 {/* Main UI - only show when place is set */}

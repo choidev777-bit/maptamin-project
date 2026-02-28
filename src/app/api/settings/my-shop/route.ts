@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
+import { isPlaceLockExempt } from '@/lib/utils/subscription';
 
 export async function POST(request: Request) {
     try {
@@ -17,6 +18,16 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
         }
 
+        // 0. 사용자 플랜 조회
+        const { data: subscription } = await supabase
+            .from('user_subscriptions')
+            .select('plan_id')
+            .eq('user_id', user.id)
+            .single();
+
+        const planId = subscription?.plan_id || 'free';
+        const lockExempt = isPlaceLockExempt(planId);
+
         // 1. Check existing
         const { data: existing } = await supabase
             .from('managed_places')
@@ -28,8 +39,8 @@ export async function POST(request: Request) {
         const now = new Date();
 
         if (existing) {
-            // 2. Check Lock
-            if (existing.locked_until && new Date(existing.locked_until) > now) {
+            // 2. Check Lock (프리미엄 면제 시 건너뜀)
+            if (!lockExempt && existing.locked_until && new Date(existing.locked_until) > now) {
                 return NextResponse.json({
                     error: '30일 동안 변경할 수 없습니다.',
                     lockedUntil: existing.locked_until
@@ -38,9 +49,12 @@ export async function POST(request: Request) {
 
             const isPlaceChanged = existing.place_id !== placeId;
 
-            // 3. Update
-            const lockedUntil = new Date();
-            lockedUntil.setDate(lockedUntil.getDate() + 30);
+            // 3. Update (프리미엄: locked_until=null, 그 외: 30일 후)
+            const lockedUntil = lockExempt ? null : (() => {
+                const d = new Date();
+                d.setDate(d.getDate() + 30);
+                return d.toISOString();
+            })();
 
             const { error } = await supabase
                 .from('managed_places')
@@ -50,7 +64,7 @@ export async function POST(request: Request) {
                     address: address || null,
                     lat: lat || null,
                     lng: lng || null,
-                    locked_until: lockedUntil.toISOString()
+                    locked_until: lockedUntil
                 })
                 .eq('id', existing.id);
 
@@ -79,9 +93,12 @@ export async function POST(request: Request) {
 
             return NextResponse.json({ success: true, resetPerformed: isPlaceChanged });
         } else {
-            // 5. Create (신규 등록 — 초기화 불필요)
-            const lockedUntil = new Date();
-            lockedUntil.setDate(lockedUntil.getDate() + 30);
+            // 5. Create (신규 등록 — 프리미엄: locked_until=null, 그 외: 30일 후)
+            const lockedUntil = lockExempt ? null : (() => {
+                const d = new Date();
+                d.setDate(d.getDate() + 30);
+                return d.toISOString();
+            })();
 
             const { error } = await supabase
                 .from('managed_places')
@@ -93,7 +110,7 @@ export async function POST(request: Request) {
                     address: address || null,
                     lat: lat || null,
                     lng: lng || null,
-                    locked_until: lockedUntil.toISOString()
+                    locked_until: lockedUntil
                 });
 
             if (error) throw error;
@@ -163,8 +180,18 @@ export async function DELETE(request: Request) {
 
         const now = new Date();
 
-        // 2. Check Lock
-        if (existing.locked_until && new Date(existing.locked_until) > now) {
+        // 2. 사용자 플랜 조회
+        const { data: subscription } = await supabase
+            .from('user_subscriptions')
+            .select('plan_id')
+            .eq('user_id', user.id)
+            .single();
+
+        const planId = subscription?.plan_id || 'free';
+        const lockExempt = isPlaceLockExempt(planId);
+
+        // 3. Check Lock (프리미엄 면제 시 건너뜀)
+        if (!lockExempt && existing.locked_until && new Date(existing.locked_until) > now) {
             return NextResponse.json({
                 error: '30일 동안 삭제할 수 없습니다.',
                 lockedUntil: existing.locked_until

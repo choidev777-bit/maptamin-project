@@ -15,9 +15,10 @@ interface Props {
     platform: 'naver' | 'google'
     onConfirm: (place: Place) => Promise<void>
     isCompetitor?: boolean  // Optional: true for competitor search
+    isPlaceLockExempt?: boolean // Optional: true이면 30일 락 경고 숨김 (프리미엄)
 }
 
-export function PlaceSelectionModal({ isOpen, onClose, platform, onConfirm, isCompetitor = false }: Props) {
+export function PlaceSelectionModal({ isOpen, onClose, platform, onConfirm, isCompetitor = false, isPlaceLockExempt = false }: Props) {
     const [selectedPlace, setSelectedPlace] = useState<Place | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [step, setStep] = useState<'search' | 'confirm'>('search')
@@ -94,15 +95,17 @@ export function PlaceSelectionModal({ isOpen, onClose, platform, onConfirm, isCo
                                 <p className="text-sm text-gray-600 mt-1">{selectedPlace?.address}</p>
                             </div>
 
-                            <div className="p-4 bg-red-50 rounded-lg flex items-start gap-3 border border-red-100">
-                                <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                                <div>
-                                    <h5 className="font-medium text-red-900 text-sm">주의: 30일간 변경 불가</h5>
-                                    <p className="text-sm text-red-700 mt-1">
-                                        한 번 설정하면 데이터의 정확성을 위해 30일 동안 변경할 수 없습니다. 정말 이 매장이 맞나요?
-                                    </p>
+                            {!isPlaceLockExempt && (
+                                <div className="p-4 bg-red-50 rounded-lg flex items-start gap-3 border border-red-100">
+                                    <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <h5 className="font-medium text-red-900 text-sm">주의: 30일간 변경 불가</h5>
+                                        <p className="text-sm text-red-700 mt-1">
+                                            한 번 설정하면 데이터의 정확성을 위해 30일 동안 변경할 수 없습니다. 정말 이 매장이 맞나요?
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
                 </div>
