@@ -6,7 +6,7 @@ import { PlaceSelectionModal } from './PlaceSelectionModal'
 import { KeywordManageModal } from './KeywordManageModal'
 import { CompetitorManageModal } from './CompetitorManageModal'
 import { UpgradePrompt } from './UpgradePrompt'
-import { getRequiredPlanForPlatform } from '@/lib/utils/subscription'
+import { getRequiredPlanForPlatform, isPlaceLockExempt } from '@/lib/utils/subscription'
 
 import { useState } from 'react'
 import { Place } from '@/lib/types'
@@ -33,9 +33,11 @@ interface Props {
     keywords?: string[]
     maxKeywords?: number
     maxCompetitors?: number
+    planId?: string
 }
 
-export function DashboardPlatformCard({ platform, data, competitorCount = 0, firstCompetitorName, isLocked = false, keywords = [], maxKeywords = 0, maxCompetitors = 0 }: Props) {
+export function DashboardPlatformCard({ platform, data, competitorCount = 0, firstCompetitorName, isLocked = false, keywords = [], maxKeywords = 0, maxCompetitors = 0, planId = 'free' }: Props) {
+    const lockExempt = isPlaceLockExempt(planId)
     const router = useRouter()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
@@ -132,7 +134,7 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                 </div>
             ) : (() => {
                 // 매장 변경 잠금 체크
-                const isPlaceLocked = data.locked_until && new Date(data.locked_until) > new Date()
+                const isPlaceLocked = !lockExempt && data.locked_until && new Date(data.locked_until) > new Date()
                 return (
                     // Active State
                     <div className={`group relative flex flex-col sm:flex-row gap-4 p-5 rounded-xl bg-white dark:bg-slate-800 border-2 shadow-[0_4px_20px_rgba(0,199,149,0.15)] transition-all ${platform === 'naver' ? 'border-[#00C896]' : 'border-blue-500'}`}>
@@ -215,6 +217,7 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                 onClose={() => setIsModalOpen(false)}
                 platform={platform}
                 onConfirm={handleRegister}
+                isPlaceLockExempt={lockExempt}
             />
 
             {/* 업그레이드 유도 모달 */}

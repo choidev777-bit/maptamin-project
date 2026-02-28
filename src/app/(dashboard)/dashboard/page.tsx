@@ -148,6 +148,7 @@ export default async function DashboardPage() {
                             keywords={naverKeywords}
                             maxKeywords={limits.keywordsNaver}
                             maxCompetitors={limits.competitorsNaver}
+                            planId={planId}
                         />
                         <DashboardPlatformCard
                             platform="google"
@@ -158,6 +159,7 @@ export default async function DashboardPage() {
                             keywords={googleKeywords}
                             maxKeywords={limits.keywordsGoogle}
                             maxCompetitors={limits.competitorsGoogle}
+                            planId={planId}
                         />
                     </div>
                 </div>
