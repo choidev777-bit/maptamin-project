@@ -49,8 +49,8 @@ export async function POST(request: Request) {
 
             const isPlaceChanged = existing.place_id !== placeId;
 
-            // 3. Update (프리미엄: locked_until=null, 그 외: 30일 후)
-            const lockedUntil = lockExempt ? null : (() => {
+            // 3. Update (프리미엄: locked_until=에폭크(1970), 그 외: 30일 후)
+            const lockedUntil = lockExempt ? new Date(0).toISOString() : (() => {
                 const d = new Date();
                 d.setDate(d.getDate() + 30);
                 return d.toISOString();
@@ -93,8 +93,8 @@ export async function POST(request: Request) {
 
             return NextResponse.json({ success: true, resetPerformed: isPlaceChanged });
         } else {
-            // 5. Create (신규 등록 — 프리미엄: locked_until=null, 그 외: 30일 후)
-            const lockedUntil = lockExempt ? null : (() => {
+            // 5. Create (신규 등록 — 프리미엄: locked_until=에폭크(1970), 그 외: 30일 후)
+            const lockedUntil = lockExempt ? new Date(0).toISOString() : (() => {
                 const d = new Date();
                 d.setDate(d.getDate() + 30);
                 return d.toISOString();
