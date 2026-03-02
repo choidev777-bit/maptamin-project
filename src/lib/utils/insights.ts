@@ -44,10 +44,7 @@ export function calculateWeeklyInsights(
     // 3. Compare ranks for each keyword
     // Assuming each search has results for its keywords
     latestSearch.keywords.forEach((keyword) => {
-        // We look for the best rank (minimum number) across grid points for this keyword
-        // Or if rank is unified per keyword, we just take the first valid one.
-        // Assuming rank is per keyword/grid_index, we might want the average or best rank.
-        // For simplicity, let's take the best (lowest) rank found for the keyword.
+        // We calculate the average rank across all grid points for this keyword
         const latestRankRanks = latestResults
             .filter((r) => r.keyword === keyword && r.rank !== null)
             .map((r) => r.rank as number)
@@ -55,21 +52,25 @@ export function calculateWeeklyInsights(
             .filter((r) => r.keyword === keyword && r.rank !== null)
             .map((r) => r.rank as number)
 
-        const latestBestRank = latestRankRanks.length > 0 ? Math.min(...latestRankRanks) : null
-        const previousBestRank = previousRankRanks.length > 0 ? Math.min(...previousRankRanks) : null
+        const latestAvgRank = latestRankRanks.length > 0
+            ? latestRankRanks.reduce((sum, r) => sum + r, 0) / latestRankRanks.length
+            : null
+        const previousAvgRank = previousRankRanks.length > 0
+            ? previousRankRanks.reduce((sum, r) => sum + r, 0) / previousRankRanks.length
+            : null
 
-        if (latestBestRank !== null && previousBestRank !== null) {
+        if (latestAvgRank !== null && previousAvgRank !== null) {
             // rankChange: Positive means rank IMPROVED (number went down, e.g., 5 -> 2 = +3)
             // Negative means rank DROPPED (number went up, e.g., 2 -> 5 = -3)
-            const rankChange = previousBestRank - latestBestRank
+            const rankChange = Math.round((previousAvgRank - latestAvgRank) * 10) / 10
 
             // Only consider keywords that actually changed rank
             if (rankChange !== 0) {
                 insights.push({
                     keyword,
                     rankChange,
-                    currentRank: latestBestRank,
-                    previousRank: previousBestRank
+                    currentRank: Math.round(latestAvgRank * 10) / 10,
+                    previousRank: Math.round(previousAvgRank * 10) / 10
                 })
             }
         }

@@ -69,7 +69,7 @@ export function HistoryPageContent({
                         <TrendingUp className="w-5 h-5 text-[#00C896]" />
                         <h2 className="text-lg font-bold text-gray-900">
                             평균 순위 변화
-                            <span className="text-sm font-normal text-gray-400 ml-2">(주간 리포트 기준)</span>
+                            <span className="text-sm font-normal text-gray-400 ml-2">(주간 보고서 기준)</span>
                         </h2>
                     </div>
 

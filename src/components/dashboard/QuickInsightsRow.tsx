@@ -26,7 +26,7 @@ export function QuickInsightsRow({ rising, dropping }: Props) {
                             </h3>
                             <span className="flex items-center text-[#00C896] font-bold bg-[#00C896]/10 px-2 py-0.5 rounded text-sm whitespace-nowrap">
                                 <ArrowUp className="w-4 h-4 mr-1" />
-                                +{rising.rankChange}계단
+                                +{rising.rankChange}순위
                             </span>
                         </div>
                     ) : (
@@ -52,7 +52,7 @@ export function QuickInsightsRow({ rising, dropping }: Props) {
                             </h3>
                             <span className="flex items-center text-orange-500 font-bold bg-orange-50 px-2 py-0.5 rounded text-sm whitespace-nowrap">
                                 <ArrowDown className="w-4 h-4 mr-1" />
-                                {dropping.rankChange}계단 {/* rankChange is already negative */}
+                                {dropping.rankChange}순위
                             </span>
                         </div>
                     ) : (

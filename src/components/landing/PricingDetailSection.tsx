@@ -127,7 +127,7 @@ const PLANS: PlanCard[] = [
             { text: '관리 키워드 5개', included: true },
             { text: '주간 보고서 자동 발송', included: true },
             { text: '실시간 진단 티켓 월 10회', included: true },
-            { text: '경쟁사 1곳 집중 추적 & 비교', included: true },
+            { text: '경쟁사 3곳 분석', included: true },
         ],
         cta: '내 매장 진단 & 경쟁사 분석', // PricingSection은 '... 분석 시작하기' 인데 여기는 짧게 유지? 사용자는 "그대로" 원함. PricingSection의 CTA 사용.
         ctaStyle: 'solid',

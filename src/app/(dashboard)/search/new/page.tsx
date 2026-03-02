@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { MapGridConfigurator } from '@/components/search/MapGridConfigurator'
-import { DistanceSettings } from '@/components/search/DistanceSettings'
+// DistanceSettings removed — inline onboarding-style UI used instead
 import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
 import { Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, Swords, AlertTriangle, Lock } from 'lucide-react'
 import { PlaceSelectionModal } from '@/components/dashboard/PlaceSelectionModal'
@@ -42,8 +42,21 @@ interface PlaceData {
 // Simplified steps: No place selection (handled via modal)
 const STEPS = [
     { id: 1, name: '키워드 선택', icon: Tag },
-    { id: 2, name: '그리드 설정', icon: Grid3X3 },
-    { id: 3, name: '확인', icon: Check },
+    { id: 2, name: '좌표 설정', icon: Grid3X3 },
+    { id: 3, name: '결제 및 확인', icon: Check },
+]
+
+// 간격 프리셋 (온보딩과 동일)
+const DISTANCE_PRESETS = [
+    { value: 0.1, label: '100m' },
+    { value: 0.2, label: '200m' },
+    { value: 0.3, label: '300m' },
+    { value: 0.4, label: '400m' },
+    { value: 0.5, label: '500m' },
+    { value: 1, label: '1km' },
+    { value: 2, label: '2km' },
+    { value: 3, label: '3km' },
+    { value: 5, label: '5km' },
 ]
 
 // Default 3x3 grid preset
@@ -87,7 +100,7 @@ export default function NewSearchPage() {
 
     const [gridPoints, setGridPoints] = useState<GridPointSelection[]>(DEFAULT_GRID_POINTS)
     const [selectedGridSize, setSelectedGridSize] = useState(3)
-    const [gridDistance, setGridDistance] = useState(1) // km
+    const [gridDistance, setGridDistance] = useState(0.3) // km (default 300m)
     const [distanceUnit, setDistanceUnit] = useState<'km' | 'mile'>('km')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [hasCompetitor, setHasCompetitor] = useState(true) // default true to avoid flash
@@ -405,7 +418,7 @@ export default function NewSearchPage() {
                                     <div className="flex flex-col items-center">
                                         <div
                                             className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${step > s.id
-                                                ? 'bg-green-500 text-white'
+                                                ? 'bg-blue-500 text-white'
                                                 : step === s.id
                                                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
                                                     : 'bg-gray-100 text-gray-400'
@@ -423,7 +436,7 @@ export default function NewSearchPage() {
                                         </span>
                                     </div>
                                     {index < STEPS.length - 1 && (
-                                        <div className={`w-16 h-1 mx-2 rounded ${step > s.id ? 'bg-green-500' : 'bg-gray-200'
+                                        <div className={`w-16 h-1 mx-2 rounded ${step > s.id ? 'bg-blue-500' : 'bg-gray-200'
                                             }`} />
                                     )}
                                 </div>
@@ -483,19 +496,22 @@ export default function NewSearchPage() {
                                 </div>
                             )}
 
-                            {/* Step 2: Grid Configuration */}
+                            {/* Step 2: 좌표 설정 (온보딩과 동일 UI) */}
                             {step === 2 && (
-                                <div className="space-y-8">
+                                <div className="space-y-6">
                                     <div>
-                                        <h2 className="text-2xl font-bold text-gray-900">그리드 설정</h2>
+                                        <h2 className="text-2xl font-bold text-gray-900">
+                                            <Grid3X3 className="mr-2 inline-block h-6 w-6 text-blue-500" />
+                                            순위를 분석할 좌표를 직접 선택하세요
+                                        </h2>
                                         <p className="mt-2 text-gray-600">
-                                            순위를 측정할 지점과 간격을 설정하세요.
+                                            매장 주변의 검색 순위를 분석할 좌표를 설정합니다.
                                         </p>
                                     </div>
 
-                                    {/* Grid Size Selector */}
+                                    {/* 분석 범위 선택 */}
                                     <div>
-                                        <label className="text-sm font-medium text-gray-700 mb-2 block">그리드 크기</label>
+                                        <label className="text-sm font-medium text-gray-700 mb-2 block">분석 범위</label>
                                         <div className="flex gap-3">
                                             {[3, 5, 7].map((size) => {
                                                 const allowed = allowedGridSizes.includes(size)
@@ -524,22 +540,59 @@ export default function NewSearchPage() {
                                         </div>
                                     </div>
 
+                                    {/* 분석 좌표 간격 설정 (온보딩 스타일) */}
+                                    <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
+                                        <div>
+                                            <h3 className="font-semibold text-gray-900">분석 좌표 간격 설정</h3>
+                                            <p className="text-sm text-gray-500 mb-4">좌표 사이의 거리를 설정하세요</p>
+
+                                            <div className="flex items-center gap-4 mb-6">
+                                                <input
+                                                    type="range"
+                                                    min="0.1"
+                                                    max="5"
+                                                    step="0.1"
+                                                    value={gridDistance}
+                                                    onChange={(e) => setGridDistance(parseFloat(e.target.value))}
+                                                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                                />
+                                                <div className="w-20 text-right">
+                                                    <span className="text-2xl font-bold text-blue-500">{gridDistance}</span>
+                                                    <span className="text-lg text-gray-500 ml-1">km</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                {DISTANCE_PRESETS.map(preset => (
+                                                    <button
+                                                        key={preset.value}
+                                                        type="button"
+                                                        onClick={() => setGridDistance(preset.value)}
+                                                        className={`flex-1 min-w-0 py-2 px-1 rounded-lg text-xs sm:text-sm font-medium transition-all ${gridDistance === preset.value
+                                                            ? 'bg-blue-50 text-blue-700 border-2 border-blue-500'
+                                                            : 'bg-gray-50 text-gray-600 border-2 border-transparent hover:bg-gray-100'
+                                                            }`}
+                                                    >
+                                                        {preset.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 지도 */}
                                     <MapGridConfigurator
                                         centerLat={place.lat}
                                         centerLng={place.lng}
                                         selectedPoints={gridPoints}
                                         onPointsChange={setGridPoints}
                                         gridDistance={gridDistance}
-                                        maxPoints={49}
+                                        maxPoints={selectedGridSize * selectedGridSize}
                                     />
 
-                                    <div className="border-t border-gray-100 pt-8">
-                                        <DistanceSettings
-                                            distance={gridDistance}
-                                            unit={distanceUnit}
-                                            onDistanceChange={setGridDistance}
-                                            onUnitChange={setDistanceUnit}
-                                        />
+                                    <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                                        <span className="text-sm text-gray-600">활성 좌표</span>
+                                        <span className="font-bold text-blue-500">{enabledGridCount}/{selectedGridSize * selectedGridSize}개</span>
                                     </div>
                                 </div>
                             )}

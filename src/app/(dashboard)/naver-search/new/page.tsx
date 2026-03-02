@@ -679,53 +679,48 @@ export default function NewNaverSearchPage() {
                                 </div>
                             </div>
                         )}
-                    </div>
 
-                    {/* Navigation Buttons */}
-                    <div className="flex justify-between mt-8">
-                        <button
-                            onClick={handleBack}
-                            disabled={step === 1}
-                            className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${step === 1
-                                ? 'text-gray-300 cursor-not-allowed'
-                                : 'text-gray-600 hover:bg-gray-100'
-                                }`}
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                            이전
-                        </button>
+                        {/* Navigation Buttons */}
+                        <div className="flex gap-4 mt-8 pt-6 border-t border-gray-100">
+                            {step > 1 && (
+                                <button
+                                    onClick={handleBack}
+                                    className="flex-1 py-4 px-6 border border-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <ArrowLeft className="w-5 h-5" />
+                                    이전
+                                </button>
+                            )}
 
-                        {step < 3 ? (
-                            <button
-                                onClick={handleNext}
-                                disabled={!canProceed()}
-                                className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${canProceed()
-                                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-600/30'
-                                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                    }`}
-                            >
-                                다음
-                                <ArrowRight className="w-5 h-5" />
-                            </button>
-                        ) : (
-                            <button
-                                onClick={handleSubmit}
-                                disabled={isSubmitting || !hasTicket}
-                                className="flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                        처리 중...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Check className="w-5 h-5" />
-                                        {hasTicket ? '진단 시작 (티켓 1장)' : '티켓 부족'}
-                                    </>
-                                )}
-                            </button>
-                        )}
+                            {step < 3 ? (
+                                <button
+                                    onClick={handleNext}
+                                    disabled={!canProceed()}
+                                    className="flex-1 py-4 px-6 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                                >
+                                    다음
+                                    <ArrowRight className="w-5 h-5" />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={isSubmitting || !hasTicket}
+                                    className="flex-1 py-4 px-6 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-medium hover:from-emerald-700 hover:to-teal-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25"
+                                >
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" />
+                                            처리 중...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Check className="w-5 h-5" />
+                                            {hasTicket ? '진단 시작 (티켓 1장)' : '티켓 부족'}
+                                        </>
+                                    )}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </>
             )}

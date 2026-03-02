@@ -114,7 +114,7 @@ export function Sidebar({
     const mainRoutes: NavRoute[] = [
         { href: '/dashboard', label: '대시보드', icon: Home, match: 'exact', isLocked: isOnboarding },
         { href: '/history', label: '진단 기록', icon: History, match: 'startsWith', isLocked: isOnboarding },
-        { href: '/report-settings', label: '리포트 설정', icon: CalendarClock, match: 'startsWith', isLocked: !subscribed || isOnboarding },
+        { href: '/report-settings', label: '주간 보고서 설정', icon: CalendarClock, match: 'startsWith', isLocked: !subscribed || isOnboarding },
     ]
 
     const searchSubRoutes: NavRoute[] = [

@@ -79,7 +79,7 @@ const PLANS: PlanCardData[] = [
             { text: '관리 키워드 5개', included: true },
             { text: '주간 보고서 자동 발송', included: true },
             { text: '실시간 진단 티켓 월 10회', included: true },
-            { text: '경쟁사 1곳 집중 추적 & 비교', included: true },
+            { text: '경쟁사 3곳 분석', included: true },
         ],
         cta: '업그레이드',
         ctaStyle: 'solid',

@@ -115,7 +115,7 @@ export function PlaceSelectionModal({ isOpen, onClose, platform, onConfirm, isCo
                         {step === 'search' ? '취소' : '다시 검색'}
                     </Button>
                     {step === 'confirm' && (
-                        <Button onClick={handleConfirm} disabled={isSubmitting} className="bg-emerald-600 hover:bg-emerald-700">
+                        <Button onClick={handleConfirm} disabled={isSubmitting} className={platform === 'naver' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-500 hover:bg-blue-600'}>
                             {isSubmitting ? (
                                 <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />

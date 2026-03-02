@@ -170,8 +170,8 @@ export function MapGridConfigurator({
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#E5F9F4] rounded-lg flex items-center justify-center">
-                        <Grid3X3 className="w-5 h-5 text-[#00C896]" />
+                    <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                        <Grid3X3 className="w-5 h-5 text-blue-500" />
                     </div>
                     <div>
                         <h3 className="font-semibold text-gray-900">좌표 위치 선택</h3>
@@ -179,7 +179,7 @@ export function MapGridConfigurator({
                     </div>
                 </div>
                 <div className="text-right">
-                    <span className="text-3xl font-bold text-[#00C896]">{enabledCount}</span>
+                    <span className="text-3xl font-bold text-blue-500">{enabledCount}</span>
                     <span className="ml-1 text-sm font-medium text-gray-500">개 좌표 선택됨</span>
                 </div>
             </div>
@@ -191,8 +191,8 @@ export function MapGridConfigurator({
                         key={preset.size}
                         onClick={() => applyPreset(preset.size)}
                         className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-medium ${enabledCount === preset.points
-                            ? 'border-[#00C896] bg-[#E5F9F4] text-[#00A87D]'
-                            : 'border-gray-200 hover:border-[#00C896]/50 hover:bg-[#E5F9F4]/50 text-gray-700'
+                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                            : 'border-gray-200 hover:border-blue-400/50 hover:bg-blue-50/50 text-gray-700'
                             }`}
                     >
                         <span className="text-lg">{preset.label}</span>
@@ -246,7 +246,7 @@ export function MapGridConfigurator({
             {/* Legend */}
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-[#00C896] flex items-center justify-center">
+                    <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
                         <MapPin className="w-3 h-3 text-white" />
                     </div>
                     <span>매장 위치</span>

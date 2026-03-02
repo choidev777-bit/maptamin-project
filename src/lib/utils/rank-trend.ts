@@ -11,8 +11,9 @@ export interface RankTrendDataPoint {
 }
 
 /**
- * 주간 리포트(report_type='weekly') 기반으로 키워드별 평균 순위 시계열 데이터를 계산합니다.
- * 실시간(realtime) 및 웰컴(welcome) 리포트는 제외됩니다.
+ * 웰컴 리포트(report_type='welcome')와 주간 리포트(report_type='weekly') 기반으로
+ * 키워드별 평균 순위 시계열 데이터를 계산합니다.
+ * 실시간(realtime) 리포트는 제외됩니다.
  *
  * @param searches - 전체 검색 목록
  * @param searchResults - 전체 검색 결과 목록
@@ -29,9 +30,9 @@ export function calculateRankTrend(
     searches: Search[],
     searchResults: SearchResult[]
 ): RankTrendDataPoint[] {
-    // 1. 완료된 주간 리포트만 필터링
+    // 1. 완료된 웰컴 + 주간 리포트 필터링
     const weeklySearches = searches.filter(
-        (s) => s.report_type === 'weekly' && s.status === 'completed'
+        (s) => (s.report_type === 'weekly' || s.report_type === 'welcome') && s.status === 'completed'
     )
 
     if (weeklySearches.length === 0) {

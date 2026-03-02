@@ -200,8 +200,7 @@ export function KeywordManageModal({ isOpen, onClose, platform, maxKeywords }: K
                             <button
                                 onClick={addKeyword}
                                 disabled={!newKeyword.trim() || saving}
-                                className="px-4 py-2.5 text-white text-sm font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                                style={{ backgroundColor: accentColor }}
+                                className={`px-4 py-2.5 text-white text-sm font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 ${platform === 'naver' ? 'bg-[#00C896] hover:bg-[#00B386]' : 'bg-blue-500 hover:bg-blue-600'}`}
                             >
                                 <Plus className="w-4 h-4" />
                                 추가

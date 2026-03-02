@@ -58,7 +58,7 @@ export const PLAN_CONFIG: Record<string, {
         ticketsGoogle: 0,
         keywordsNaver: 5,
         keywordsGoogle: 0,
-        competitorsNaver: 1,
+        competitorsNaver: 3,
         competitorsGoogle: 0,
         channels: 'naver',
         placeLock: true, // 30일 매장 변경 락 적용

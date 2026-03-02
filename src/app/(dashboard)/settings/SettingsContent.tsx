@@ -3,14 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { User, Mail, Calendar, Crown, LogOut, Settings, ChevronRight, Zap, Lock, Key, Loader2, Pencil, X, Check } from 'lucide-react'
+import { User, Mail, Calendar, LogOut, Settings, Zap, Lock, Key, Loader2, Pencil, X, Check } from 'lucide-react'
 import Image from 'next/image'
+import * as Dialog from '@radix-ui/react-dialog'
 import { MyShopManager } from '@/components/settings/MyShopManager'
 import { CompetitorManager } from '@/components/settings/CompetitorManager'
 import { KeywordManager } from '@/components/settings/KeywordManager'
-import { DeleteAccountSection } from '@/components/settings/DeleteAccountSection'
 import { UpgradePrompt } from '@/components/dashboard/UpgradePrompt'
-import { CancelSubscriptionSection } from '@/components/settings/CancelSubscriptionSection'
 import { isSubscribed, canManageCompetitors, canAccessPlatform, getRequiredPlanForCompetitors } from '@/lib/utils/subscription'
 import { EmailInput, isValidEmail } from '@/components/ui/EmailInput'
 
@@ -49,11 +48,35 @@ export function SettingsContent({ user, planStats }: Props) {
     const [emailSaving, setEmailSaving] = useState(false)
     const [emailMessage, setEmailMessage] = useState<string | null>(null)
 
+    // 회원탈퇴 state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [deleteConfirmText, setDeleteConfirmText] = useState('')
+    const [isDeleting, setIsDeleting] = useState(false)
+    const [deleteError, setDeleteError] = useState<string | null>(null)
+
     const handleLogout = async () => {
         setIsLoggingOut(true)
         const supabase = createClient()
         await supabase.auth.signOut()
         router.push('/login')
+    }
+
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmText !== 'delete') return
+        setIsDeleting(true)
+        setDeleteError(null)
+        try {
+            const response = await fetch('/api/auth/delete-account', { method: 'DELETE' })
+            const data = await response.json()
+            if (!response.ok) throw new Error(data.error || 'Failed to delete account')
+            const supabase = createClient()
+            await supabase.auth.signOut()
+            router.push('/login?deleted=true')
+        } catch (err: any) {
+            console.error('Delete account error:', err)
+            setDeleteError(err.message || '알 수 없는 오류가 발생했습니다.')
+            setIsDeleting(false)
+        }
     }
 
     const formatDate = (dateString: string) => {
@@ -201,42 +224,6 @@ export function SettingsContent({ user, planStats }: Props) {
                 </div>
             </div>
 
-            {/* Plan Section */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">구독 플랜</h2>
-
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${planBgClass}`}>
-                            <Crown className={`w-5 h-5 ${planIconClass}`} />
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-gray-900">{planDisplayName}</h3>
-                            <p className="text-sm text-gray-500">
-                                {subscribed
-                                    ? `경쟁사 최대 ${planStats.limitCompetitorNaver + planStats.limitCompetitorGoogle}개 등록 가능`
-                                    : '구독하여 모든 기능을 이용하세요'
-                                }
-                            </p>
-                        </div>
-                    </div>
-
-                    {planStats.plan !== 'premium' && (
-                        <button
-                            onClick={() => router.push('/dashboard/subscription')}
-                            className="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-[#00C896] to-emerald-600 text-white text-sm font-medium rounded-lg hover:from-[#00B386] hover:to-emerald-700 transition-all"
-                        >
-                            {subscribed ? '업그레이드' : '구독하기'}
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
-                    )}
-                </div>
-
-                {/* 구독 해지 (유료 사용자만 표시) */}
-                {subscribed && (
-                    <CancelSubscriptionSection planDisplayName={planDisplayName} />
-                )}
-            </div>
 
             {/* My Shop Management */}
             <div className="mb-6">
@@ -312,8 +299,76 @@ export function SettingsContent({ user, planStats }: Props) {
                 </button>
             </div>
 
-            {/* Danger Zone */}
-            <DeleteAccountSection />
+            <div className="mt-2 text-right">
+                <Dialog.Root open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                    <Dialog.Trigger asChild>
+                        <button className="text-sm text-red-500 hover:text-red-600 hover:underline transition-colors">
+                            계정 삭제
+                        </button>
+                    </Dialog.Trigger>
+
+                    <Dialog.Portal>
+                        <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-in fade-in" />
+                        <Dialog.Content className="fixed left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%] w-full max-w-md bg-white rounded-xl shadow-2xl p-6 z-50 animate-in zoom-in-95 duration-200 border border-gray-100">
+                            <Dialog.Title className="text-xl font-bold text-gray-900 mb-2">
+                                정말 계정을 삭제하시겠습니까?
+                            </Dialog.Title>
+
+                            <Dialog.Description className="text-gray-500 text-sm mb-6 bg-gray-50 p-3 rounded-lg border border-gray-100">
+                                이 작업은 되돌릴 수 없습니다. 귀하의 모든 데이터가 서버에서 즉시 영구 삭제됩니다.
+                            </Dialog.Description>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label htmlFor="confirm-delete" className="text-sm font-medium text-gray-700 block">
+                                        확인을 위해 아래 입력창에 <span className="font-bold text-red-600">delete</span>를 입력해주세요.
+                                    </label>
+                                    <input
+                                        id="confirm-delete"
+                                        type="text"
+                                        value={deleteConfirmText}
+                                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                        placeholder="delete"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+                                        autoComplete="off"
+                                    />
+                                </div>
+
+                                {deleteError && (
+                                    <div className="p-3 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm">
+                                        {deleteError}
+                                    </div>
+                                )}
+
+                                <div className="flex items-center gap-3 pt-2">
+                                    <Dialog.Close asChild>
+                                        <button
+                                            disabled={isDeleting}
+                                            className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                                        >
+                                            취소
+                                        </button>
+                                    </Dialog.Close>
+                                    <button
+                                        onClick={handleDeleteAccount}
+                                        disabled={deleteConfirmText !== 'delete' || isDeleting}
+                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isDeleting ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                삭제 중...
+                                            </>
+                                        ) : (
+                                            '계정 영구 삭제'
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </Dialog.Content>
+                    </Dialog.Portal>
+                </Dialog.Root>
+            </div>
 
             {/* Upgrade Prompt Modal */}
             {upgradePrompt && (

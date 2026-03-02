@@ -137,7 +137,7 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                 const isPlaceLocked = !lockExempt && data.locked_until && new Date(data.locked_until) > new Date()
                 return (
                     // Active State
-                    <div className={`group relative flex flex-col sm:flex-row gap-4 p-5 rounded-xl bg-white dark:bg-slate-800 border-2 shadow-[0_4px_20px_rgba(0,199,149,0.15)] transition-all ${platform === 'naver' ? 'border-[#00C896]' : 'border-blue-500'}`}>
+                    <div className={`group relative flex flex-col sm:flex-row gap-4 p-5 rounded-xl bg-white dark:bg-slate-800 border-2 transition-all ${platform === 'naver' ? 'border-[#00C896] shadow-[0_4px_20px_rgba(0,199,149,0.15)]' : 'border-blue-500 shadow-[0_4px_20px_rgba(59,130,246,0.15)]'}`}>
                         <div className="w-full sm:w-32 aspect-square rounded-lg bg-slate-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
                             <Store className={`w-12 h-12 ${platform === 'naver' ? 'text-[#00C896]/50' : 'text-blue-500/50'}`} />
                         </div>
@@ -198,11 +198,11 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                                         }`}
                                     title={isPlaceLocked ? `${new Date(data.locked_until!).toLocaleDateString('ko-KR')}까지 변경 제한` : '매장 정보 변경'}
                                 >
-                                    {isPlaceLocked ? '변경 제한 중' : '정보 변경'}
+                                    {isPlaceLocked ? '변경 제한 중' : '매장 변경'}
                                 </button>
                                 <button
                                     onClick={() => router.push(platform === 'naver' ? '/naver-search/new?mode=my-shop' : '/search/new?mode=my-shop')}
-                                    className="flex-1 bg-[#00C896] hover:bg-[#00B386] text-white text-sm font-bold py-2 rounded-lg transition-colors"
+                                    className={`flex-1 text-white text-sm font-bold py-2 rounded-lg transition-colors ${platform === 'naver' ? 'bg-[#00C896] hover:bg-[#00B386]' : 'bg-blue-500 hover:bg-blue-600'}`}
                                 >
                                     순위 분석
                                 </button>

@@ -12,8 +12,8 @@ interface Props {
 export function DashboardHeader({ hasActiveWeeklyReport, nextReportDate }: Props) {
     // Generate text based on status
     const statusText = hasActiveWeeklyReport
-        ? `주간 자동 리포트: ON${nextReportDate ? ` (${format(nextReportDate, 'EEEE', { locale: ko })} 발송 예정)` : ''}`
-        : '주간 자동 리포트: OFF'
+        ? '주간 자동 보고서: 켜짐'
+        : '주간 자동 보고서: 꺼짐'
 
     return (
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">

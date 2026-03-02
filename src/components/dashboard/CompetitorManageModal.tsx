@@ -179,8 +179,7 @@ export function CompetitorManageModal({ isOpen, onClose, platform, maxCompetitor
                         <div className="p-5 border-t border-gray-100 dark:border-slate-700">
                             <button
                                 onClick={() => setIsPlaceModalOpen(true)}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-bold rounded-lg transition-colors"
-                                style={{ backgroundColor: accentColor }}
+                                className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-bold rounded-lg transition-colors ${platform === 'naver' ? 'bg-[#00C896] hover:bg-[#00B386]' : 'bg-blue-500 hover:bg-blue-600'}`}
                             >
                                 <Plus className="w-4 h-4" />
                                 경쟁사 추가
