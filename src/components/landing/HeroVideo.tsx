@@ -1,3 +1,5 @@
+'use client'
+
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig, spring, random, Img, staticFile } from "remotion";
 
