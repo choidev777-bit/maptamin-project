@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import HeroMapAnimation from './HeroMapAnimation'
 
 export default function HeroSection() {
     return (
@@ -61,26 +62,8 @@ export default function HeroSection() {
                         </div>
                     </div>
 
-                    {/* ── 우측: 히어로 영상 ── */}
-                    <div className="w-full lg:w-1/2">
-                        <div className="relative mx-auto w-full max-w-lg">
-                            {/* 뒤 글로우 효과 */}
-                            <div className="pointer-events-none absolute -inset-4 rounded-3xl bg-[#00C896]/10 blur-2xl" />
-                            {/* 영상 카드 */}
-                            <div className="relative overflow-hidden rounded-2xl border border-gray-200 shadow-[0_30px_60px_-12px_rgba(15,35,30,0.1)]">
-                                <video
-                                    autoPlay
-                                    loop
-                                    muted
-                                    playsInline
-                                    preload="auto"
-                                    className="w-full"
-                                >
-                                    <source src="/videos/Herovideoooo.mp4" type="video/mp4" />
-                                </video>
-                            </div>
-                        </div>
-                    </div>
+                    {/* ── 우측: 3단계 순위 애니메이션 ── */}
+                    <HeroMapAnimation />
                 </div>
             </div>
         </section>
