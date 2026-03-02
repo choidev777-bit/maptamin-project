@@ -111,10 +111,55 @@ async function fetchListApiResults(
 
 /**
  * __APOLLO_STATE__ 객체에서 매장 데이터를 추출합니다.
- * - "ListSummary:" 키 패턴으로 매장 항목 필터링
- * - adDescription이 있으면 광고로 제외
+ *
+ * 1차: ROOT_QUERY의 메인 리스트 items 배열을 순서대로 resolve (순서 보장, 새로오픈 섹션 자동 제외)
+ * 2차(fallback): ROOT_QUERY 없으면 기존 flat scan 방식 사용 (정규식 추출 등의 경우)
+ *
+ * 참고: ROOT_QUERY 방식에서는 newOpening 필터가 불필요 (메인 리스트에 있는 항목만 추출하므로)
+ * "새로 오픈했어요" 섹션 전용 매장은 별도 쿼리(filterOpening:true)에만 존재하여 자동 제외됨
  */
 function extractPlacesFromApolloState(apolloState: Record<string, any>): NaverPlaceResult[] {
+    // ── 1차: ROOT_QUERY 기반 추출 ──
+    const rootQuery = apolloState['ROOT_QUERY'];
+    if (rootQuery) {
+        const mainListKey = Object.keys(rootQuery).find(key =>
+            key.includes('"display"') &&
+            !key.includes('"filterOpening":true') &&
+            rootQuery[key]?.items?.length > 0
+        );
+
+        if (mainListKey) {
+            const listData = rootQuery[mainListKey];
+            if (listData?.items && Array.isArray(listData.items)) {
+                const results: NaverPlaceResult[] = [];
+
+                for (const item of listData.items) {
+                    const ref = item?.__ref;
+                    if (!ref) continue;
+
+                    const value = apolloState[ref];
+                    if (!value || !value.name || !value.id) continue;
+
+                    // 🚫 광고 필터링 (안전장치)
+                    if (value.adDescription) continue;
+
+                    results.push({
+                        rank: results.length + 1,
+                        businessName: value.name,
+                        naverPlaceId: String(value.id),
+                        category: value.category || '',
+                        address: value.roadAddress || value.address || '',
+                    });
+                }
+
+                console.log(`[Scraper Ex2] ✅ ROOT_QUERY 추출: ${results.length}개 결과 (광고 제외)`);
+                return results.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
+            }
+        }
+    }
+
+    // ── Fallback: 기존 flat scan (ROOT_QUERY 없을 때) ──
+    console.log(`[Scraper Ex2] ⚠️ ROOT_QUERY 없음. Fallback: flat scan 사용`);
     const results: NaverPlaceResult[] = [];
 
     for (const [key, value] of Object.entries(apolloState)) {
@@ -126,7 +171,7 @@ function extractPlacesFromApolloState(apolloState: Record<string, any>): NaverPl
         // 🚫 광고 필터링
         if (value.adDescription) continue;
 
-        // 🚫 신규 오픈 광고 필터링
+        // 🚫 신규 오픈 필터링 (fallback에서만 유지 — 새로오픈 섹션 항목 혼입 방지)
         if (value.newOpening === true) continue;
 
         results.push({
@@ -138,7 +183,7 @@ function extractPlacesFromApolloState(apolloState: Record<string, any>): NaverPl
         });
     }
 
-    console.log(`[Scraper Ex2] ✅ List API: ${results.length}개 결과 추출 (광고 제외)`);
+    console.log(`[Scraper Ex2] ✅ Fallback: ${results.length}개 결과 추출 (광고+신규오픈 제외)`);
     return results.slice(0, NAVER_SCRAPER_CONFIG.maxResults);
 }
 
