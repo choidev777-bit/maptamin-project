@@ -309,7 +309,7 @@ export function TicketShopContent({
 
             {/* 안내 텍스트 */}
             <p className="text-xs text-gray-400 text-center mt-4 leading-relaxed">
-                구매 후 7일 이내에 미사용 시 전액 환불이 가능합니다.
+                미사용 티켓은 구매 후 7일 이내 환불 가능합니다. (사용한 티켓 제외)
                 <br />
                 자세한 내용은{' '}
                 <a href="/terms" className="underline hover:text-gray-600">
