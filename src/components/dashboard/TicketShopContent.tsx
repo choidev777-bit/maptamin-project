@@ -317,6 +317,8 @@ export function TicketShopContent({
 
             {/* 안내 텍스트 */}
             <p className="text-xs text-gray-400 text-center mt-4 leading-relaxed">
+                서비스 제공 기간: 결제 즉시 사용 가능
+                <br />
                 미사용 티켓은 구매 후 7일 이내 환불 가능합니다. (사용한 티켓 제외)
                 <br />
                 자세한 내용은{' '}
