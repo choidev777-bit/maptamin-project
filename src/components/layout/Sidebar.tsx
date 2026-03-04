@@ -123,8 +123,9 @@ export function Sidebar({
     ]
 
     const bottomRoutes: NavRoute[] = [
-        { href: '/settings', label: '설정', icon: Settings, match: 'startsWith' },
+        { href: '/dashboard/shop', label: '티켓 상점', icon: Ticket, match: 'startsWith' },
         { href: '/dashboard/subscription', label: '구독 관리', icon: CreditCard, match: 'startsWith' },
+        { href: '/settings', label: '설정', icon: Settings, match: 'startsWith' },
     ]
 
     const allRoutes = [...mainRoutes, ...searchSubRoutes, ...bottomRoutes]
