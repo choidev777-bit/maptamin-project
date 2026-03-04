@@ -109,6 +109,14 @@ export function TicketShopContent({
                 </p>
             </div>
 
+            {/* 상품 설명 */}
+            <div className="bg-gray-50 rounded-xl border border-gray-200 p-5 mb-6">
+                <h2 className="text-sm font-semibold text-gray-700 mb-2">실시간 진단 티켓이란?</h2>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                    정기 리포트(주 1회) 외에, 지금 당장 내 매장 순위가 궁금할 때 사용하는 즉시 조회 기능입니다. 소진 시 추가 구매가 가능합니다. (1,500원/장)
+                </p>
+            </div>
+
             {/* 현재 보유 티켓 */}
             <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6 shadow-sm">
                 <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">

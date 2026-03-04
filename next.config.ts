@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -25,5 +26,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  org: "kyeonjun-cho",
+  project: "javascript-nextjs",
+
+  // CI 환경에서만 소스맵 업로드 로그 출력
+  silent: !process.env.CI,
+});
+
 
