@@ -6,6 +6,8 @@ import { ArrowLeft, Minus, Plus, Lock, ShoppingCart, CreditCard, Ticket, Loader2
 import { canAccessPlatform, getPlanDisplayName } from '@/lib/utils/subscription'
 import { TICKET_PRICE, calculateTicketPrice, formatPrice } from '@/lib/pricing/ticket-price'
 import { requestTicketPayment } from '@/lib/portone/client'
+import { PaymentMethodSelector } from '@/components/ui/PaymentMethodSelector'
+import type { PaymentMethod } from '@/lib/portone/types'
 
 interface Props {
     planId: string
@@ -25,6 +27,7 @@ export function TicketShopContent({
     const [quantity, setQuantity] = useState(1)
     const [isPurchasing, setIsPurchasing] = useState(false)
     const [resultMessage, setResultMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('card')
 
     const hasGoogle = canAccessPlatform(planId, 'google')
     const planName = getPlanDisplayName(planId)
@@ -54,6 +57,7 @@ export function TicketShopContent({
                 platform: selectedPlatform,
                 quantity,
                 totalAmount: calculateTicketPrice(quantity),
+                paymentMethod: selectedPaymentMethod,
             });
 
             if (!paymentResult.success || !paymentResult.paymentId) {
@@ -225,6 +229,18 @@ export function TicketShopContent({
                         구글 티켓은 프리미엄 플랜에서만 구매 가능합니다.
                     </p>
                 )}
+            </div>
+
+            {/* 결제 수단 선택 */}
+            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6 shadow-sm">
+                <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                    <CreditCard className="w-4 h-4 text-gray-400" />
+                    결제 수단
+                </h2>
+                <PaymentMethodSelector
+                    value={selectedPaymentMethod}
+                    onChange={setSelectedPaymentMethod}
+                />
             </div>
 
             {/* 수량 선택 + 금액 */}

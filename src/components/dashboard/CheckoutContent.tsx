@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Check, CreditCard, Loader2, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, CreditCard, Loader2, ShieldCheck } from 'lucide-react'
 import { requestBillingKey } from '@/lib/portone/subscription-client'
 import { PLAN_CONFIG } from '@/lib/pricing/config'
 import { createClient } from '@/lib/supabase/client'
 import { EmailInput, isValidEmail } from '@/components/ui/EmailInput'
+import { PaymentMethodSelector } from '@/components/ui/PaymentMethodSelector'
+import type { PaymentMethod } from '@/lib/portone/types'
 
 /* ──────────────────────────────────────────────
  * 유효한 유료 플랜 ID
@@ -30,6 +32,7 @@ export function CheckoutContent() {
     const [email, setEmail] = useState('')
     const [emailLoading, setEmailLoading] = useState(true)
     const [hasExistingEmail, setHasExistingEmail] = useState(false)
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('card')
 
     // 기존 이메일 로드
     useEffect(() => {
@@ -94,14 +97,29 @@ export function CheckoutContent() {
         setError(null)
 
         try {
-            // 1. PortOne SDK로 빌링키 발급 (결제창 팝업)
-            // 주의: requestBillingKey는 클라이언트 사이드 SDK이므로 여기서 호출
+            const isKakaopay = selectedPaymentMethod === 'kakaopay'
+            const termsAgreedAt = new Date().toISOString()
+
+            // 카카오페이 모바일 redirectUrl: planId·email·termsAgreedAt을 파라미터로 포함
+            const redirectUrl = isKakaopay
+                ? `${window.location.origin}/dashboard/subscription/payment-return` +
+                  `?planId=${encodeURIComponent(planId)}` +
+                  `&email=${encodeURIComponent(email)}` +
+                  `&termsAgreedAt=${encodeURIComponent(termsAgreedAt)}`
+                : undefined
+
+            // 1. PortOne SDK로 빌링키 발급 (결제창 팝업 or 카카오페이 앱 이동)
             const billingResult = await requestBillingKey({
                 planId,
+                paymentMethod: selectedPaymentMethod,
+                ...(redirectUrl && { redirectUrl }),
             })
 
+            // 카카오페이 모바일 REDIRECTION 케이스:
+            // requestBillingKey Promise가 resolve되지 않고 앱 이동 → redirectUrl 페이지에서 처리
+            // PC 카카오페이(IFRAME)나 카드는 Promise가 정상 resolve됨
             if (!billingResult.success || !billingResult.billingKey) {
-                throw new Error(billingResult.error || '카드 등록에 실패했습니다.')
+                throw new Error(billingResult.error || `${isKakaopay ? '카카오페이' : '카드'} 등록에 실패했습니다.`)
             }
 
             // 2. 서버에 구독 시작 요청
@@ -162,18 +180,10 @@ export function CheckoutContent() {
                             <CreditCard className="w-5 h-5" />
                             결제 수단
                         </h2>
-                        <div className="p-4 rounded-xl border-2 border-primary/20 bg-primary/5 dark:bg-primary/10 dark:border-primary/30 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                                    <CreditCard className="w-6 h-6 text-primary" />
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-gray-900 dark:text-gray-100">신용/체크카드</p>
-                                    <p className="text-sm text-gray-500">한국 발행 모든 카드 지원</p>
-                                </div>
-                            </div>
-                            <Check className="w-5 h-5 text-primary" />
-                        </div>
+                        <PaymentMethodSelector
+                            value={selectedPaymentMethod}
+                            onChange={setSelectedPaymentMethod}
+                        />
                     </section>
 
                     {/* Email Section */}
@@ -260,15 +270,11 @@ export function CheckoutContent() {
                             </div>
                         </div>
 
-                        <div className="space-y-2 mb-6 text-sm text-gray-600 dark:text-gray-400">
-                            <div className="flex justify-between">
-                                <span>결제 금액 (VAT 포함)</span>
-                                <span>₩{totalAmountDisplay}</span>
+                        <div className="flex justify-between items-center mb-8">
+                            <div>
+                                <span className="text-lg font-bold text-gray-900 dark:text-gray-100">총 결제 금액</span>
+                                <p className="text-xs text-gray-400 mt-0.5">VAT 포함</p>
                             </div>
-                        </div>
-
-                        <div className="flex justify-between items-center mb-8 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">총 결제 금액</span>
                             <span className="text-2xl font-bold text-primary">
                                 ₩{totalAmountDisplay}
                             </span>

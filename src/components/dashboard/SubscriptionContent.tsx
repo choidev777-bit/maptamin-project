@@ -561,7 +561,7 @@ export function SubscriptionContent({
                 <p className="mt-2 text-slate-500">플랜, 결제 수단 및 청구 내역을 관리하세요.</p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+            {currentPlanId !== 'free' && <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
                 {/* 1. Subscription Overview Card */}
                 <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
                     <div className="flex justify-between items-start mb-6">
@@ -632,6 +632,8 @@ export function SubscriptionContent({
                                         </div>
                                     ) : isCanceled ? (
                                         <p className="font-medium text-red-600">구독 만료됨</p>
+                                    ) : currentPlanId === 'free' ? (
+                                        <p className="font-medium text-slate-500">무료 플랜 이용 중</p>
                                     ) : (
                                         <p className="font-medium text-[#00C896]">자동 결제 활성화 상태</p>
                                     )}
@@ -662,24 +664,46 @@ export function SubscriptionContent({
 
                     <div className="flex-grow flex flex-col justify-center">
                         <div className="flex items-center gap-4 p-4 rounded-xl bg-slate-50 border border-slate-100 mb-6">
-                            <div className="w-12 h-8 bg-slate-800 rounded flex items-center justify-center overflow-hidden">
-                                <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
-                                    <span className="text-[8px] text-white/50 font-bold italic">CARD</span>
-                                </div>
-                            </div>
-                            <div>
-                                {cardBrand && cardLast4 ? (
-                                    <>
+                            {cardBrand && cardLast4 ? (
+                                // 카드 결제 수단
+                                <>
+                                    <div className="w-12 h-8 bg-slate-800 rounded flex items-center justify-center overflow-hidden">
+                                        <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
+                                            <span className="text-[8px] text-white/50 font-bold italic">CARD</span>
+                                        </div>
+                                    </div>
+                                    <div>
                                         <p className="font-bold text-sm text-[#001011]">{cardBrand}</p>
                                         <p className="text-xs text-slate-500 tracking-widest">•••• {cardLast4}</p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <p className="font-bold text-sm text-[#001011]">등록된 카드 없음</p>
-                                        <p className="text-xs text-slate-500">결제 수단이 없습니다.</p>
-                                    </>
-                                )}
-                            </div>
+                                    </div>
+                                </>
+                            ) : (isSubscribed || isCancelScheduled) && cardBrand === null && cardLast4 === null ? (
+                                // 카카오페이 (구독 활성 상태이면서 card 정보 없음 = 카카오페이로 추정)
+                                <>
+                                    <div className="w-12 h-8 bg-[#FEE500] rounded flex items-center justify-center">
+                                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <path d="M12 3C7.03 3 3 6.36 3 10.5c0 2.65 1.71 4.98 4.31 6.35l-.96 3.57 3.92-2.59C10.71 17.94 11.35 18 12 18c4.97 0 9-3.36 9-7.5S16.97 3 12 3z" fill="#3A1D1D"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm text-[#001011]">카카오페이</p>
+                                        <p className="text-xs text-slate-500">간편결제</p>
+                                    </div>
+                                </>
+                            ) : (
+                                // 결제 수단 미등록
+                                <div className="w-12 h-8 bg-slate-800 rounded flex items-center justify-center overflow-hidden">
+                                    <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center">
+                                        <span className="text-[8px] text-white/50 font-bold italic">CARD</span>
+                                    </div>
+                                </div>
+                            )}
+                            {!(cardBrand && cardLast4) && !(cardBrand === null && cardLast4 === null) && (
+                                <div>
+                                    <p className="font-bold text-sm text-[#001011]">등록된 카드 없음</p>
+                                    <p className="text-xs text-slate-500">결제 수단이 없습니다.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -691,7 +715,7 @@ export function SubscriptionContent({
                         결제 수단 변경
                     </button>
                 </div>
-            </div>
+            </div>}
 
             {/* Billing History Table */}
             {(isSubscribed || isCancelScheduled) && (
@@ -793,7 +817,7 @@ export function SubscriptionContent({
                                     </div>
                                 )}
 
-                                <h4 className={`text-lg font-bold ${isHigherPlan ? 'text-[#00C896]' : 'text-gray-900'}`}>
+                                <h4 className="text-lg font-bold text-gray-900">
                                     {plan.name}
                                 </h4>
                                 <div className="mt-4 flex items-baseline gap-1">
