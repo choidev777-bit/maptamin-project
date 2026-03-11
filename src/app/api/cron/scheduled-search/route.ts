@@ -5,7 +5,7 @@
  * 1. CRON_SECRET 인증
  * 2. KST 기준 현재 요일/시간으로 활성 스케줄 조회
  * 3. 매칭되는 스케줄마다 search 레코드 생성
- * 4. /api/queue/dispatch 호출하여 GitHub Actions 트리거
+ * 4. /api/queue/dispatch 호출하여 Oracle VM Worker 트리거
  */
 
 import { createClient } from '@supabase/supabase-js'

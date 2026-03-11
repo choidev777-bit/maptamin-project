@@ -1,7 +1,10 @@
 name: Manual Search Dispatch
 on:
-  repository_dispatch:
-    types: [manual_search]
+  # repository_dispatch 비활성화 — Oracle VM으로 전환 (2026-03-11)
+  # 롤백 필요 시 아래 주석 해제
+  # repository_dispatch:
+  #   types: [manual_search]
+  workflow_dispatch:  # 수동 테스트용으로만 유지
 
 jobs:
   run-search:
