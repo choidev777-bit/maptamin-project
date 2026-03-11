@@ -89,12 +89,30 @@ function runSearchInBackground(mode: string, searchId?: string) {
     child.on('close', (code: number | null) => {
         console.log(`[VM Worker] Job ${jobKey} exited with code ${code}`);
         if (searchId) activeJobs.delete(searchId);
+        // 작업 완료 → 대기열에서 다음 작업 호출
+        triggerDispatch();
     });
 
     child.on('error', (err: Error) => {
         console.error(`[VM Worker] Failed to spawn job ${jobKey}:`, err.message);
         if (searchId) activeJobs.delete(searchId);
+        // 에러 시에도 대기열에서 다음 작업 호출
+        triggerDispatch();
     });
+}
+
+// ── 대기열 재호출: 작업 완료 시 다음 pending 작업을 자동 시작 ──
+async function triggerDispatch() {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.maptamin.com';
+    try {
+        await fetch(`${baseUrl}/api/queue/dispatch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        console.log('[VM Worker] ✅ Dispatch 재호출 완료');
+    } catch (err: any) {
+        console.error('[VM Worker] ❌ Dispatch 재호출 실패:', err.message);
+    }
 }
 
 // ── HTTP Server ──
