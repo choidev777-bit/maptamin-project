@@ -1,7 +1,7 @@
 /**
  * Queue Dispatcher API Route
  * 
- * POST: Dispatch pending searches to GitHub Actions
+ * POST: Dispatch pending searches to Oracle VM Worker
  * Called when:
  * 1. New search is created
  * 2. A job completes (webhook)
@@ -24,13 +24,13 @@ export async function POST(request: Request) {
 
     const supabase = createClient(supabaseUrl, serviceKey)
 
-    // GitHub config
-    const ghRepo = process.env.NEXT_PUBLIC_GITHUB_REPO
-    const ghPat = process.env.GH_PAT
+    // VM Worker config
+    const vmWorkerUrl = process.env.VM_WORKER_URL
+    const vmWorkerSecret = process.env.VM_WORKER_SECRET
 
-    if (!ghRepo || !ghPat) {
-        console.error('[Dispatcher] Missing GitHub configuration')
-        return NextResponse.json({ error: 'GitHub configuration missing' }, { status: 500 })
+    if (!vmWorkerUrl || !vmWorkerSecret) {
+        console.error('[Dispatcher] Missing VM Worker configuration')
+        return NextResponse.json({ error: 'VM Worker configuration missing' }, { status: 500 })
     }
 
     try {
@@ -50,35 +50,28 @@ export async function POST(request: Request) {
 
         console.log(`[Dispatcher] Found ${jobs.length} jobs to dispatch`)
 
-        // 2. Dispatch each job to GitHub Actions
-        const [owner, repo] = ghRepo.split('/')
-        const dispatchUrl = `https://api.github.com/repos/${owner}/${repo}/dispatches`
-
+        // 2. Dispatch each job to Oracle VM Worker
         let successCount = 0
         let failCount = 0
 
         for (const job of jobs) {
             try {
-                console.log(`[Dispatcher] Dispatching job ${job.search_id}...`)
+                console.log(`[Dispatcher] Dispatching job ${job.search_id} to VM Worker...`)
 
-                const response = await fetch(dispatchUrl, {
+                const response = await fetch(`${vmWorkerUrl}/run`, {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${ghPat}`,
-                        'Accept': 'application/vnd.github.v3+json',
+                        'Authorization': `Bearer ${vmWorkerSecret}`,
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        event_type: 'manual_search',
-                        client_payload: {
-                            search_id: job.search_id
-                        }
+                        search_id: job.search_id
                     })
                 })
 
                 if (!response.ok) {
                     const errorText = await response.text()
-                    console.error(`[Dispatcher] GitHub dispatch failed for ${job.search_id}: ${response.status} ${errorText}`)
+                    console.error(`[Dispatcher] VM Worker dispatch failed for ${job.search_id}: ${response.status} ${errorText}`)
 
                     // Rollback to pending on failure
                     await supabase.rpc('rollback_to_pending', { p_search_id: job.search_id })

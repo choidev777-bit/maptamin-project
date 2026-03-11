@@ -1,7 +1,7 @@
 /**
  * Naver Search Process API Route
  * 
- * POST: GitHub Actions 워크플로우를 트리거하여 스크래핑 위임
+ * POST: Oracle VM Worker를 트리거하여 스크래핑 위임
  */
 
 import { createClient } from '@/lib/supabase/server'
@@ -38,14 +38,14 @@ export async function POST(
         return NextResponse.json({ error: 'Search already completed or processing' }, { status: 400 })
     }
 
-    // 4. GitHub Actions 트리거 설정을 위한 환경 변수 확인
-    const ghRepo = process.env.NEXT_PUBLIC_GITHUB_REPO
-    const ghPat = process.env.GH_PAT
+    // 4. VM Worker 설정 확인
+    const vmWorkerUrl = process.env.VM_WORKER_URL
+    const vmWorkerSecret = process.env.VM_WORKER_SECRET
 
-    if (!ghRepo || !ghPat) {
-        console.error('[API] Missing GitHub Config for Naver Search')
+    if (!vmWorkerUrl || !vmWorkerSecret) {
+        console.error('[API] Missing VM Worker Config for Naver Search')
         return NextResponse.json({
-            error: 'Server configuration error: GitHub secrets missing'
+            error: 'Server configuration error: VM Worker config missing'
         }, { status: 500 })
     }
 
@@ -56,45 +56,34 @@ export async function POST(
             .update({ status: 'processing' })
             .eq('id', searchId)
 
-        // 6. GitHub Dispatch 실행
-        const [owner, repo] = ghRepo.split('/')
-        const dispatchUrl = `https://api.github.com/repos/${owner}/${repo}/dispatches`
+        // 6. VM Worker에 크롤링 요청
+        console.log(`[API] Dispatching to VM Worker for SearchID: ${searchId}`)
 
-        console.log(`[API] Dispatching manual_search to ${owner}/${repo} for SearchID: ${searchId}`)
-
-        const response = await fetch(dispatchUrl, {
+        const response = await fetch(`${vmWorkerUrl}/run`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${ghPat}`,
-                'Accept': 'application/vnd.github.v3+json',
+                'Authorization': `Bearer ${vmWorkerSecret}`,
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                event_type: 'manual_search',
-                client_payload: {
-                    search_id: searchId
-                }
+                search_id: searchId
             })
         })
 
         if (!response.ok) {
             const errorText = await response.text()
-            console.error(`[API] GitHub Dispatch Failed: ${response.status} ${errorText}`)
+            console.error(`[API] VM Worker Dispatch Failed: ${response.status} ${errorText}`)
 
             // 실패 시 상태를 failed로 변경
             await supabase
                 .from('searches')
-                .update({
-                    status: 'failed',
-                    // user_credits 환불 로직은 별도 처리하거나 수동 조치 필요하지만
-                    // 여기서는 일단 상태만 업데이트함
-                })
+                .update({ status: 'failed' })
                 .eq('id', searchId)
 
-            throw new Error(`GitHub Dispatch failed: ${response.status}`)
+            throw new Error(`VM Worker dispatch failed: ${response.status}`)
         }
 
-        console.log('[API] Naver Search dispatched successfully')
+        console.log('[API] Naver Search dispatched to VM Worker successfully')
 
         return NextResponse.json({
             success: true,
@@ -106,7 +95,7 @@ export async function POST(
         console.error('=== NAVER PROCESS ERROR ===')
         console.error('Error details:', error)
 
-        // 상태를 failed로 업데이트 (이미 위에서 일부 처리했으나 안전장치)
+        // 상태를 failed로 업데이트 (안전장치)
         await supabase
             .from('searches')
             .update({ status: 'failed' })
@@ -116,3 +105,4 @@ export async function POST(
         return NextResponse.json({ error: errorMessage }, { status: 500 })
     }
 }
+
