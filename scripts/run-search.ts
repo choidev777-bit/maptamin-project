@@ -1,10 +1,14 @@
 import 'dotenv/config'; // Must be first to ensure env vars are loaded before other imports
 import { createClient } from '@supabase/supabase-js';
 import { SolapiMessageService } from 'solapi';
+import nodemailer from 'nodemailer';
 
 import { scrapeNaverBatch } from '../src/lib/naver/scraper_ex2';
 import { NaverScrapeTask } from '../src/lib/naver/types';
 import { fetchMapRankBatch, MapRankTask } from '../src/lib/dataforseo/client';
+
+// ── 재시도 상수 ──
+const MAX_SEARCH_RETRIES = 3;
 
 // Initialize Admin Client (Bypass RLS)
 // This script runs in a secure environment (GitHub Actions)
@@ -293,6 +297,16 @@ async function processSearch(search: any) {
         const isAlive = await checkJobStatus(search.id);
 
         if (isAlive && results && results.length > 0) {
+            // ── 부분 실패 감지 (Naver only) ──
+            if (search.platform === 'naver') {
+                const failedTasks = results.filter((r: any) => !r.results || r.results.length === 0);
+                if (failedTasks.length > 0) {
+                    throw new Error(
+                        `Partial failure: ${failedTasks.length}/${results.length} tasks have empty results`
+                    );
+                }
+            }
+
             console.log(`[Worker] Saving ${results.length} results to database...`);
 
             // Map to 'search_results' table schema (platform별 매핑)
@@ -365,18 +379,97 @@ async function processSearch(search: any) {
     } catch (error: any) {
         console.error(`[Worker] Search ${search.id} Failed:`, error);
 
-        // Mark as failed
-        await supabase.from('searches').update({
-            status: 'failed',
-            // error_message column doesn't exist in schema, so we skip saving it to DB
-            // error_message: error.message || 'Unknown error' 
-        }).eq('id', search.id);
+        const currentRetryCount = search.retry_count ?? 0;
+        const isScheduled = search.report_type === 'weekly' || search.report_type === 'welcome';
 
-        // REFUND LOGIC — 실시간 진단만 티켓 환불 (웰컴=무료, 정기=티켓 미사용)
-        if (search.report_type === 'realtime') {
-            const platform = search.platform || 'naver';
-            await refundTicket(search.user_id, platform);
+        if (isScheduled && currentRetryCount < MAX_SEARCH_RETRIES) {
+            // 정기리포트: retry_count 증가 후 즉시 재실행
+            const nextRetry = currentRetryCount + 1;
+            console.log(`[Worker] 🔄 Scheduled job retry ${nextRetry}/${MAX_SEARCH_RETRIES}`);
+
+            await supabase.from('searches').update({
+                status: 'pending',
+                retry_count: nextRetry,
+            }).eq('id', search.id);
+
+            // 30초 대기 후 즉시 재실행 (dispatch/cron 의존하지 않음)
+            const RETRY_DELAY_MS = 30_000;
+            console.log(`[Worker] Waiting ${RETRY_DELAY_MS / 1000}s before retry...`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+
+            // search 객체에 retry_count 반영 후 재호출
+            search.retry_count = nextRetry;
+            search.status = 'pending';
+            await processSearch(search);
+        } else {
+            // 실시간 진단 또는 재시도 한도 초과 → 최종 실패
+            await supabase.from('searches').update({
+                status: 'failed',
+            }).eq('id', search.id);
+
+            if (search.report_type === 'realtime') {
+                const platform = search.platform || 'naver';
+                await refundTicket(search.user_id, platform);
+            } else if (isScheduled) {
+                console.log(`[Worker] ❌ Search ${search.id} permanently failed after ${currentRetryCount} retries.`);
+                // 🚨 관리자 이메일 알림
+                await sendAdminAlert({
+                    searchId: search.id,
+                    placeName: search.place_name,
+                    platform: search.platform,
+                    retryCount: currentRetryCount,
+                    errorMessage: error.message || 'Unknown error',
+                });
+            }
         }
+    }
+}
+
+// ── 관리자 이메일 알림 (최종 실패 시) ──
+async function sendAdminAlert(info: {
+    searchId: string;
+    placeName: string;
+    platform: string;
+    retryCount: number;
+    errorMessage: string;
+}) {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const gmailPassword = process.env.GMAIL_APP_PASSWORD;
+
+    if (!adminEmail || !gmailPassword) {
+        console.log('[Admin Alert] 이메일 환경변수 미설정 — 알림 건너뜀');
+        return;
+    }
+
+    try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: { user: adminEmail, pass: gmailPassword },
+        });
+
+        const kstTime = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+
+        await transporter.sendMail({
+            from: adminEmail,
+            to: adminEmail,
+            subject: `🚨 [Maptamin] 정기리포트 최종 실패: ${info.placeName}`,
+            text: [
+                `정기리포트가 ${info.retryCount + 1}회 시도 후 최종 실패했습니다.`,
+                ``,
+                `Search ID: ${info.searchId}`,
+                `업체명: ${info.placeName}`,
+                `플랫폼: ${info.platform}`,
+                `재시도 횟수: ${info.retryCount}`,
+                `에러: ${info.errorMessage}`,
+                `발생 시각: ${kstTime}`,
+                ``,
+                `Supabase에서 해당 검색을 확인해주세요.`,
+            ].join('\n'),
+        });
+
+        console.log(`[Admin Alert] ✅ 관리자 이메일 발송 완료`);
+    } catch (emailError: any) {
+        console.error(`[Admin Alert] ❌ 이메일 발송 실패:`, emailError.message);
     }
 }
 
