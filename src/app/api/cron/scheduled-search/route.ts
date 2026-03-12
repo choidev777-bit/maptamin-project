@@ -10,6 +10,7 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { generateGridPointsFromTemplate } from '@/lib/utils/grid-calculator'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -134,6 +135,18 @@ export async function POST(request: Request) {
 
                 // c. 검색 레코드 생성
                 const gridConfig = Array.isArray(job.grid_config) ? job.grid_config : []
+                const gridDistance = job.grid_distance || (gridConfig[0] as any)?.distance || 1
+                const centerLat = place?.lat || 0
+                const centerLng = place?.lng || 0
+
+                // col/row → lat/lng 좌표 변환 (이 변환 없이는 스크래퍼가 실패함)
+                const gridPointsWithCoords = generateGridPointsFromTemplate(
+                    centerLat,
+                    centerLng,
+                    gridConfig,
+                    gridDistance
+                )
+
                 const { data: search, error: insertError } = await supabase
                     .from('searches')
                     .insert({
@@ -141,12 +154,12 @@ export async function POST(request: Request) {
                         place_id: job.place_id,
                         place_name: job.place_name || '',
                         place_address: place?.address || '',
-                        place_lat: place?.lat || 0,
-                        place_lng: place?.lng || 0,
+                        place_lat: centerLat,
+                        place_lng: centerLng,
                         keywords: job.keywords || [],
                         platform: job.platform || 'naver',
-                        grid_points: gridConfig,
-                        grid_distance: job.grid_distance || (gridConfig[0] as any)?.distance || 1,
+                        grid_points: gridPointsWithCoords,
+                        grid_distance: gridDistance,
                         status: 'pending',
                         report_type: 'weekly',
                     })
