@@ -337,7 +337,7 @@ export default function OnboardingPage() {
                     </h2>
                     <p className="mt-3 text-sm text-gray-600 leading-relaxed">
                         몇 가지 설정만 완료하면 <br className="sm:hidden" />
-                        매주 자동으로 [플레이스 순위 지도] 리포트를 받을 수 있어요.
+                        매일 자동으로 [플레이스 순위 지도] 리포트를 받을 수 있어요.
                     </p>
                     <button
                         type="button"

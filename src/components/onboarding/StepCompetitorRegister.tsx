@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { AlertTriangle, Users, X, SkipForward, Loader2 } from 'lucide-react'
+import { PLAN_CONFIG } from '@/lib/pricing/config'
 
 const GoogleMapsProvider = dynamic(
     () => import('@/components/maps/GoogleMapsProvider').then(m => m.GoogleMapsProvider),
@@ -35,8 +36,8 @@ interface Props {
 
 const PLAN_COMPETITOR_LIMITS: Record<string, number> = {
     starter: 0,
-    pro: 1,
-    premium: 10,
+    pro: PLAN_CONFIG.pro.competitorsNaver,
+    premium: PLAN_CONFIG.premium.competitorsNaver,
 }
 
 export default function StepCompetitorRegister({ planId, onComplete, onSkip }: Props) {
@@ -53,14 +54,14 @@ export default function StepCompetitorRegister({ planId, onComplete, onSkip }: P
 
     // 네이버 경쟁사 추가
     const handleNaverSelect = (place: Place) => {
-        if (naverCompetitors.length >= maxCompetitors) return
+        if (maxCompetitors !== -1 && naverCompetitors.length >= maxCompetitors) return
         if (naverCompetitors.some(c => c.placeId === place.placeId)) return
         setNaverCompetitors(prev => [...prev, place])
     }
 
     // 구글 경쟁사 추가
     const handleGoogleSelect = (place: Place) => {
-        if (googleCompetitors.length >= maxCompetitors) return
+        if (maxCompetitors !== -1 && googleCompetitors.length >= maxCompetitors) return
         if (googleCompetitors.some(c => c.placeId === place.placeId)) return
         setGoogleCompetitors(prev => [...prev, place])
     }

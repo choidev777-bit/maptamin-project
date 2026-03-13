@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // 4. 구글 search는 GitHub dispatch 불필요
+    // 4. 구글 search는 별도 dispatch 불필요
     //    - 실시간: 클라이언트가 /api/search/{id}/process 직접 호출
     //    - 웰컴: 온보딩에서 /api/search/{id}/process fire-and-forget 호출
     //    - 정기: api/cron/scheduled-search → api/queue/dispatch 별도 경로 (이 API 무관)

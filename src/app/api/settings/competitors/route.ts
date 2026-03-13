@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
         if (fetchErr) throw fetchErr;
 
-        if ((existing?.length || 0) >= maxForPlatform) {
+        if (maxForPlatform !== -1 && (existing?.length || 0) >= maxForPlatform) {
             return NextResponse.json({
                 error: `${platform === 'naver' ? '네이버' : '구글'} 경쟁사는 최대 ${maxForPlatform}곳까지 등록 가능합니다.`
             }, { status: 400 });

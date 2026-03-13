@@ -121,15 +121,15 @@ export function ReportSettingsContent({
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
                         <CalendarClock className="mr-2 inline-block h-7 w-7 text-[#00C896]" />
-                        주간 리포트 설정
+                        자동 리포트 설정
                     </h1>
-                    <p className="mt-2 text-gray-500">매주 자동으로 순위를 분석하고 카카오톡으로 리포트를 받아보세요.</p>
+                    <p className="mt-2 text-gray-500">자동으로 순위를 분석하고 카카오톡으로 리포트를 받아보세요.</p>
                 </div>
                 <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 px-6 py-16 text-center">
                     <CalendarClock className="h-12 w-12 text-gray-300 mb-4" />
                     <h3 className="text-lg font-bold text-gray-700 mb-2">구독이 필요합니다</h3>
                     <p className="text-sm text-gray-500 mb-6">
-                        주간 리포트는 스타터 플랜부터 이용할 수 있습니다.
+                        자동 리포트는 스타터 플랜부터 이용할 수 있습니다.
                     </p>
                     <Link
                         href="/dashboard/subscription"
@@ -151,8 +151,11 @@ export function ReportSettingsContent({
 
     // ── Form State ──
     const [isActive, setIsActive] = useState(currentSchedule?.is_active ?? false)
-    const [crawlingDay, setCrawlingDay] = useState<number | null>(
-        currentSchedule?.crawling_day ?? (currentSchedule?.crawling_days?.[0] ?? null)
+    const [naverCrawlingDays, setNaverCrawlingDays] = useState<number[]>(
+        naverSchedule?.crawling_days ?? (naverSchedule?.crawling_day != null ? [naverSchedule.crawling_day] : [])
+    )
+    const [googleCrawlingDay, setGoogleCrawlingDay] = useState<number | null>(
+        googleSchedule?.crawling_day ?? null
     )
     const [crawlingTime, setCrawlingTime] = useState(currentSchedule?.crawling_time?.slice(0, 5) || '09:00')
     const [phone, setPhone] = useState(formatPhone(initialPhone))
@@ -197,7 +200,6 @@ export function ReportSettingsContent({
         setActiveTab(tab)
         const schedule = tab === 'naver' ? naverSchedule : googleSchedule
         setIsActive(schedule?.is_active ?? false)
-        setCrawlingDay(schedule?.crawling_day ?? (schedule?.crawling_days?.[0] ?? null))
         setCrawlingTime(schedule?.crawling_time?.slice(0, 5) || '09:00')
         setDistance(schedule?.grid_distance ?? 0.3)
         setSaveResult(null)
@@ -212,7 +214,13 @@ export function ReportSettingsContent({
     }, [defaultGrid, setCurrentPoints])
 
     const handleSave = async () => {
-        if (crawlingDay === null) {
+        // 네이버: 활성 상태에서 요일 0개면 경고
+        if (activeTab === 'naver' && naverCrawlingDays.length === 0 && isActive) {
+            setError('자동 리포트를 받을 요일을 1개 이상 선택해주세요.')
+            return
+        }
+        // 구글: 활성 상태에서 요일 미선택이면 경고
+        if (activeTab === 'google' && googleCrawlingDay === null && isActive) {
             setError('분석 요일을 선택해주세요.')
             return
         }
@@ -226,12 +234,16 @@ export function ReportSettingsContent({
         setSaveResult(null)
 
         try {
+            const crawlingDaysPayload = activeTab === 'naver'
+                ? naverCrawlingDays
+                : (googleCrawlingDay !== null ? [googleCrawlingDay] : [])
+
             const res = await fetch('/api/settings/schedule', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     platform: activeTab,
-                    crawling_days: [crawlingDay],
+                    crawling_days: crawlingDaysPayload,
                     crawling_time: crawlingTime,
                     grid_config: currentPoints,
                     grid_distance: distance,
@@ -267,10 +279,10 @@ export function ReportSettingsContent({
             <div>
                 <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
                     <CalendarClock className="mr-2 inline-block h-7 w-7 text-[#00C896]" />
-                    주간 리포트 설정
+                    자동 리포트 설정
                 </h1>
                 <p className="mt-2 text-gray-500">
-                    매주 자동으로 순위를 분석하고 카카오톡으로 리포트를 받아보세요.
+                    자동으로 순위를 분석하고 카카오톡으로 리포트를 받아보세요.
                 </p>
             </div>
 
@@ -306,9 +318,9 @@ export function ReportSettingsContent({
             {!currentSchedule && (
                 <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center">
                     <AlertTriangle className="mx-auto h-10 w-10 text-amber-400 mb-3" />
-                    <h3 className="text-lg font-bold text-gray-700 mb-2">설정된 주간 리포트가 없습니다</h3>
+                    <h3 className="text-lg font-bold text-gray-700 mb-2">설정된 자동 리포트가 없습니다</h3>
                     <p className="text-sm text-gray-500">
-                        온보딩을 완료하면 주간 리포트가 자동으로 설정됩니다.
+                        온보딩을 완료하면 자동 리포트가 설정됩니다.
                     </p>
                 </div>
             )}
@@ -345,9 +357,9 @@ export function ReportSettingsContent({
                     {/* ON/OFF 토글 */}
                     <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-6">
                         <div>
-                            <h3 className="text-base font-semibold text-gray-900">주간 리포트 활성화</h3>
+                            <h3 className="text-base font-semibold text-gray-900">자동 리포트 활성화</h3>
                             <p className="text-sm text-gray-500">
-                                {isActive ? '매주 자동으로 분석됩니다' : '리포트가 중지되어 있습니다'}
+                                {isActive ? '자동으로 분석됩니다' : '리포트가 중지되어 있습니다'}
                             </p>
                         </div>
                         <button
@@ -386,28 +398,75 @@ export function ReportSettingsContent({
                     {/* 분석 요일/시간 */}
                     <div className="rounded-2xl border border-gray-200 bg-white p-6">
                         <h3 className="mb-1 text-base font-semibold text-gray-800">분석 실행 시간 설정</h3>
-                        <p className="mb-5 text-xs text-gray-500">매주 이 시간에 자동으로 순위를 분석합니다</p>
+                        <p className="mb-5 text-xs text-gray-500">
+                            {activeTab === 'naver' ? '선택한 요일에 자동으로 분석합니다' : '매주 해당 요일에 분석합니다'}
+                        </p>
 
-                        {/* 요일 */}
+                        {/* 요일 — 네이버: 복수 선택 + 매일 버튼, 구글: 단수 선택 */}
                         <div className="mb-4">
-                            <label className="mb-2 block text-sm font-medium text-gray-700">분석 요일 (1개 선택)</label>
+                            <label className="mb-2 block text-sm font-medium text-gray-700">
+                                {activeTab === 'naver' ? '분석 요일 (여러 개 선택 가능)' : '분석 요일 1개를 선택해주세요'}
+                            </label>
+
+                            {activeTab === 'naver' && (
+                                <div className="flex gap-2 mb-2">
+                                    {/* 매일 버튼 */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setNaverCrawlingDays([0,1,2,3,4,5,6])}
+                                        className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${naverCrawlingDays.length === 7
+                                            ? 'bg-[#00C896] text-white shadow-md shadow-[#00C896]/20'
+                                            : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        매일
+                                    </button>
+                                </div>
+                            )}
+
                             <div className="flex gap-2">
                                 {DAYS.map(day => {
-                                    const isSelected = crawlingDay === day.value
-                                    const isWeekend = day.value === 0 || day.value === 6
-                                    return (
-                                        <button
-                                            key={day.value}
-                                            type="button"
-                                            onClick={() => setCrawlingDay(day.value)}
-                                            className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${isSelected
-                                                ? 'bg-[#00C896] text-white shadow-md shadow-[#00C896]/20'
-                                                : `border border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 ${isWeekend ? 'text-red-500' : 'text-gray-600'}`
+                                    if (activeTab === 'naver') {
+                                        // 네이버: 복수 선택 토글
+                                        const isSelected = naverCrawlingDays.includes(day.value)
+                                        const isWeekend = day.value === 0 || day.value === 6
+                                        return (
+                                            <button
+                                                key={day.value}
+                                                type="button"
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        setNaverCrawlingDays(naverCrawlingDays.filter(d => d !== day.value))
+                                                    } else {
+                                                        setNaverCrawlingDays([...naverCrawlingDays, day.value])
+                                                    }
+                                                }}
+                                                className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${isSelected
+                                                    ? 'bg-[#00C896] text-white shadow-md shadow-[#00C896]/20'
+                                                    : `border border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 ${isWeekend ? 'text-red-500' : 'text-gray-600'}`
                                                 }`}
-                                        >
-                                            {day.label}
-                                        </button>
-                                    )
+                                            >
+                                                {day.label}
+                                            </button>
+                                        )
+                                    } else {
+                                        // 구글: 단수 선택
+                                        const isSelected = googleCrawlingDay === day.value
+                                        const isWeekend = day.value === 0 || day.value === 6
+                                        return (
+                                            <button
+                                                key={day.value}
+                                                type="button"
+                                                onClick={() => setGoogleCrawlingDay(day.value)}
+                                                className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${isSelected
+                                                    ? 'bg-[#00C896] text-white shadow-md shadow-[#00C896]/20'
+                                                    : `border border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 ${isWeekend ? 'text-red-500' : 'text-gray-600'}`
+                                                }`}
+                                            >
+                                                {day.label}
+                                            </button>
+                                        )
+                                    }
                                 })}
                             </div>
                         </div>
@@ -437,10 +496,22 @@ export function ReportSettingsContent({
                         </div>
 
                         {/* 미리보기 */}
-                        {crawlingDay !== null && (
-                            <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
-                                매주 <strong>{getDayLabel(crawlingDay)}요일 {crawlingTime}</strong>에 자동 분석됩니다
-                            </div>
+                        {activeTab === 'naver' ? (
+                            naverCrawlingDays.length > 0 ? (
+                                <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                                    매주 <strong>{naverCrawlingDays.sort((a,b) => a-b).map(d => getDayLabel(d)).join(', ')}요일 {crawlingTime}</strong>에 자동 분석됩니다
+                                </div>
+                            ) : (
+                                <div className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-600">
+                                    요일을 1개 이상 선택해주세요
+                                </div>
+                            )
+                        ) : (
+                            googleCrawlingDay !== null && (
+                                <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                                    매주 <strong>{getDayLabel(googleCrawlingDay)}요일 {crawlingTime}</strong>에 자동 분석됩니다
+                                </div>
+                            )
                         )}
                     </div>
 
@@ -556,7 +627,7 @@ export function ReportSettingsContent({
                     <button
                         type="button"
                         onClick={handleSave}
-                        disabled={saving || crawlingDay === null}
+                        disabled={saving}
                         className="mx-auto flex items-center justify-center gap-2 rounded-xl bg-[#00C896] px-12 py-4 text-base font-bold text-white shadow-lg shadow-[#00C896]/25 transition-all hover:-translate-y-0.5 hover:bg-[#00B386] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
                     >
                         {saving ? (

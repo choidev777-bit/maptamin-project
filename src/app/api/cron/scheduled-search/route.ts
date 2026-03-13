@@ -33,6 +33,14 @@ function getISOWeekKST(utcDateStr?: string): string {
     return `${d.getFullYear()}-W${weekNo}`
 }
 
+// KST 기준 날짜 문자열 (YYYY-M-D) — 네이버 매일 중복 방지용
+function getKstDateString(utcDateStr?: string): string {
+    const d = utcDateStr
+        ? new Date(new Date(utcDateStr).toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+        : getKstNow()
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+
 export async function POST(request: Request) {
     // 1. CRON_SECRET 인증
     const cronSecret = process.env.CRON_SECRET
@@ -87,23 +95,26 @@ export async function POST(request: Request) {
             }
         }
 
-        // 5. 요일 매칭 + 같은 주 중복 방지 (ISO 주차) + 구독 체크
+        // 5. 플랫폼별 분기: 네이버=매일(crawling_days 배열), 구글=주 1회(crawling_day 단수)
+        const currentDateStr = getKstDateString()
         const currentWeek = getISOWeekKST()
         const jobs = (allSchedules || []).filter(s => {
             // 구독 체크: free 플랜이면 skip
             if (freeUserIds.has(s.user_id)) return false
 
-            // 요일 매칭: crawling_day(단수) 우선, 없으면 crawling_days(배열)
-            const dayMatch = s.crawling_day !== null && s.crawling_day !== undefined
-                ? s.crawling_day === currentDay
-                : Array.isArray(s.crawling_days) && s.crawling_days.includes(currentDay)
-
-            if (!dayMatch) return false
-
-            // 같은 ISO 주차면 skip (주 1회 제한)
-            if (s.last_run_at) {
-                const lastRunWeek = getISOWeekKST(s.last_run_at)
-                if (lastRunWeek === currentWeek) return false
+            if ((s.platform || 'naver') === 'naver') {
+                // ── 네이버: crawling_days 배열 기반 매일 실행 ──
+                const days: number[] = s.crawling_days || []
+                if (days.length === 0) return false  // 활성화 안 됨
+                if (!days.includes(currentDay)) return false  // 오늘 요일 미포함
+                // 오늘 KST 날짜에 이미 실행했으면 skip
+                if (s.last_run_at && getKstDateString(s.last_run_at) === currentDateStr) return false
+            } else {
+                // ── 구글: crawling_day 단수 기반 주 1회 ──
+                if (s.crawling_day === null || s.crawling_day === undefined) return false  // 활성화 안 됨
+                if (s.crawling_day !== currentDay) return false  // 요일 불일치
+                // 같은 ISO 주차면 skip
+                if (s.last_run_at && getISOWeekKST(s.last_run_at) === currentWeek) return false
             }
 
             return true
@@ -161,7 +172,7 @@ export async function POST(request: Request) {
                         grid_points: gridPointsWithCoords,
                         grid_distance: gridDistance,
                         status: 'pending',
-                        report_type: 'weekly',
+                        report_type: (job.platform || 'naver') === 'google' ? 'weekly' : 'daily',
                     })
                     .select()
                     .single()
@@ -178,7 +189,7 @@ export async function POST(request: Request) {
             }
         }
 
-        // 6. dispatch 호출 (pending 검색을 GitHub Actions로 전달)
+        // 6. dispatch 호출 (pending 검색을 Oracle VM Worker로 전달)
         if (created > 0) {
             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.maptamin.com'
             try {

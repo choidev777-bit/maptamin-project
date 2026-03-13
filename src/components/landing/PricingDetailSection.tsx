@@ -12,7 +12,7 @@ interface ComparisonRow {
 }
 
 const COMPARISON: ComparisonRow[] = [
-    { label: '월 구독료', starter: '9,900원', pro: '29,000원', premium: '99,000원' },
+    { label: '월 구독료', starter: '9,900원', pro: '29,000원', premium: '79,000원' },
     {
         label: '연결 매장',
         starter: '1곳 \n(30일 이후 변경 가능)',
@@ -23,16 +23,16 @@ const COMPARISON: ComparisonRow[] = [
     { label: '제공 채널', starter: '네이버 지도', pro: '네이버 지도', premium: '네이버 + 구글' },
     {
         label: '리포트 주기',
-        starter: '주 1회',
-        pro: '주 1회',
-        premium: '주 1회',
+        starter: '매일',
+        pro: '매일',
+        premium: '네이버 매일 / 구글 주 1회',
         tooltip: '결제 즉시 웰컴 리포트 1회가 추가 발송됩니다.',
     },
     {
         label: '실시간 진단 티켓',
         starter: '월 2회',
-        pro: '월 10회',
-        premium: '월 15회 (각 채널)',
+        pro: '월 5회',
+        premium: '월 10회 (각 채널)',
         tooltip: '지금 당장 순위가 궁금할 때 사용하는 즉시 조회 기능입니다.',
     },
     { label: '분석 범위', starter: '3×3 (9좌표)', pro: '5×5 (25좌표)', premium: '7×7 (49좌표)' },
@@ -40,10 +40,10 @@ const COMPARISON: ComparisonRow[] = [
         label: '관리 키워드',
         starter: '2개',
         pro: '5개',
-        premium: '10개 (각 채널 5개)',
+        premium: '5개 (각 채널)',
         tooltip: '검색할 때 입력하는 키워드입니다. 설정 후 30일간 변경 불가합니다.',
     },
-    { label: '경쟁사 분석', starter: '—', pro: '1곳', premium: '10곳' },
+    { label: '경쟁사 분석', starter: '—', pro: '5곳', premium: '무제한' },
 ]
 
 /* ---- 용어 설명 ---- */
@@ -68,7 +68,7 @@ const TERMS: Term[] = [
     {
         icon: '⚡',
         title: '실시간 진단 티켓',
-        desc: '정기 리포트(주 1회) 외에, 지금 당장 내 매장 순위가 궁금할 때 사용하는 즉시 조회 기능입니다. 소진 시 추가 구매가 가능합니다. (1,500원/장)',
+        desc: '정기 리포트(매일) 외에, 지금 당장 내 매장 순위가 궁금할 때 사용하는 즉시 조회 기능입니다. 소진 시 추가 구매가 가능합니다. (1,500원/장)',
     },
     {
         icon: '👋',
@@ -107,7 +107,7 @@ const PLANS: PlanCard[] = [
             { text: '네이버 지도 진단', included: true },
             { text: '3×3 (9개 좌표) 분석', included: true },
             { text: '관리 키워드 2개', included: true },
-            { text: '주간 보고서 자동 발송', included: true },
+            { text: '매일 보고서 자동 발송', included: true },
             { text: '실시간 진단 티켓 월 2회', included: true },
             { text: '경쟁사 비교 분석 불가', included: false },
         ],
@@ -125,9 +125,9 @@ const PLANS: PlanCard[] = [
             { text: '네이버 지도 진단', included: true },
             { text: '5×5 (25개 좌표) 분석', included: true },
             { text: '관리 키워드 5개', included: true },
-            { text: '주간 보고서 자동 발송', included: true },
-            { text: '실시간 진단 티켓 월 10회', included: true },
-            { text: '경쟁사 3곳 분석', included: true },
+            { text: '매일 보고서 자동 발송', included: true },
+            { text: '실시간 진단 티켓 월 5회', included: true },
+            { text: '경쟁사 5곳 분석', included: true },
         ],
         cta: '내 매장 진단 & 경쟁사 분석', // PricingSection은 '... 분석 시작하기' 인데 여기는 짧게 유지? 사용자는 "그대로" 원함. PricingSection의 CTA 사용.
         ctaStyle: 'solid',
@@ -136,15 +136,15 @@ const PLANS: PlanCard[] = [
         name: '프리미엄',
         planId: 'premium',
         tagline: '상권 장악에 진심인 사장님용',
-        monthly: '99,000원',
+        monthly: '79,000원',
         featured: false,
         features: [
             { text: '네이버 + 구글 지도 진단', included: true },
             { text: '7×7 (49개 좌표) 분석', included: true },
-            { text: '관리 키워드 10개', included: true },
-            { text: '실시간 진단 티켓 월 15회', included: true },
-            { text: '주간 보고서 자동 발송', included: true },
-            { text: '경쟁사 10곳 심층 분석', included: true },
+            { text: '관리 키워드 5개 (각 채널)', included: true },
+            { text: '실시간 진단 티켓 월 10회 (각 채널)', included: true },
+            { text: '네이버 매일 + 구글 주간 보고서', included: true },
+            { text: '경쟁사 무제한 분석', included: true },
             { text: '연결 매장 무제한 변경', included: true },
         ],
         cta: '상권 완전 장악하기',

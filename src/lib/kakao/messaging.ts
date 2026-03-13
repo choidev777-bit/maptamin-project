@@ -148,3 +148,35 @@ export async function sendWeeklyReport(
         '#{리포트URL}': reportUrl,
     });
 }
+
+/**
+ * 일간 리포트 알림톡 발송
+ * @param userId - 사용자 ID
+ * @param placeName - 매장명
+ * @param searchId - 검색 결과 ID
+ * @param platform - 플랫폼 ('naver' | 'google')
+ */
+export async function sendDailyReport(
+    userId: string,
+    placeName: string,
+    searchId: string,
+    platform: string = 'naver',
+): Promise<void> {
+    const phone = await getUserPhone(userId);
+    const templateId = process.env.KAKAO_TEMPLATE_DAILY;
+
+    if (!templateId) {
+        throw new Error('KAKAO_TEMPLATE_DAILY 환경 변수가 설정되지 않았습니다.');
+    }
+
+    const platformName = platform === 'naver' ? '네이버' : '구글';
+    const analysisDate = formatKstDate(getKstNow());
+    const reportUrl = getReportUrl(searchId, platform);
+
+    await sendAlimtalk(phone, templateId, {
+        '#{가게명}': placeName,
+        '#{플랫폼명}': platformName,
+        '#{분석일시}': analysisDate,
+        '#{리포트URL}': reportUrl,
+    });
+}

@@ -20,7 +20,7 @@ export interface Search {
     distance_unit: 'km' | 'mile'
     status: 'pending' | 'processing' | 'completed' | 'failed'
     platform?: 'google' | 'naver'  // 기본값: 'google'
-    report_type?: 'weekly' | 'realtime' | 'welcome'  // NEW: 리포트 유형
+    report_type?: 'daily' | 'weekly' | 'realtime' | 'welcome'  // 리포트 유형 (daily=네이버 매일, weekly=구글 주간)
     deleted_at?: string | null
     created_at: string
 }
@@ -186,7 +186,7 @@ export interface NotificationLog {
     id: string;
     user_id: string;
     search_id: string | null;
-    type: 'welcome' | 'weekly' | 'realtime';
+    type: 'welcome' | 'daily' | 'weekly' | 'realtime';
     status: 'pending' | 'sent' | 'failed';
     sent_via: string;  // 'solapi'
     error_message?: string | null;

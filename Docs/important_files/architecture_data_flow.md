@@ -467,7 +467,7 @@ User Action: 키워드/그리드 설정 → "실시간 진단 시작" 클릭
 │       ├── 4. INSERT → searches (status='processing', platform='google')
 │       ├── 5. 실패 시: supabase.rpc('refund_ticket', { p_platform: 'google' })
 │       └── 6. searchId 반환 (클라이언트가 /process 호출 책임)
-│           └── ⚠️ 네이버와 달리 GitHub Actions dispatch 사용 안 함
+│           └── ⚠️ 네이버와 달리 Oracle VM dispatch 사용 안 함
 │
 ├─► Process Route (클라이언트가 직접 호출)
 │   └── src/app/api/search/[id]/process/route.ts  (POST)
@@ -485,8 +485,8 @@ User Action: 키워드/그리드 설정 → "실시간 진단 시작" 클릭
 **실행 방식 (네이버 vs 구글 차이점):**
 | | 네이버 (§8) | 구글 (§9) |
 |---|---|---|
-| 크롤링 | GitHub Actions + Playwright | DataForSEO API |
-| 트리거 | `/api/queue/dispatch` → GitHub Actions | 클라이언트가 `/api/search/[id]/process` 직접 호출 |
+| 크롤링 | Oracle VM Worker + Playwright | DataForSEO API |
+| 트리거 | `/api/queue/dispatch` → Oracle VM Worker | 클라이언트가 `/api/search/[id]/process` 직접 호출 |
 | 초기 상태 | `status='pending'` | `status='processing'` |
 | 웰컴 리포트 | 온보딩에서 `/api/search/{id}/process` fire-and-forget 호출 | 동일 |
 
@@ -556,7 +556,7 @@ Components Used:
 
 ## 11. Weekly Scheduled Search
 
-### 주간 자동 검색 (pg_cron → Vercel API → GitHub Actions)
+### 자동 검색 (pg_cron → Vercel API → Oracle VM Worker)
 
 ```
 Trigger: Supabase pg_cron (매시 정각, 정확한 타이밍)
@@ -588,9 +588,9 @@ Trigger: Supabase pg_cron (매시 정각, 정확한 타이밍)
 │       │   └── INSERT → searches (status='pending', report_type='weekly')
 │       │
 │       └── 7. POST /api/queue/dispatch
-│           └── GitHub Actions dispatch → 크롤링 실행
+│           └── Oracle VM Worker dispatch → 크롤링 실행
 │
-├─► GitHub Actions (크롤링 워커)
+├─► Oracle VM Worker (크롤링 워커)
 │   └── scripts/run-search.ts MANUAL <search_id>
 │       ├── 크롤링 실행 (Bright Data proxy)
 │       ├── INSERT → search_results
@@ -617,7 +617,7 @@ Trigger: Supabase pg_cron (매시 정각, 정확한 타이밍)
 | SELECT | `managed_places` | 좌표/주소 조회 |
 | UPDATE | `search_schedules` | `last_run_at` 선행 갱신 |
 | INSERT | `searches` | 검색 레코드 생성 (status='pending') |
-| INSERT | `search_results` | 크롤링 결과 (GitHub Actions에서) |
+| INSERT | `search_results` | 크롤링 결과 (Oracle VM Worker에서) |
 
 ---
 

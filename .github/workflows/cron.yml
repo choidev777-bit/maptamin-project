@@ -1,3 +1,7 @@
+# ⚠️ DEPRECATED: Oracle VM Worker로 전환됨 (2026-03-11)
+# 이 워크플로우는 더 이상 사용되지 않습니다.
+# 크롤링은 Oracle VM의 vm-worker.ts가 처리합니다.
+# 롤백 필요 시를 대비해 파일은 유지합니다.
 name: Scheduled Search
 on:
   # schedule 트리거는 pg_cron으로 대체 (정시 정확도 개선)

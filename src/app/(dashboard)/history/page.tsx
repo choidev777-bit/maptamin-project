@@ -56,18 +56,18 @@ export default async function HistoryPage() {
         (!googlePlaceId || s.place_id === googlePlaceId)
     )
 
-    // 주간 리포트의 search_results만 조회 (그래프용)
+    // 자동 리포트(daily+weekly)의 search_results만 조회 (그래프용)
     const allFilteredSearches = [...naverSearches, ...googleSearches]
-    const weeklySearchIds = allFilteredSearches
-        .filter(s => s.report_type === 'weekly' && s.status === 'completed')
+    const scheduledSearchIds = allFilteredSearches
+        .filter(s => (s.report_type === 'daily' || s.report_type === 'weekly') && s.status === 'completed')
         .map(s => s.id)
 
     let searchResults: SearchResult[] = []
-    if (weeklySearchIds.length > 0) {
+    if (scheduledSearchIds.length > 0) {
         const { data: resultsData } = await supabase
             .from('search_results')
             .select('*')
-            .in('search_id', weeklySearchIds)
+            .in('search_id', scheduledSearchIds)
 
         searchResults = (resultsData as SearchResult[]) || []
     }

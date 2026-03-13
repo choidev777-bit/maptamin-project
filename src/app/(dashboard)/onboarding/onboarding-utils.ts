@@ -24,12 +24,11 @@ export interface GridData {
 }
 
 export interface ScheduleData {
-    crawlingDay: number
+    naverCrawlingDays: number[]
+    googleCrawlingDay?: number | null
     crawlingTime: string
     notifyImmediate: boolean
-    notifyDay?: number
-    notifyTime?: string
-    phone?: string // Phase 2에서 필수(required)로 변경 예정
+    phone?: string
 }
 
 export interface OnboardingData {

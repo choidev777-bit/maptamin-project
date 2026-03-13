@@ -15,9 +15,9 @@ export function calculateWeeklyInsights(
     searches: Search[],
     searchResults: SearchResult[]
 ): { rising: KeywordInsight | null; dropping: KeywordInsight | null } {
-    // 1. Filter only completed weekly reports
+    // 1. Filter only completed daily and weekly reports
     const weeklySearches = searches.filter(
-        (s) => s.report_type === 'weekly' && s.status === 'completed'
+        (s) => (s.report_type === 'daily' || s.report_type === 'weekly') && s.status === 'completed'
     )
 
     if (weeklySearches.length < 2) {

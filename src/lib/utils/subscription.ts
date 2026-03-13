@@ -40,7 +40,8 @@ export function getAllowedGridSizes(planId: string): number[] {
 export function canManageCompetitors(planId: string): boolean {
     const config = PLAN_CONFIG[planId];
     if (!config) return false;
-    return (config.competitorsNaver + config.competitorsGoogle) > 0;
+    return config.competitorsNaver > 0 || config.competitorsNaver === -1
+        || config.competitorsGoogle > 0 || config.competitorsGoogle === -1;
 }
 
 /** 플랜별 최대 키워드 수 */

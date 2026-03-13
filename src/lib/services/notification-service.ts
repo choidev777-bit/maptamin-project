@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { sendWeeklyReport } from '@/lib/kakao/messaging';
+import { sendWeeklyReport, sendDailyReport } from '@/lib/kakao/messaging';
 
 /**
  * 예약된 알림 발송 서비스
@@ -59,7 +59,7 @@ export class NotificationService {
                 .select('*')
                 .eq('user_id', ns.user_id)
                 .eq('status', 'pending')
-                .eq('type', 'weekly');
+                .in('type', ['weekly', 'daily']);
 
             if (logError) {
                 console.error(
@@ -89,13 +89,22 @@ export class NotificationService {
                         continue;
                     }
 
-                    // 알림톡 발송
-                    await sendWeeklyReport(
-                        log.user_id,
-                        search.place_name,
-                        log.search_id,
-                        search.platform || 'naver',
-                    );
+                    // 알림톡 발송 (type에 따라 분기)
+                    if (log.type === 'daily') {
+                        await sendDailyReport(
+                            log.user_id,
+                            search.place_name,
+                            log.search_id,
+                            search.platform || 'naver',
+                        );
+                    } else {
+                        await sendWeeklyReport(
+                            log.user_id,
+                            search.place_name,
+                            log.search_id,
+                            search.platform || 'naver',
+                        );
+                    }
 
                     // 발송 성공 → 상태 업데이트
                     await supabase

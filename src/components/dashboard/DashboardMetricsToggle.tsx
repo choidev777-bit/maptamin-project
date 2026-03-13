@@ -65,7 +65,7 @@ export function DashboardMetricsToggle({ naverData, googleData, canGoogle }: Pro
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 dark:border-slate-700 p-6">
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white border-b-2 border-transparent pb-1">
-                        주간 리포트 요약 <span className="text-sm font-normal text-gray-400 ml-2">({activePlatform === 'naver' ? '네이버' : '구글'})</span>
+                        리포트 요약 <span className="text-sm font-normal text-gray-400 ml-2">({activePlatform === 'naver' ? '네이버' : '구글'})</span>
                     </h3>
                 </div>
                 <QuickInsightsRow rising={currentData.insights.rising} dropping={currentData.insights.dropping} />

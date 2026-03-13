@@ -21,11 +21,10 @@ const HOURS = Array.from({ length: 24 }, (_, i) => {
 })
 
 interface ScheduleData {
-    crawlingDay: number
+    naverCrawlingDays: number[]
+    googleCrawlingDay?: number | null
     crawlingTime: string
     notifyImmediate: boolean
-    notifyDay?: number
-    notifyTime?: string
     phone?: string
 }
 
@@ -37,14 +36,16 @@ interface Props {
 
 export default function StepScheduleSetting({ planId, onboardingData, onComplete }: Props) {
     const isPremium = planId === 'premium'
-    const [crawlingDay, setCrawlingDay] = useState<number | null>(null)
+    const [naverCrawlingDays, setNaverCrawlingDays] = useState<number[]>([])
+    const [googleCrawlingDay, setGoogleCrawlingDay] = useState<number | null>(null)
     const [crawlingTime, setCrawlingTime] = useState('09:00')
     const [phone, setPhone] = useState('')
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const phoneValid = phone.replace(/[^0-9]/g, '').length >= 11
-    const canProceed = crawlingDay !== null && phoneValid
+    // 전화번호 필수, 네이버 요일 0개여도 저장 가능 (is_active: false로 저장)
+    const canProceed = phoneValid
 
     const getDayLabel = (value: number) => DAYS.find(d => d.value === value)?.label || ''
 
@@ -58,7 +59,7 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
 
     // DB 즉시 커밋: search_schedules + notification_schedules INSERT
     const handleComplete = async () => {
-        if (crawlingDay === null || !phoneValid) return
+        if (!phoneValid) return
         setSaving(true)
         setError(null)
 
@@ -75,7 +76,7 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
 
             if (phoneErr) throw new Error(phoneErr.message)
 
-            // 2. 네이버 search_schedule INSERT (grid_config + place/keyword 포함)
+            // 2. 네이버 search_schedule INSERT
             const naverGrid = onboardingData?.grid?.naverGrid ?? []
             const naverGridConfig = naverGrid.map(p => ({
                 lat: p.lat, lng: p.lng, row: p.row, col: p.col,
@@ -92,9 +93,10 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                     keywords: onboardingData?.keywords?.naverKeywords ?? [],
                     grid_config: naverGridConfig,
                     grid_distance: onboardingData?.grid?.distance ?? 1,
-                    crawling_day: crawlingDay,
+                    crawling_days: naverCrawlingDays,
+                    crawling_day: naverCrawlingDays[0] ?? null,
                     crawling_time: crawlingTime,
-                    is_active: true,
+                    is_active: naverCrawlingDays.length > 0,
                 })
 
             if (naverScheduleErr) throw new Error(naverScheduleErr.message)
@@ -117,9 +119,10 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                         keywords: onboardingData?.keywords?.googleKeywords ?? [],
                         grid_config: googleGridConfig,
                         grid_distance: onboardingData?.grid?.distance ?? 1,
-                        crawling_day: crawlingDay,
+                        crawling_day: googleCrawlingDay,
+                        crawling_days: googleCrawlingDay !== null ? [googleCrawlingDay] : [],
                         crawling_time: crawlingTime,
-                        is_active: true,
+                        is_active: googleCrawlingDay !== null,
                     })
 
                 if (googleScheduleErr) throw new Error(googleScheduleErr.message)
@@ -153,7 +156,8 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
 
             // 성공 → 다음 Step
             onComplete({
-                crawlingDay,
+                naverCrawlingDays,
+                googleCrawlingDay: isPremium ? googleCrawlingDay : undefined,
                 crawlingTime,
                 notifyImmediate: true,
                 phone,
@@ -174,7 +178,7 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                     스케줄 설정
                 </h2>
                 <p className="mt-2 text-sm text-gray-600">
-                    주간 리포트를 받아볼 요일과 시간을 설정해주세요.
+                    자동 리포트를 받을 요일과 시간을 설정해주세요.
                 </p>
             </div>
 
@@ -194,29 +198,51 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                 />
             </div>
 
-            {/* A. 검색 실행 시점 */}
+            {/* A. 네이버 분석 요일/시간 */}
             <div className="rounded-xl border border-gray-200 bg-white p-6">
                 <h3 className="mb-1 flex items-center gap-2 text-base font-semibold text-gray-800">
                     분석 실행 시간 설정
                 </h3>
-                <p className="mb-5 text-xs text-gray-500">매주 이 시간에 자동으로 순위를 분석합니다</p>
+                <p className="mb-5 text-xs text-gray-500">선택한 요일에 자동으로 순위를 분석합니다</p>
 
-                {/* 요일 선택 — 단일 선택 */}
+                {/* 네이버 요일 선택 — 복수 선택 + 매일 버튼 */}
                 <div className="mb-4">
-                    <label className="mb-2 block text-sm font-medium text-gray-700">분석 요일 (1개 선택)</label>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">분석 요일 (여러 개 선택 가능)</label>
+
+                    {/* 매일 버튼 */}
+                    <div className="flex gap-2 mb-2">
+                        <button
+                            type="button"
+                            onClick={() => setNaverCrawlingDays([0,1,2,3,4,5,6])}
+                            className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${naverCrawlingDays.length === 7
+                                ? 'bg-[#00C896] text-white shadow-md shadow-[#00C896]/20'
+                                : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                            }`}
+                        >
+                            매일
+                        </button>
+                    </div>
+
+                    {/* 요일 7개 복수 선택 */}
                     <div className="flex gap-2">
                         {DAYS.map(day => {
-                            const isSelected = crawlingDay === day.value
+                            const isSelected = naverCrawlingDays.includes(day.value)
                             const isWeekend = day.value === 0 || day.value === 6
                             return (
                                 <button
                                     key={day.value}
                                     type="button"
-                                    onClick={() => setCrawlingDay(day.value)}
+                                    onClick={() => {
+                                        if (isSelected) {
+                                            setNaverCrawlingDays(naverCrawlingDays.filter(d => d !== day.value))
+                                        } else {
+                                            setNaverCrawlingDays([...naverCrawlingDays, day.value])
+                                        }
+                                    }}
                                     className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${isSelected
                                         ? 'bg-[#00C896] text-white shadow-md shadow-[#00C896]/20'
                                         : `border border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 ${isWeekend ? 'text-red-500' : 'text-gray-600'}`
-                                        }`}
+                                    }`}
                                 >
                                     {day.label}
                                 </button>
@@ -224,6 +250,35 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                         })}
                     </div>
                 </div>
+
+                {/* Premium: 구글 요일 선택 — 단수 */}
+                {isPremium && (
+                    <div className="mb-4 mt-6 pt-6 border-t border-gray-100">
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                            <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded bg-[#4285F4] text-[10px] font-bold text-white">G</span>
+                            구글 분석 요일 1개를 선택해주세요
+                        </label>
+                        <div className="flex gap-2">
+                            {DAYS.map(day => {
+                                const isSelected = googleCrawlingDay === day.value
+                                const isWeekend = day.value === 0 || day.value === 6
+                                return (
+                                    <button
+                                        key={day.value}
+                                        type="button"
+                                        onClick={() => setGoogleCrawlingDay(day.value)}
+                                        className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-all ${isSelected
+                                            ? 'bg-[#4285F4] text-white shadow-md shadow-[#4285F4]/20'
+                                            : `border border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 ${isWeekend ? 'text-red-500' : 'text-gray-600'}`
+                                        }`}
+                                    >
+                                        {day.label}
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* 시간 선택 */}
                 <div>
@@ -250,9 +305,13 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                 </div>
 
                 {/* 미리보기 */}
-                {crawlingDay !== null && (
+                {naverCrawlingDays.length > 0 ? (
                     <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
-                        매주 <strong>{getDayLabel(crawlingDay)}요일 {crawlingTime}</strong>에 자동 분석됩니다
+                        매주 <strong>{naverCrawlingDays.sort((a,b) => a-b).map(d => getDayLabel(d)).join(', ')}요일 {crawlingTime}</strong>에 자동 분석됩니다
+                    </div>
+                ) : (
+                    <div className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-600">
+                        요일을 선택하지 않으면 자동 리포트가 비활성화됩니다
                     </div>
                 )}
             </div>

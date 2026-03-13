@@ -151,7 +151,7 @@ export default function StepKeywordRegister({ planId, onComplete }: Props) {
             {/* 안내 문구 */}
             <div className="rounded-xl border border-[#00C896]/20 bg-[#E5F9F4] p-4">
                 <p className="text-sm text-gray-700 leading-relaxed">
-                    이 키워드는 <strong>주간 리포트</strong>와 <strong>실시간 진단</strong>에 모두 사용됩니다.<br />
+                    이 키워드는 <strong>자동 리포트</strong>와 <strong>실시간 진단</strong>에 모두 사용됩니다.<br />
                     등록하신 키워드는 언제든지 자유롭게 변경할 수 있습니다.
                 </p>
             </div>

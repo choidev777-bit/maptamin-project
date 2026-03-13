@@ -45,17 +45,17 @@ export default async function DashboardPage() {
 
     const searches = (searchesData as Search[]) || []
 
-    // Fetch Search Results for calculating insights based on weekly reports
-    // We only need results related to 'weekly' searches to save bandwidth
-    const weeklySearchIds = searches.filter(s => s.report_type === 'weekly').map(s => s.id)
+    // Fetch Search Results for calculating insights based on scheduled reports
+    // We need results related to 'daily' and 'weekly' searches
+    const scheduledSearchIds = searches.filter(s => s.report_type === 'daily' || s.report_type === 'weekly').map(s => s.id)
 
     let searchResults: SearchResult[] = []
-    if (weeklySearchIds.length > 0) {
+    if (scheduledSearchIds.length > 0) {
         // Safe check since Supabase `.in` might fail on empty array
         const { data: resultsData } = await supabase
             .from('search_results')
             .select('*')
-            .in('search_id', weeklySearchIds)
+            .in('search_id', scheduledSearchIds)
 
         searchResults = (resultsData as SearchResult[]) || []
     }
@@ -92,8 +92,8 @@ export default async function DashboardPage() {
         .eq('is_active', true)
 
     const hasActiveWeeklyReport = (schedules || []).length > 0;
-    // Mock mapping next report date for UI. If real, we'd calculate next Monday, etc.
-    const nextReportDate = hasActiveWeeklyReport ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) : null;
+    // 네이버는 매일, 구글은 주 1회이므로 다음 리포트까지 최단 1일
+    const nextReportDate = hasActiveWeeklyReport ? new Date(Date.now() + 1 * 24 * 60 * 60 * 1000) : null;
 
     const naverShop = managedPlaces?.find(p => p.platform === 'naver') || null
     const googleShop = managedPlaces?.find(p => p.platform === 'google') || null

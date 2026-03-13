@@ -36,7 +36,7 @@ export function HistoryPageContent({
 }: Props) {
     const [activePlatform, setActivePlatform] = useState<'naver' | 'google'>('naver')
     const [filterPlatform, setFilterPlatform] = useState<'all' | 'naver' | 'google'>('all')
-    const [filterReportType, setFilterReportType] = useState<'all' | 'weekly' | 'realtime' | 'welcome'>('all')
+    const [filterReportType, setFilterReportType] = useState<'all' | 'daily' | 'weekly' | 'realtime' | 'welcome'>('all')
 
     const currentTrend = activePlatform === 'naver' ? naverTrend : googleTrend
     const currentKeywords = activePlatform === 'naver' ? naverKeywords : googleKeywords
@@ -57,8 +57,8 @@ export function HistoryPageContent({
         <div className="flex flex-col gap-8">
             {/* Page Header */}
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">진단 기록</h1>
-                <p className="text-gray-500 mt-1">주간 리포트 기반 순위 변화 추이와 전체 진단 기록을 확인하세요.</p>
+                <h1 className="text-2xl font-bold text-gray-900">분석 기록</h1>
+                <p className="text-gray-500 mt-1">자동 리포트 기반 순위 변화 추이와 전체 분석 기록을 확인하세요.</p>
             </div>
 
             {/* ── Section 1: 순위 변화 그래프 ── */}
@@ -69,7 +69,7 @@ export function HistoryPageContent({
                         <TrendingUp className="w-5 h-5 text-[#00C896]" />
                         <h2 className="text-lg font-bold text-gray-900">
                             평균 순위 변화
-                            <span className="text-sm font-normal text-gray-400 ml-2">(주간 보고서 기준)</span>
+                            <span className="text-sm font-normal text-gray-400 ml-2">(자동 보고서 기준)</span>
                         </h2>
                     </div>
 
@@ -110,7 +110,7 @@ export function HistoryPageContent({
                                 <BarChart3 className="w-8 h-8 text-gray-300" />
                             </div>
                             <p className="text-gray-500 font-medium">
-                                주간 리포트가 2회 이상 누적되면
+                                자동 리포트가 2회 이상 누적되면
                             </p>
                             <p className="text-gray-500">
                                 순위 변화 그래프가 표시됩니다.
@@ -125,7 +125,7 @@ export function HistoryPageContent({
                 {/* 테이블 헤더 + 필터 */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-6 pb-4 gap-4 border-b border-gray-100">
                     <h2 className="text-lg font-bold text-gray-900">
-                        전체 진단 기록
+                        전체 분석 기록
                         <span className="text-sm font-normal text-gray-400 ml-2">
                             ({filteredSearches.length}건)
                         </span>
@@ -147,10 +147,11 @@ export function HistoryPageContent({
                         {/* 리포트 타입 필터 */}
                         <select
                             value={filterReportType}
-                            onChange={(e) => setFilterReportType(e.target.value as 'all' | 'weekly' | 'realtime' | 'welcome')}
+                            onChange={(e) => setFilterReportType(e.target.value as 'all' | 'daily' | 'weekly' | 'realtime' | 'welcome')}
                             className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#00C896]/30 focus:border-[#00C896]"
                         >
                             <option value="all">전체 유형</option>
+                            <option value="daily">일간 리포트</option>
                             <option value="weekly">주간 리포트</option>
                             <option value="realtime">실시간 진단</option>
                             <option value="welcome">웰컴 리포트</option>

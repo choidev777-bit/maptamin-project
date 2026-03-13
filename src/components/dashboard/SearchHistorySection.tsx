@@ -49,6 +49,7 @@ const STATUS_MAP: Record<string, { label: string; icon: React.ReactNode; classNa
 }
 
 const REPORT_TYPE_MAP: Record<string, { label: string; className: string }> = {
+    daily: { label: '일간', className: 'bg-sky-50 text-sky-600' },
     weekly: { label: '주간', className: 'bg-indigo-50 text-indigo-600' },
     realtime: { label: '실시간', className: 'bg-gray-50 text-gray-600' },
     welcome: { label: '웰컴', className: 'bg-purple-50 text-purple-600' },
@@ -111,7 +112,7 @@ export function SearchHistorySection({ searches }: Props) {
         <div id="search-history" className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                <h3 className="text-lg font-bold text-gray-900">최근 진단 기록</h3>
+                <h3 className="text-lg font-bold text-gray-900">최근 분석 기록</h3>
                 <div className="flex items-center gap-3">
                     <Link
                         href="/history"

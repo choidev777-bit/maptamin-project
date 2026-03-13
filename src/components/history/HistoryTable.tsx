@@ -44,6 +44,7 @@ const STATUS_MAP: Record<string, { label: string; icon: React.ReactNode; classNa
 }
 
 const REPORT_TYPE_MAP: Record<string, { label: string; className: string }> = {
+    daily: { label: '일간', className: 'bg-sky-50 text-sky-600' },
     weekly: { label: '주간', className: 'bg-indigo-50 text-indigo-600' },
     realtime: { label: '실시간', className: 'bg-gray-50 text-gray-600' },
     welcome: { label: '웰컴', className: 'bg-purple-50 text-purple-600' },

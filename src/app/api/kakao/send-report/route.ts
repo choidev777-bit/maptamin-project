@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { sendWelcomeReport, sendWeeklyReport } from '@/lib/kakao/messaging';
+import { sendWelcomeReport, sendWeeklyReport, sendDailyReport } from '@/lib/kakao/messaging';
 
 /**
  * POST /api/kakao/send-report
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         // ── 2. 요청 파싱 ──
         const body = await request.json();
         const { type, searchId, placeName } = body as {
-            type: 'welcome' | 'weekly';
+            type: 'welcome' | 'daily' | 'weekly';
             searchId: string;
             placeName: string;
         };
@@ -49,6 +49,8 @@ export async function POST(request: NextRequest) {
         try {
             if (type === 'welcome') {
                 await sendWelcomeReport(user.id, placeName, searchId, platform);
+            } else if (type === 'daily') {
+                await sendDailyReport(user.id, placeName, searchId, platform);
             } else {
                 await sendWeeklyReport(user.id, placeName, searchId, platform);
             }

@@ -54,25 +54,25 @@ export const PLAN_CONFIG: Record<string, {
         name: '프로',
         price: 29000,
         gridSize: 5,
-        ticketsNaver: 10,
+        ticketsNaver: 5,
         ticketsGoogle: 0,
         keywordsNaver: 5,
         keywordsGoogle: 0,
-        competitorsNaver: 3,
+        competitorsNaver: 5,
         competitorsGoogle: 0,
         channels: 'naver',
         placeLock: true, // 30일 매장 변경 락 적용
     },
     premium: {
         name: '프리미엄',
-        price: 99000,
+        price: 79000,
         gridSize: 7,
-        ticketsNaver: 15,
-        ticketsGoogle: 15,
+        ticketsNaver: 10,
+        ticketsGoogle: 10,
         keywordsNaver: 5,
         keywordsGoogle: 5,
-        competitorsNaver: 10,
-        competitorsGoogle: 10,
+        competitorsNaver: -1,  // -1 = 무제한
+        competitorsGoogle: -1, // -1 = 무제한
         channels: 'naver+google',
         placeLock: false, // 프리미엄: 매장 무제한 변경 (30일 락 면제)
     },

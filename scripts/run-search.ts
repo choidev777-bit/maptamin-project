@@ -11,7 +11,7 @@ import { fetchMapRankBatch, MapRankTask } from '../src/lib/dataforseo/client';
 const MAX_SEARCH_RETRIES = 3;
 
 // Initialize Admin Client (Bypass RLS)
-// This script runs in a secure environment (GitHub Actions)
+// This script runs in a secure environment (Oracle VM Worker)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -58,6 +58,14 @@ function getISOWeekKST(utcDateStr?: string): string {
     return `${d.getFullYear()}-W${weekNo}`;
 }
 
+// KST 기준 날짜 문자열 (YYYY-M-D) — 네이버 매일 중복 방지용
+function getKstDateString(utcDateStr?: string): string {
+    const d = utcDateStr
+        ? new Date(new Date(utcDateStr).toLocaleString('en-US', { timeZone: 'Asia/Seoul' }))
+        : getKstNow();
+    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
+
 // ── 솔라피 알림톡 발송 ──
 async function sendKakaoAlimtalk(search: {
     id: string; user_id: string; place_name: string;
@@ -86,11 +94,16 @@ async function sendKakaoAlimtalk(search: {
         return;
     }
 
-    // 2. 템플릿 ID 결정
-    const isWeekly = search.report_type === 'weekly';
-    const templateId = isWeekly
-        ? process.env.KAKAO_TEMPLATE_WEEKLY
-        : process.env.KAKAO_TEMPLATE_WELCOME;
+    // 2. 템플릿 ID 결정 (3분기: daily → DAILY, weekly → WEEKLY, welcome → WELCOME)
+    function getTemplateId(reportType: string): string | undefined {
+        switch (reportType) {
+            case 'daily': return process.env.KAKAO_TEMPLATE_DAILY;
+            case 'weekly': return process.env.KAKAO_TEMPLATE_WEEKLY;
+            case 'welcome': return process.env.KAKAO_TEMPLATE_WELCOME;
+            default: return undefined;
+        }
+    }
+    const templateId = getTemplateId(search.report_type);
 
     if (!templateId) {
         console.log(`[AlimTalk] 템플릿 ID 미설정 (${search.report_type}) — 건너뜀`);
@@ -111,7 +124,7 @@ async function sendKakaoAlimtalk(search: {
         '#{리포트URL}': reportUrl,
     };
 
-    if (isWeekly) {
+    if (search.report_type === 'weekly') {
         variables['#{리포트기간}'] = formatReportPeriod();
     }
 
@@ -352,8 +365,8 @@ async function processSearch(search: any) {
                     await supabase.from('searches').update(updatePayload).eq('id', search.id);
                     console.log(`[Worker] Search ${search.id} Completed.`);
 
-                    // 🔔 알림톡 발송 (weekly/welcome만)
-                    if (search.report_type === 'weekly' || search.report_type === 'welcome') {
+                    // 🔔 알림톡 발송 (daily/weekly/welcome)
+                    if (search.report_type === 'daily' || search.report_type === 'weekly' || search.report_type === 'welcome') {
                         try {
                             await sendKakaoAlimtalk(search);
                         } catch (alimtalkError: any) {
@@ -380,7 +393,7 @@ async function processSearch(search: any) {
         console.error(`[Worker] Search ${search.id} Failed:`, error);
 
         const currentRetryCount = search.retry_count ?? 0;
-        const isScheduled = search.report_type === 'weekly' || search.report_type === 'welcome';
+        const isScheduled = search.report_type === 'daily' || search.report_type === 'weekly' || search.report_type === 'welcome';
 
         if (isScheduled && currentRetryCount < MAX_SEARCH_RETRIES) {
             // 정기리포트: retry_count 증가 후 즉시 재실행
@@ -504,7 +517,7 @@ async function processScheduleJob(job: any) {
         grid_points: gridConfig,
         grid_distance: job.grid_distance || (gridConfig[0] as any)?.distance || 1,
         status: 'pending',
-        report_type: 'weekly',
+        report_type: (job.platform || 'naver') === 'google' ? 'weekly' : 'daily',
         created_at: new Date().toISOString()
     }).select().single();
 
@@ -542,20 +555,23 @@ async function main() {
 
             if (error) throw error;
 
-            // 2. crawling_day (단수) 또는 crawling_days (배열) 매칭 + ISO 주차 중복 방지
+            // 2. 플랫폼별 분기: 네이버=매일(crawling_days), 구글=주 1회(crawling_day)
+            const currentDateStr = getKstDateString();
             const currentWeek = getISOWeekKST();
             const jobs = (allSchedules || []).filter(s => {
-                // 요일 매칭: crawling_day(주 컬럼) 우선, 없으면 crawling_days(레거시)
-                const dayMatch = s.crawling_day !== null && s.crawling_day !== undefined
-                    ? s.crawling_day === currentDay
-                    : Array.isArray(s.crawling_days) && s.crawling_days.includes(currentDay);
-
-                if (!dayMatch) return false;
-
-                // 같은 ISO 주차면 skip (주 1회 제한)
-                if (s.last_run_at) {
-                    const lastRunWeek = getISOWeekKST(s.last_run_at);
-                    if (lastRunWeek === currentWeek) return false;
+                if ((s.platform || 'naver') === 'naver') {
+                    // ── 네이버: crawling_days 배열 기반 매일 실행 ──
+                    const days: number[] = s.crawling_days || [];
+                    if (days.length === 0) return false;  // 활성화 안 됨
+                    if (!days.includes(currentDay)) return false;  // 오늘 요일 미포함
+                    // 오늘 KST 날짜에 이미 실행했으면 skip
+                    if (s.last_run_at && getKstDateString(s.last_run_at) === currentDateStr) return false;
+                } else {
+                    // ── 구글: crawling_day 단수 기반 주 1회 ──
+                    if (s.crawling_day === null || s.crawling_day === undefined) return false;  // 활성화 안 됨
+                    if (s.crawling_day !== currentDay) return false;  // 요일 불일치
+                    // 같은 ISO 주차면 skip
+                    if (s.last_run_at && getISOWeekKST(s.last_run_at) === currentWeek) return false;
                 }
 
                 return true;

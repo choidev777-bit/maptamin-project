@@ -128,7 +128,7 @@ export function CompetitorManager({ planId, maxNaverCompetitors, maxGoogleCompet
                     </div>
                 ) : (
                     <span className="text-sm text-gray-400 font-medium">
-                        {competitors.length}/{maxForPlatform}
+                        {competitors.length}/{maxForPlatform === -1 ? '∞' : maxForPlatform}
                     </span>
                 )}
             </div>
@@ -136,7 +136,7 @@ export function CompetitorManager({ planId, maxNaverCompetitors, maxGoogleCompet
             {/* 슬롯 카운터 (Premium에서 탭 아래) */}
             {isPremium && (
                 <p className="text-sm text-gray-400 font-medium mb-4">
-                    등록 {competitors.length}/{maxForPlatform}
+                    등록 {competitors.length}/{maxForPlatform === -1 ? '∞' : maxForPlatform}
                 </p>
             )}
 
@@ -185,13 +185,13 @@ export function CompetitorManager({ planId, maxNaverCompetitors, maxGoogleCompet
                         ))}
 
                         {/* 추가 버튼 (슬롯 남아있을 때만) */}
-                        {competitors.length < maxForPlatform && (
+                        {(maxForPlatform === -1 || competitors.length < maxForPlatform) && (
                             <button
                                 onClick={() => setIsAddModalOpen(true)}
                                 className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-gray-300 hover:text-gray-700 transition-colors"
                             >
                                 <Plus className="w-4 h-4" />
-                                경쟁사 추가 ({competitors.length}/{maxForPlatform})
+                                경쟁사 추가 ({competitors.length}/{maxForPlatform === -1 ? '∞' : maxForPlatform})
                             </button>
                         )}
                     </>
