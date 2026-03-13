@@ -18,18 +18,18 @@ const COMPARISON: ComparisonRow[] = [
         starter: '1곳 \n(30일 이후 변경 가능)',
         pro: '1곳 \n(30일 이후 변경 가능)',
         premium: '무제한 \n변경 가능',
-        tooltip: '그리드 분석의 중심이 되는 매장입니다. 스타터/프로는 설정 후 30일간 변경 불가합니다.',
+        tooltip: '플레이스 순위 지도 분석의 중심이 되는 매장입니다. 스타터/프로는 설정 후 30일간 변경 불가합니다.',
     },
-    { label: '제공 채널', starter: '네이버 지도', pro: '네이버 지도', premium: '네이버 + 구글' },
+    { label: '제공 채널', starter: '네이버', pro: '네이버', premium: '네이버 + 구글' },
     {
         label: '리포트 주기',
         starter: '매일',
         pro: '매일',
-        premium: '네이버 매일 / 구글 주 1회',
+        premium: '네이버: 매일 / 구글: 주 1회',
         tooltip: '결제 즉시 웰컴 리포트 1회가 추가 발송됩니다.',
     },
     {
-        label: '실시간 진단 티켓',
+        label: '실시간 분석 티켓',
         starter: '월 2회',
         pro: '월 5회',
         premium: '월 10회 (각 채널)',
@@ -43,7 +43,7 @@ const COMPARISON: ComparisonRow[] = [
         premium: '5개 (각 채널)',
         tooltip: '검색할 때 입력하는 키워드입니다. 설정 후 30일간 변경 불가합니다.',
     },
-    { label: '경쟁사 분석', starter: '—', pro: '5곳', premium: '무제한' },
+    { label: '경쟁사 분석', starter: '—', pro: '5곳', premium: '50곳' },
 ]
 
 /* ---- 용어 설명 ---- */
@@ -67,13 +67,13 @@ const TERMS: Term[] = [
     },
     {
         icon: '⚡',
-        title: '실시간 진단 티켓',
-        desc: '정기 리포트(매일) 외에, 지금 당장 내 매장 순위가 궁금할 때 사용하는 즉시 조회 기능입니다. 소진 시 추가 구매가 가능합니다. (1,500원/장)',
+        title: '실시간 분석 티켓',
+        desc: '자동 리포트 외에, 지금 당장 내 매장 순위가 궁금할 때 사용하는 실시간 분석 기능입니다. 소진 시 추가 구매가 가능합니다. (1,500원/장)',
     },
     {
         icon: '👋',
         title: '웰컴 리포트',
-        desc: '결제 즉시 발송되는 첫 번째 리포트입니다. 가입 후 일주일을 기다릴 필요 없이, 바로 내 매장 상태를 확인할 수 있습니다.',
+        desc: '결제 즉시 발송되는 첫 번째 리포트입니다. 가입 후 자동 리포트를 기다릴 필요 없이, 바로 내 매장 상태를 확인할 수 있습니다.',
     },
 ]
 
@@ -104,11 +104,12 @@ const PLANS: PlanCard[] = [
         monthly: '9,900원',
         featured: false,
         features: [
-            { text: '네이버 지도 진단', included: true },
+            { text: '네이버 플레이스 분석', included: true },
             { text: '3×3 (9개 좌표) 분석', included: true },
+            { text: '매일 네이버 보고서 자동 발송', included: true },
             { text: '관리 키워드 2개', included: true },
-            { text: '매일 보고서 자동 발송', included: true },
-            { text: '실시간 진단 티켓 월 2회', included: true },
+            { text: '실시간 분석 티켓 월 2장', included: true },
+            { text: '연결 매장 1곳 (30일 이후 변경 가능)', included: true },
             { text: '경쟁사 비교 분석 불가', included: false },
         ],
         cta: '가볍게 시작하기',
@@ -122,14 +123,15 @@ const PLANS: PlanCard[] = [
         featured: true,
         badge: '추천!',
         features: [
-            { text: '네이버 지도 진단', included: true },
+            { text: '네이버 플레이스 분석', included: true },
             { text: '5×5 (25개 좌표) 분석', included: true },
+            { text: '매일 네이버 보고서 자동 발송', included: true },
             { text: '관리 키워드 5개', included: true },
-            { text: '매일 보고서 자동 발송', included: true },
-            { text: '실시간 진단 티켓 월 5회', included: true },
+            { text: '실시간 분석 티켓 월 5장', included: true },
+            { text: '연결 매장 1곳 (30일 이후 변경 가능)', included: true },
             { text: '경쟁사 5곳 분석', included: true },
         ],
-        cta: '내 매장 진단 & 경쟁사 분석', // PricingSection은 '... 분석 시작하기' 인데 여기는 짧게 유지? 사용자는 "그대로" 원함. PricingSection의 CTA 사용.
+        cta: '내 매장 진단 & 경쟁사 분석 시작하기',
         ctaStyle: 'solid',
     },
     {
@@ -139,13 +141,14 @@ const PLANS: PlanCard[] = [
         monthly: '79,000원',
         featured: false,
         features: [
-            { text: '네이버 + 구글 지도 진단', included: true },
+            { text: '네이버 플레이스 + 구글 지도 분석', included: true },
             { text: '7×7 (49개 좌표) 분석', included: true },
-            { text: '관리 키워드 5개 (각 채널)', included: true },
-            { text: '실시간 진단 티켓 월 10회 (각 채널)', included: true },
-            { text: '네이버 매일 + 구글 주간 보고서', included: true },
-            { text: '경쟁사 무제한 분석', included: true },
+            { text: '매일 네이버 보고서 자동 발송', included: true },
+            { text: '매주 구글 보고서 자동 발송', included: true },
+            { text: '관리 키워드 10개 (네이버/구글 각 5개)', included: true },
+            { text: '실시간 분석 티켓 월 20장 (네이버/구글 각 10장)', included: true },
             { text: '연결 매장 무제한 변경', included: true },
+            { text: '경쟁사 50곳 분석', included: true },
         ],
         cta: '상권 완전 장악하기',
         ctaStyle: 'ghost',
@@ -176,7 +179,7 @@ export default function PricingDetailSection() {
                         {PLANS.map((plan) => (
                             <div
                                 key={plan.name}
-                                className={`relative flex flex-col rounded-3xl border p-7 transition-all duration-300 sm:p-8 ${plan.featured
+                                className={`relative flex flex-col rounded-3xl border p-7 transition-[transform,box-shadow] duration-300 sm:p-8 ${plan.featured
                                     ? 'scale-[1.03] border-[#00C896] bg-white shadow-2xl shadow-[#00C896]/10 lg:scale-105 hover:-translate-y-1'
                                     : 'border-gray-200 bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg'
                                     }`}
@@ -229,7 +232,7 @@ export default function PricingDetailSection() {
                                 </ul>
 
                                 <p className="mt-5 text-center text-xs font-medium text-[#00C896]">
-                                    🚀 결제 즉시 웰컴 리포트 발송
+                                    🚀 구독 즉시 첫 리포트 발송
                                 </p>
 
                                 <Link
@@ -291,7 +294,7 @@ export default function PricingDetailSection() {
                                         </td>
                                         <td className="px-6 py-4 text-center text-gray-600">
                                             {row.starter === '—' ? (
-                                                <X className="mx-auto h-4 w-4 text-gray-300" />
+                                                <X className="mx-auto h-4 w-4 text-gray-500" />
                                             ) : (
                                                 row.starter
                                             )}

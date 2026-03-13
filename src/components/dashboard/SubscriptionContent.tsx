@@ -96,7 +96,7 @@ const PLANS: PlanCardData[] = [
             { text: '관리 키워드 5개 (각 채널)', included: true },
             { text: '실시간 진단 티켓 월 10회 (각 채널)', included: true },
             { text: '네이버 매일 + 구글 주간 보고서', included: true },
-            { text: '경쟁사 무제한 분석', included: true },
+            { text: '경쟁사 50곳 분석', included: true },
             { text: '연결 매장 무제한 변경', included: true },
         ],
         cta: '업그레이드',

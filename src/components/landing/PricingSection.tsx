@@ -29,11 +29,12 @@ const PLANS: Plan[] = [
         monthly: '9,900원',
         featured: false,
         features: [
-            { text: '네이버 지도 진단', included: true },
+            { text: '네이버 플레이스 분석', included: true },
             { text: '3×3 (9개 좌표) 분석', included: true },
+            { text: '매일 네이버 보고서 자동 발송', included: true },
             { text: '관리 키워드 2개', included: true },
-            { text: '매일 보고서 자동 발송', included: true },
-            { text: '실시간 진단 티켓 월 2회', included: true },
+            { text: '실시간 분석 티켓 월 2장', included: true },
+            { text: '연결 매장 1곳 (30일 이후 변경 가능)', included: true },
             { text: '경쟁사 비교 분석 불가', included: false },
         ],
         cta: '가볍게 시작하기',
@@ -47,11 +48,12 @@ const PLANS: Plan[] = [
         featured: true,
         badge: '추천!',
         features: [
-            { text: '네이버 지도 진단', included: true },
+            { text: '네이버 플레이스 분석', included: true },
             { text: '5×5 (25개 좌표) 분석', included: true },
+            { text: '매일 네이버 보고서 자동 발송', included: true },
             { text: '관리 키워드 5개', included: true },
-            { text: '매일 보고서 자동 발송', included: true },
-            { text: '실시간 진단 티켓 월 5회', included: true },
+            { text: '실시간 분석 티켓 월 5장', included: true },
+            { text: '연결 매장 1곳 (30일 이후 변경 가능)', included: true },
             { text: '경쟁사 5곳 분석', included: true },
         ],
         cta: '내 매장 진단 & 경쟁사 분석 시작하기',
@@ -64,13 +66,14 @@ const PLANS: Plan[] = [
         monthly: '79,000원',
         featured: false,
         features: [
-            { text: '네이버 + 구글 지도 진단', included: true },
+            { text: '네이버 플레이스 + 구글 지도 분석', included: true },
             { text: '7×7 (49개 좌표) 분석', included: true },
-            { text: '관리 키워드 5개 (각 채널)', included: true },
-            { text: '실시간 진단 티켓 월 10회 (각 채널)', included: true },
-            { text: '네이버 매일 + 구글 주간 보고서', included: true },
-            { text: '경쟁사 무제한 분석', included: true },
+            { text: '매일 네이버 보고서 자동 발송', included: true },
+            { text: '매주 구글 보고서 자동 발송', included: true },
+            { text: '관리 키워드 10개 (네이버/구글 각 5개)', included: true },
+            { text: '실시간 분석 티켓 월 20장 (네이버/구글 각 10장)', included: true },
             { text: '연결 매장 무제한 변경', included: true },
+            { text: '경쟁사 50곳 분석', included: true },
         ],
         cta: '상권 완전 장악하기',
         ctaStyle: 'ghost',
@@ -101,7 +104,7 @@ export default function PricingSection() {
                     {PLANS.map((plan) => (
                         <div
                             key={plan.name}
-                            className={`relative flex flex-col rounded-3xl border p-7 transition-all duration-300 sm:p-8 ${plan.featured
+                            className={`relative flex flex-col rounded-3xl border p-7 transition-[transform,box-shadow] duration-300 sm:p-8 ${plan.featured
                                 ? 'scale-[1.03] border-[#00C896] bg-white shadow-2xl shadow-[#00C896]/10 lg:scale-105 hover:-translate-y-1'
                                 : 'border-gray-200 bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg'
                                 }`}
@@ -157,9 +160,9 @@ export default function PricingSection() {
                                 ))}
                             </ul>
 
-                            {/* 결제 즉시 보고서 발송 */}
+                            {/* 구독 즉시 리포트 발송 */}
                             <p className="mt-5 text-center text-xs font-medium text-[#00C896]">
-                                🚀 결제 즉시 첫 보고서 발송
+                                🚀 구독 즉시 첫 리포트 발송
                             </p>
 
                             {/* CTA 버튼 */}

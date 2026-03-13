@@ -71,8 +71,8 @@ export const PLAN_CONFIG: Record<string, {
         ticketsGoogle: 10,
         keywordsNaver: 5,
         keywordsGoogle: 5,
-        competitorsNaver: -1,  // -1 = 무제한
-        competitorsGoogle: -1, // -1 = 무제한
+        competitorsNaver: 50,
+        competitorsGoogle: 50,
         channels: 'naver+google',
         placeLock: false, // 프리미엄: 매장 무제한 변경 (30일 락 면제)
     },

@@ -113,7 +113,7 @@ export function Sidebar({
     // ── Navigation Routes ──
     const mainRoutes: NavRoute[] = [
         { href: '/dashboard', label: '대시보드', icon: Home, match: 'exact', isLocked: isOnboarding },
-        { href: '/history', label: '분석 기록', icon: History, match: 'startsWith', isLocked: isOnboarding },
+        { href: '/history', label: '진단 기록', icon: History, match: 'startsWith', isLocked: isOnboarding },
         { href: '/report-settings', label: '자동 리포트 설정', icon: CalendarClock, match: 'startsWith', isLocked: !subscribed || isOnboarding },
     ]
 
@@ -219,12 +219,12 @@ export function Sidebar({
                                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                             }
                         `}
-                        title={!isExpanded ? '실시간 순위 분석' : undefined}
+                        title={!isExpanded ? '실시간 순위 진단' : undefined}
                     >
                         <Search className="w-5 h-5 flex-shrink-0" />
                         {isExpanded && (
                             <>
-                                <span className="flex-1 text-left whitespace-nowrap">실시간 순위 분석</span>
+                                <span className="flex-1 text-left whitespace-nowrap">실시간 순위 진단</span>
                                 <ChevronDown
                                     className={`w-4 h-4 transition-transform ${searchGroupOpen ? 'rotate-0' : '-rotate-90'}`}
                                 />
