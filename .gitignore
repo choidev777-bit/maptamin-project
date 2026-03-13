@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Oracle Cloud private keys
+Docs/oracle_key/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
