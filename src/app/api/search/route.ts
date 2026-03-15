@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
             grid_points: gridPoints,
             grid_distance: distance,
             distance_unit: distanceUnit,
-            status: 'processing',
+            status: isWelcome ? 'pending' : 'processing',
             platform: 'google',
             report_type: isWelcome ? 'welcome' : 'realtime'
         })
@@ -94,11 +94,15 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // 4. 구글 search는 별도 dispatch 불필요
-    //    - 실시간: 클라이언트가 /api/search/{id}/process 직접 호출
-    //    - 웰컴: 온보딩에서 /api/search/{id}/process fire-and-forget 호출
-    //    - 정기: api/cron/scheduled-search → api/queue/dispatch 별도 경로 (이 API 무관)
-    console.log(`[API/Google] Search created: ${search.id} (type: ${isWelcome ? 'welcome' : 'realtime'}). Client will trigger /process.`)
+    // 4. 웰컴: Oracle VM dispatch 트리거 / 실시간: 클라이언트가 /process 직접 호출
+    if (isWelcome) {
+        const baseUrl = request.nextUrl.origin
+        fetch(`${baseUrl}/api/queue/dispatch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        }).catch(e => console.error('[Search/Google] Dispatch trigger failed:', e))
+    }
+    console.log(`[API/Google] Search created: ${search.id} (type: ${isWelcome ? 'welcome' : 'realtime'})`)
 
     return NextResponse.json({ searchId: search.id })
 }
