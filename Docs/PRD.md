@@ -1,7 +1,7 @@
 # Maptamin Local SEO SaaS - 제품 요구사항 정의서 (PRD)
 
-> **Version**: 1.0
-> **Last Updated**: 2026-02-17
+> **Version**: 2.0
+> **Last Updated**: 2026-03-16
 > **Status**: Development
 > **Author**: AI Assistant (Acting as Senior Dev)
 
@@ -11,7 +11,7 @@
 
 **Maptamin(맵타민)**은 한국 오프라인 가게 사장님들(음식점, 카페, 헬스장, 필라테스 등)을 위한 **리포트형 SaaS**입니다. 이 SaaS는 네이버 지도와 구글 지도를 지원하는 **local search grid heatmap**입니다.
 한국에서는 아직 네이버 기반의 local search grid heatmap이 없기 때문에, Maptamin은 이 기능을 제공하는 SaaS입니다.
-사용자는 네이버 지도와 구글 지도에서의 내 가게 순위를 실시간으로 확인하고, 경쟁사와 비교 분석하며, 주간 리포트를 통해 성과를 지속적으로 모니터링할 수 있습니다.
+사용자는 네이버 지도와 구글 지도에서의 내 가게 순위를 실시간으로 확인하고, 경쟁사와 비교 분석하며, 네이버는 일간 리포트 / 구글은 주간 리포트를 통해 성과를 지속적으로 모니터링할 수 있습니다.
 
 참고로, 마케팅 대행사들을 타겟 고객으로 삼지 않은 이유는, 아이보스 커뮤니티나 크몽에 들어가서 보면 마케팅 대행사 99%가 허위 영수증 리뷰, 트래픽 작업 등의 어뷰징을 해준다는 것이 대부분이고, 이러한 작업에는 local search grid heatmap이 필요하지 않기 때문입니다.
 
@@ -74,6 +74,7 @@ A. 사장님들은 결과페이지에서 나온 플레이스 순위 지도를 �
 | **Maps** | React Naver Maps, React Google Maps | 지도 연동 및 시각화 |
 | **Charts** | Recharts | 순위 변동 그래프 등 데이터 시각화 |
 | **Testing** | Playwright, Jest | E2E 및 유닛 테스트 |
+| **Payment** | PortOne (포트원) | 구독 결제 및 일회성 티켓 결제 (`@portone/browser-sdk`, `@portone/server-sdk`) |
 | **Infra** | Vercel | 배포 및 호스팅 |
 
 ---
@@ -85,9 +86,9 @@ A. 사장님들은 결과페이지에서 나온 플레이스 순위 지도를 �
 - **가게 등록**:
   - 네이버/구글 지도 API를 통해 실제 운영 중인 가게 검색 및 등록
   - **Premium** 플랜은 구글 가게 추가 등록 가능
-- **키워드 설정**: 집중 관리할 키워드 등록 (플랜별로 개수 제한: 2~10개)
+- **키워드 설정**: 집중 관리할 키워드 등록 (플랜별로 개수 제한: Naver 2~5개, Google 0~5개)
 - **경쟁사 등록**: 비교 분석할 경쟁 업체 등록 (Pro 이상)
-- **30일 락(Lock) 정책**: 등록된 가게/키워드/경쟁사는 데이터 일관성을 위해 30일간 변경 불가
+- **30일 락(Lock) 정책**: 등록된 가게/키워드/경쟁사는 데이터 일관성을 위해 30일간 변경 불가 (Premium 플랜은 락 면제)
 
 ### 3.2 대시보드 (Dashboard)
 - **URL**: `/dashboard`
@@ -107,11 +108,17 @@ A. 사장님들은 결과페이지에서 나온 플레이스 순위 지도를 �
   - 검색 실패 시 티켓 자동 환불 로직 구현
 
 ### 3.4 리포트 및 알림 (Reports & Notifications)
-- **주간 리포트 (Automated)**:
-  - 사용자가 설정한 요일/시간에 자동 크롤링 실행 (Cron Job)
+- **일간 리포트 - 네이버 (Automated)**:
+  - 사용자가 설정한 요일(복수 선택 가능)/시간에 자동 크롤링 실행 (Cron Job, 매일 정시)
   - 결과 요약 정보를 카카오 알림톡으로 발송 (Solapi 연동)
+  - `report_type = 'daily'`
+- **주간 리포트 - 구글 (Automated, Premium 전용)**:
+  - 사용자가 설정한 요일(1개)/시간에 매주 1회 자동 크롤링 실행
+  - 결과 요약 정보를 카카오 알림톡으로 발송
+  - `report_type = 'weekly'`
 - **웰컴 리포트**:
   - 온보딩 완료 시 최초 1회 무료 실행 및 알림 발송
+  - `report_type = 'welcome'`
 
 ### 3.5 경쟁사 분석 (Competitor Analysis)
 - **대상**: Pro, Premium 플랜 사용자 전용 기능
@@ -121,16 +128,14 @@ A. 사장님들은 결과페이지에서 나온 플레이스 순위 지도를 �
   - **패배(Red)**: 내 순위 < 경쟁사 순위
   - **무승부/데이터없음(Gray)**: 순위 동일 또는 데이터 부족
 - **플랜별 동작**:
-  - **Pro**: 등록된 1개의 경쟁사와 자동 비교
-  - **Premium**: 등록된 최대 10개 경쟁사 중 드롭다운으로 선택하여 비교
+  - **Pro**: 등록된 최대 5곳의 경쟁사와 비교 (Naver 전용)
+  - **Premium**: 등록된 최대 50곳 경쟁사 중 드롭다운으로 선택하여 비교 (Naver/Google 각 50곳)
 - **상세 데이터**: 히트맵의 그리드 포인트 클릭 시 "내 순위 vs 경쟁사 순위" 툴팁 표시
 
 ### 3.6 설정 및 관리 (Settings)
-- **URL**: `/settings`
-- **기능**:
-  - 가게/키워드/경쟁사 변경 (락 해제 일자 확인)
-  - 크롤링 스케줄 및 알림 수신 시간 설정
-  - 구독 플랜 관리 및 결제 내역 확인
+- **`/settings`**: 가게/키워드/경쟁사 등록 및 변경 (락 해제 일자 확인)
+- **`/report-settings`**: 자동 크롤링 스케줄 및 알림 수신 시간 설정
+- **`/subscription`**: 구독 플랜 관리, 결제 내역 확인, 티켓 충전
 
 ---
 
@@ -155,9 +160,15 @@ A. 사장님들은 결과페이지에서 나온 플레이스 순위 지도를 �
 
 #### Operation & Logs
 - **`searches`**: 검색 요청 및 결과 헤더
-  - `report_type`: 'realtime', 'weekly', 'welcome'
-  - `status`: 'pending', 'processing', 'completed'
+  - `report_type`: 'realtime' | 'daily' | 'weekly' | 'welcome'
+    - `realtime`: 사용자가 직접 실행한 실시간 진단
+    - `daily`: 네이버 자동 일간 리포트
+    - `weekly`: 구글 자동 주간 리포트
+    - `welcome`: 온보딩 완료 후 최초 1회 무료 실행
+  - `status`: 'pending' | 'processing' | 'completed' | 'failed'
 - **`search_schedules`**: 자동 검색 스케줄 설정
+  - `crawling_days` (number[]): 네이버 전용 — 복수 요일 선택
+  - `crawling_day` (number): 구글 전용 — 단수 요일 선택
 - **`notification_schedules`**: 알림 발송 스케줄 (검색과 별도 설정 가능)
 - **`ticket_ledger`**: 티켓 사용/충전/환불 이력 원장
 
@@ -168,12 +179,16 @@ A. 사장님들은 결과페이지에서 나온 플레이스 순위 지도를 �
 ### 5.1 요금제 정책 (Plans)
 | 구분 | Starter | Pro | Premium |
 |------|---------|-----|---------|
-| **가격** | 9,900원 | 29,000원 | 99,000원 |
+| **가격** | 9,900원 | 29,000원 | 79,000원 |
 | **채널** | 네이버 | 네이버 | 네이버 + 구글 |
 | **그리드** | 3 x 3 | 5 x 5 | 7 x 7 |
-| **키워드** | 2개 | 5개 | 10개 (각 5) |
-| **티켓** | 월 2매 | 월 10매 | 월 30매 (각 15) |
-| **경쟁사** | 불가 | 1곳 | 10곳 |
+| **키워드 (Naver)** | 2개 | 5개 | 5개 |
+| **키워드 (Google)** | 0개 | 0개 | 5개 |
+| **티켓 (Naver)** | 월 2매 | 월 5매 | 월 10매 |
+| **티켓 (Google)** | 0매 | 0매 | 월 10매 |
+| **경쟁사 (Naver)** | 불가 | 5곳 | 50곳 |
+| **경쟁사 (Google)** | 불가 | 불가 | 50곳 |
+| **30일 락** | 적용 | 적용 | **면제** |
 
 ### 5.2 검색 원가 구조 (Search Cost Structure)
 API 호출 및 크롤링에 소요되는 서버 리소스 비용은 다음과 같습니다.
@@ -193,6 +208,7 @@ API 호출 및 크롤링에 소요되는 서버 리소스 비용은 다음과 �
 - 블랙키위/키워드마스터 등의 어뷰징 방지 및 데이터 일관성을 위함
 - 가게, 키워드, 경쟁사 등록 시 `created_at + 30 days` 시간까지 수정 불가
 - 설정 페이지에서 "D-N일 후 변경 가능" 표시 필수
+- **Premium 플랜은 30일 락 면제** (`placeLock: false`) — 무제한 가게 변경 가능
 
 ---
 
@@ -201,22 +217,34 @@ API 호출 및 크롤링에 소요되는 서버 리소스 비용은 다음과 �
 ```
 src/
 ├── app/
-│   ├── (auth)/             # 로그인, 콜백 등 인증 관련
-│   ├── (dashboard)/        # 대시보드 메인 (Layout 공유)
-│   │   ├── dashboard/      # 메인 홈
-│   │   ├── search/         # 통합 검색
-│   │   ├── settings/       # 설정 페이지
-│   │   └── report/         # 리포트 뷰
-│   └── api/                # Next.js API Routes (Cron 등)
+│   ├── (auth)/              # 로그인, 콜백 등 인증 관련
+│   ├── (dashboard)/         # 대시보드 메인 (Layout 공유)
+│   │   ├── dashboard/       # 메인 홈
+│   │   ├── naver-search/    # 네이버 실시간 진단
+│   │   ├── search/          # 구글 실시간 진단
+│   │   ├── history/         # 검색 이력 페이지
+│   │   ├── settings/        # 가게/키워드/경쟁사 설정
+│   │   ├── report-settings/ # 자동 리포트 스케줄 설정
+│   │   └── subscription/    # 구독/결제 관리
+│   └── api/                 # Next.js API Routes
+│       ├── cron/            # 자동 검색 크론 (scheduled-search)
+│       ├── queue/           # Oracle VM 디스패처
+│       ├── naver/           # 네이버 검색 API
+│       ├── search/          # 구글 검색 API
+│       └── webhook/         # Oracle VM 콜백
 ├── components/
-│   ├── layout/             # Desktop/Mobile Nav
-│   ├── maps/               # Naver/Google Maps 컴포넌트
-│   ├── search/             # 검색 입력 및 설정 UI
-│   └── results/            # 히트맵, 순위 카드 등 결과 UI
+│   ├── layout/              # Desktop/Mobile Nav, Sidebar
+│   ├── maps/                # Naver/Google Maps 컴포넌트
+│   ├── naver/               # 네이버 전용 검색/결과 UI
+│   ├── search/              # 구글 검색/결과 UI
+│   ├── onboarding/          # 온보딩 멀티스텝 위저드
+│   ├── schedule/            # 요일/시간 선택 UI
+│   └── results/             # 히트맵, 순위 카드 등 결과 UI
 ├── lib/
-│   ├── supabase/           # Supabase Client/Server 유틸
-│   ├── dataforseo/         # 외부 API 통합 (DataForSEO)
-│   ├── kakao/              # 카카오 알림톡 (Solapi)
-│   └── types/              # TypeScript 정의 (SQL 스키마와 동기화)
-└── middleware.ts           # 라우트 보호 및 리다이렉션
+│   ├── supabase/            # Supabase Client/Server 유틸
+│   ├── pricing/             # 플랜 설정 (PLAN_CONFIG)
+│   ├── dataforseo/          # 외부 API 통합 (DataForSEO, 구글)
+│   ├── kakao/               # 카카오 알림톡 (Solapi)
+│   └── types/               # TypeScript 정의 (SQL 스키마와 동기화)
+└── middleware.ts            # 라우트 보호 및 리다이렉션
 ```
