@@ -1,7 +1,7 @@
 # Maptamin Component Tree & UI Architecture
 
 > **Purpose**: 주요 라우트별 컴포넌트 계층 구조, 각 컴포넌트의 역할, 상태 관리 의존성을 정리한 문서  
-> **Last Updated**: 2026-02-25 (코드베이스 검증: OnboardingBanner 추가, History SSR 조회 수정, 컴포넌트 위치/경로 교정, Google Results 상태 분기 보완)  
+> **Last Updated**: 2026-03-15 (온보딩 Step5 네이버/구글 시간 분리, daily report_type 추가, 의존성 정정)  
 > **Total Components**: 90개 (15개 디렉토리, 테스트 파일 제외)
 
 ---
@@ -332,10 +332,17 @@ RootLayout (src/app/layout.tsx) [Server]
 │   └── 로컬 state만, DB 저장 안함
 │
 ├── Step 5: StepScheduleSetting [Client]
-│   └── DaySelector / TimeSelector → 요일/시간 선택
-│   └── 전화번호 입력 (알림톡 수신용)
-│   └── search_schedules + notification_schedules INSERT (플랫폼별)
-│   └── user_subscriptions.phone UPDATE
+│   ├── 네이버 컨드 (N배지)
+│   │   ├── 요일 선택 (복수): 인라인 버튼 UI + 매일 토글
+│   │   ├── 네이버 시간 선택: 인라인 select 드롭다운 (naverCrawlingTime)
+│   │   └── 네이버 미리보기 (선택 요일 + 시간)
+│   ├── 구글 컨드 (G배지, Premium만)
+│   │   ├── 요일 선택 (단수): 인라인 버튼 UI
+│   │   ├── 구글 시간 선택: 인라인 select 드롭다운 (googleCrawlingTime)
+│   │   └── 구글 미리보기 (선택 요일 + 시간)
+│   ├── 전화번호 입력 (알림톡 수신용)
+│   └── search_schedules + notification_schedules INSERT (플랫폼별, 시간 분리 저장)
+│       └── user_subscriptions.phone UPDATE
 │
 └── OnboardingComplete [Client] (모든 Step 완료 후)
     └── 웰컴 리포트 실행: POST /api/naver/search (+ /api/search for Premium)
@@ -350,8 +357,8 @@ RootLayout (src/app/layout.tsx) [Server]
 - `onboarding-utils.ts`: `getOnboardingSteps()`, `computeStartStep()`
 - `NaverMapGridConfigurator`, `MapGridConfigurator`, `DistanceSettings` (기존 컴포넌트 재사용)
 - `CompetitorSlotCard` (competitor/ 디렉토리)
-- `DaySelector`, `TimeSelector` (schedule/ 디렉토리)
 - `PLAN_CONFIG` (플랜별 그리드 크기 조회)
+- ⚠️ `StepScheduleSetting`은 `DaySelector`/`TimeSelector`를 사용하지 않음 — 옷보딩 서래역 인라인 UI 직접 구현 (schedule/ 컴포넌트는 `ReportSettingsContent`에서만 사용)
 
 ---
 
@@ -582,11 +589,11 @@ RootLayout (src/app/layout.tsx) [Server]
     │
     ├── 필터 바
     │   ├── 플랫폼 필터 (전체/네이버/구글)
-    │   └── 리포트 유형 필터 (전체/주간/실시간/웰컴)
+    │   └── 리포트 유형 필터 (전체/주간/일간/실시간/웰컴)
     │
     └── HistoryTable [Client]
         ├── 상태 배지 (완료/분석 중/대기/실패)
-        ├── 리포트 유형 배지 (주간/실시간/웰컴)
+        ├── 리포트 유형 배지 (주간/일간/실시간/웰컴)
         ├── 페이지네이션 (10건/페이지)
         └── 결과 상세 링크 → /naver-search/[id] 또는 /search/[id]
 ```

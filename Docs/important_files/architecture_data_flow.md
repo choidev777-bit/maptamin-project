@@ -2,7 +2,7 @@
 
 > **Purpose**: AI가 코드 수정 시 각 기능의 전체 데이터 흐름을 정확히 파악할 수 있도록,  
 > `User UI Action ↔ Client Component ↔ Server API Route ↔ Supabase DB Table` 매핑을 정리한 문서입니다.  
-> **Last Updated**: 2026-02-25 (코드베이스 검증: 잘못된 컴포넌트 참조 수정, Webhook 갱신 플로우 추가, 구글 검색 실행 방식 수정, 누락 컴포넌트/유틸 보완)  
+> **Last Updated**: 2026-03-15 (구글 웰컴 리포트 Oracle VM 경유 변경, report_type 'daily' 추가, 온보딩 스케줄 네이버/구글 분석 시간 분리, 구글 웰컴 status='pending' 수정)  
 > **Auto-generated from codebase analysis**
 
 ---
@@ -20,7 +20,7 @@
 8. [Feature: Naver Rank Search](#8-naver-rank-search)
 9. [Feature: Google Rank Search](#9-google-rank-search)
 10. [Feature: Dashboard (Data Aggregation)](#10-dashboard)
-11. [Feature: Weekly Scheduled Search (CRON)](#11-weekly-scheduled-search)
+11. [Feature: Scheduled Search CRON (네이버: 매일 / 구글: 주 1회)](#11-weekly-scheduled-search)
 12. [Feature: KakaoTalk Notification (AlimTalk)](#12-kakaotalk-notification)
 13. [Feature: Subscription Lifecycle (구독 라이프사이클)](#13-subscription-lifecycle)
 14. [Feature: Settings (My Shop / Competitors)](#14-settings)
@@ -37,7 +37,7 @@
 | Table | Description | Key Columns |
 |-------|-------------|-------------|
 | `auth.users` | Supabase Auth 관리 (카카오/구글 OAuth) | `id`, `email`, `raw_user_meta_data` |
-| `plans` | 요금제 정의 (starter/pro/premium/free) | `id`, `price`, `max_grid_size`, `monthly_tickets_naver/google`, `max_keywords_naver/google`, `max_competitors`, `channels` |
+| `plans` | 요금제 정의 (starter/pro/premium/free) | `id`, `price`, `gridSize`, `ticketsNaver`, `ticketsGoogle`, `keywordsNaver`, `keywordsGoogle`, `competitorsNaver`, `competitorsGoogle`, `channels('none'\|'naver'\|'naver+google')`, `placeLock(bool)` |
 | `user_subscriptions` | 사용자 구독 상태 + 티켓 잔량 | `user_id(PK)`, `plan_id(FK→plans)`, `phone`, `remaining_tickets_naver/google`, `onboarding_completed`, `welcome_report_sent`, `current_period_start/end` |
 | `subscription_billing` | 정기 결제 빌링키 + 구독 상태 | `user_id(UNIQUE)`, `billing_key`, `card_last4`, `plan_id`, `pending_plan_id`, `status(active/cancel_scheduled/cancelled/past_due/expired)`, `next_payment_id`, `next_billing_date` |
 | `subscription_payment_history` | 구독 결제 이력 | `user_id`, `payment_id(UNIQUE)`, `plan_id`, `amount`, `status(paid/failed/refunded)`, `period_start/end`, `receipt_url` |
@@ -45,9 +45,9 @@
 | `managed_places` | 등록된 내 매장 (30일 락) | `user_id`, `platform`, `place_id`, `place_name`, `address`, `lat`, `lng`, `locked_until` |
 | `managed_keywords` | 관리 키워드 (30일 락) | `user_id`, `platform`, `keyword`, `locked_until` |
 | `managed_competitors` | 등록된 경쟁사 | `user_id`, `platform`, `place_id`, `place_name`, `address`, `lat`, `lng`, `locked_until` |
-| `searches` | 검색 요청 레코드 | `user_id`, `place_id`, `keywords[]`, `grid_points[]`, `grid_distance`, `status(pending/processing/completed/failed)`, `platform(naver/google)`, `report_type(realtime/weekly/welcome)` |
+| `searches` | 검색 요청 레코드 | `user_id`, `place_id`, `keywords[]`, `grid_points[]`, `grid_distance`, `status(pending/processing/completed/failed)`, `platform(naver/google)`, `report_type(realtime/weekly/daily/welcome)` |
 | `search_results` | 검색 결과 (그리드 포인트별 순위) | `search_id(FK→searches)`, `keyword`, `grid_index`, `grid_lat`, `grid_lng`, `rank`, `competitors[]`, `competitor_ranks` |
-| `search_schedules` | 자동 검색 스케줄 | `user_id`, `platform`, `place_id`, `keywords[]`, `grid_config[]`, `crawling_day`, `crawling_time`, `is_active`, `last_run_at` |
+| `search_schedules` | 자동 검색 스케줄 | `user_id`, `platform`, `place_id`, `keywords[]`, `grid_config[]`, `crawling_days(array, 네이버 복수요일)`, `crawling_day(단수, 구글 주1회)`, `crawling_time`, `is_active`, `last_run_at` |
 | `notification_schedules` | 알림톡 수신 스케줄 | `user_id`, `search_schedule_id(FK)`, `is_immediate`, `notify_day`, `notify_time` |
 | `notification_logs` | 알림 발송 이력 | `user_id`, `search_id(FK)`, `type(welcome/weekly/realtime)`, `status(pending/sent/failed)`, `sent_via`, `error_message`, `sent_at` |
 | `ticket_ledger` | 티켓 사용/환불/충전 원장 | `user_id`, `platform`, `amount(±N)`, `type(usage/refund/monthly_reset/welcome_bonus)`, `search_id` |
@@ -487,8 +487,9 @@ User Action: 키워드/그리드 설정 → "실시간 진단 시작" 클릭
 |---|---|---|
 | 크롤링 | Oracle VM Worker + Playwright | DataForSEO API |
 | 트리거 | `/api/queue/dispatch` → Oracle VM Worker | 클라이언트가 `/api/search/[id]/process` 직접 호출 |
-| 초기 상태 | `status='pending'` | `status='processing'` |
-| 웰컴 리포트 | 온보딩에서 `/api/search/{id}/process` fire-and-forget 호출 | 동일 |
+| 초기 상태 | `status='pending'` | 실시간: `status='processing'`, 웰컴: `status='pending'` |
+| 웰컴 리포트 | `/api/naver/search` → dispatch → Oracle VM → alimtalk | `/api/search`(status='pending') → 내부 dispatch → Oracle VM → alimtalk |
+| 알림톡 | Oracle VM `run-search.ts` `sendKakaoAlimtalk()` | Oracle VM `run-search.ts` `sendKakaoAlimtalk()` ← 웰컴만 |
 
 **DB Operations:** (네이버와 동일 구조, platform='google')
 | Operation | Table | Action |
@@ -554,9 +555,12 @@ Components Used:
 
 ---
 
-## 11. Weekly Scheduled Search
+## 11. Scheduled Search CRON
 
 ### 자동 검색 (pg_cron → Vercel API → Oracle VM Worker)
+
+- **네이버**: `crawling_days`(열) 기반 — 선택한 **요일마다** 실행 / `report_type = 'daily'`
+- **구글**: `crawling_day`(단수) 기반 — 주 **1회** 실행 / `report_type = 'weekly'`
 
 ```
 Trigger: Supabase pg_cron (매시 정각, 정확한 타이밍)
@@ -577,15 +581,18 @@ Trigger: Supabase pg_cron (매시 정각, 정확한 타이밍)
 │       │   └── SELECT → user_subscriptions (plan_id 확인)
 │       │
 │       ├── 5. 필터링:
-│       │   ├── 요일 매칭 (crawling_day 또는 crawling_days)
-│       │   ├── ISO 주차 비교 (KST 기준) — 같은 주 중복 방지
-│       │   │   └── getISOWeekKST(last_run_at) === getISOWeekKST(now) → SKIP
+│       │   ├── 네이버: crawling_days 열에 오늘 요일 포함 + 날짜 중복 체크
+│       │   │   └── getKstDateString(last_run_at) === 오늘 → SKIP (하루 1회)
+│       │   ├── 구글: crawling_day 단수와 오늘 요일 일치 + 주차 중복 체크
+│       │   │   └── getISOWeekKST(last_run_at) === 현재 주차 → SKIP (주 1회)
 │       │   └── free 플랜 유저 → SKIP
 │       │
 │       ├── 6. 스케줄별 처리:
 │       │   ├── UPDATE → search_schedules.last_run_at (선행 업데이트, 중복 방지)
 │       │   ├── SELECT → managed_places (좌표/주소 조회)
-│       │   └── INSERT → searches (status='pending', report_type='weekly')
+│       │   └── INSERT → searches
+│       │       ├── 네이버: status='pending', report_type='daily'
+│       │       └── 구글: status='pending', report_type='weekly'
 │       │
 │       └── 7. POST /api/queue/dispatch
 │           └── Oracle VM Worker dispatch → 크롤링 실행
@@ -604,8 +611,8 @@ Trigger: Supabase pg_cron (매시 정각, 정확한 타이밍)
 **엣지 케이스 방어:**
 | 시나리오 | 방어 로직 |
 |---------|----------|
-| 같은 주 요일 변경 (화→수) | ISO 주차 비교 (KST 기준) |
-| 같은 날 시간 변경 (14시→15시) | ISO 주차 비교 (같은 주) |
+| 상일 중복 네이버 (요일 변경 14시→15시) | 날짜 비교 (getKstDateString) — 하루 1회 |
+| 같은 주 요일 변경 (구글 화→수) | ISO 주차 비교 (KST 기준) |
 | free 플랜 유저 스케줄 | user_subscriptions.plan_id 체크 |
 | pg_cron 동시 실행 | last_run_at 선행 업데이트 |
 
@@ -616,7 +623,7 @@ Trigger: Supabase pg_cron (매시 정각, 정확한 타이밍)
 | SELECT | `user_subscriptions` | 구독 상태 확인 (free 플랜 필터) |
 | SELECT | `managed_places` | 좌표/주소 조회 |
 | UPDATE | `search_schedules` | `last_run_at` 선행 갱신 |
-| INSERT | `searches` | 검색 레코드 생성 (status='pending') |
+| INSERT | `searches` | 네이버: report_type='**daily**' / 구글: report_type='**weekly**' (status='pending') |
 | INSERT | `search_results` | 크롤링 결과 (Oracle VM Worker에서) |
 
 ---
@@ -908,7 +915,10 @@ User Action: 요약 화면에서 "완료하고 첫 리포트 받기" 클릭
 │   │       └── 티켓 차감 Skip
 │   │       └── INSERT searches (report_type='welcome')
 │   ├── 3. (Premium) POST /api/search (reportType='welcome')
-│   │       └── 동일 보안 검증 + 티켓 미차감
+│   │       └── 보안 검증: welcome_report_sent=true → 403
+│   │       └── 티켓 차감 Skip
+│   │       └── INSERT searches (status='pending', report_type='welcome')
+│   │       └── 내부에서 POST /api/queue/dispatch 호출 → Oracle VM 처리 + 알림톡 발송
 │   └── 4. UPDATE user_subscriptions SET welcome_report_sent = true
 │
 └─► OnboardingComplete 화면

@@ -1,8 +1,8 @@
 # Maptamin ERD (Entity Relationship Diagram)
 
-> **Version**: 2.4 (티켓 기반 시스템 + 정기 구독 + 구독 라이프사이클)
-> **Last Updated**: 2026-02-25
-> **Source**: `supabase/migrations/001 ~ 023` + `src/lib/types/index.ts`
+> **Version**: 2.5 (일간 트래킹 + 플랜 확정값 반영)
+> **Last Updated**: 2026-03-15
+> **Source**: `supabase/migrations/001 ~ 027` + `src/lib/types/index.ts`
 
 ---
 
@@ -135,7 +135,7 @@ erDiagram
         text distance_unit "km | mile"
         text status "pending | processing | completed | failed"
         text platform "naver | google"
-        text report_type "realtime | weekly | welcome"
+        text report_type "realtime | daily | weekly | welcome"
         timestamptz deleted_at
         timestamptz created_at
     }
@@ -167,8 +167,8 @@ erDiagram
         jsonb grid_config
         decimal grid_distance
         text distance_unit
-        int crawling_day "단일 요일 0-6"
-        int_array crawling_days "INT[] 하위호환"
+        int crawling_day "구글 단일 요일 0-6 (주 1회)"
+        int_array crawling_days "네이버 복수 요일 INT[] (선택 요일마다)"
         time crawling_time
         boolean is_active
         timestamptz last_run_at
@@ -187,7 +187,7 @@ erDiagram
         uuid id PK
         uuid user_id FK "→ auth.users"
         uuid search_id FK "→ searches"
-        text type "welcome | weekly | realtime"
+        text type "welcome | daily | weekly | realtime"
         text status "pending | sent | failed"
         text sent_via "solapi"
         text error_message
@@ -293,12 +293,12 @@ erDiagram
 
 **Seed Data:**
 
-| id | name | price | grid | naver tickets | google tickets | competitors |
-|----|------|-------|------|--------------|----------------|-------------|
-| `free` | 무료 | 0 | 0 | 0 | 0 | 0 |
-| `starter` | 스타터 | 9,900 | 3×3 | 2 | 0 | 0 |
-| `pro` | 프로 | 29,000 | 5×5 | 10 | 0 | 1 |
-| `premium` | 프리미엄 | 99,000 | 7×7 | 15 | 15 | 10 |
+| id | name | price | grid | naver tickets | google tickets | naver keywords | google keywords | max_competitors |
+|----|------|-------|------|--------------|----------------|----------------|-----------------|------------------|
+| `free` | 무료 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| `starter` | 스타터 | 9,900 | 3×3 | **2** | 0 | **2** | 0 | **0** |
+| `pro` | 프로 | 29,000 | 5×5 | **5** | 0 | **5** | 0 | **5** |
+| `premium` | 프리미엄 | **79,000** | 7×7 | **10** | **10** | **5** | **5** | **-1 (무제한)** |
 
 ---
 
@@ -433,7 +433,7 @@ erDiagram
 | `distance_unit` | TEXT | DEFAULT `'km'` | |
 | `status` | TEXT | DEFAULT `'pending'` | `pending` / `processing` / `completed` / `failed` |
 | `platform` | TEXT | | `naver` / `google` |
-| `report_type` | TEXT | DEFAULT `'realtime'` | `realtime` / `weekly` / `welcome` |
+| `report_type` | TEXT | DEFAULT `'realtime'` | `realtime` / `daily` / `weekly` / `welcome` |
 | `deleted_at` | TIMESTAMPTZ | | 소프트 삭제 |
 | `created_at` | TIMESTAMPTZ | | |
 
@@ -475,8 +475,8 @@ erDiagram
 | `grid_config` | JSONB | NOT NULL | GridPoint[] |
 | `grid_distance` | DECIMAL | DEFAULT 0.5 | |
 | `distance_unit` | TEXT | DEFAULT `'km'` | |
-| `crawling_day` | INT | | 단일 요일 (0-6, v2) |
-| `crawling_days` | INT[] | | 복수 요일 (v1 하위호환) |
+| `crawling_day` | INT | | 구글 단일 요일 (0-6, 주 1회 기준) |
+| `crawling_days` | INT[] | DEFAULT `'{}'` | 네이버 복수 요일 (선택 요일마다 실행, 027마이그레이션에서 기본값 수정) |
 | `crawling_time` | TIME | DEFAULT `'09:00:00'` | |
 | `is_active` | BOOLEAN | DEFAULT true | |
 | `last_run_at` | TIMESTAMPTZ | | |
@@ -505,7 +505,7 @@ erDiagram
 | `id` | UUID | **PK** | |
 | `user_id` | UUID | FK → `auth.users` | |
 | `search_id` | UUID | FK → `searches` | |
-| `type` | TEXT | NOT NULL, CHECK | `welcome` / `weekly` / `realtime` |
+| `type` | TEXT | NOT NULL, CHECK | `welcome` / `daily` / `weekly` / `realtime` |
 | `status` | TEXT | NOT NULL, DEFAULT `'pending'` | `pending` / `sent` / `failed` |
 | `sent_via` | TEXT | NOT NULL, DEFAULT `'solapi'` | |
 | `error_message` | TEXT | | |
