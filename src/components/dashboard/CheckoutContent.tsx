@@ -7,8 +7,6 @@ import { requestBillingKey } from '@/lib/portone/subscription-client'
 import { PLAN_CONFIG } from '@/lib/pricing/config'
 import { createClient } from '@/lib/supabase/client'
 import { EmailInput, isValidEmail } from '@/components/ui/EmailInput'
-import { PaymentMethodSelector } from '@/components/ui/PaymentMethodSelector'
-import type { PaymentMethod } from '@/lib/portone/types'
 
 /* ──────────────────────────────────────────────
  * 유효한 유료 플랜 ID
@@ -32,7 +30,6 @@ export function CheckoutContent() {
     const [email, setEmail] = useState('')
     const [emailLoading, setEmailLoading] = useState(true)
     const [hasExistingEmail, setHasExistingEmail] = useState(false)
-    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>('card')
 
     // 기존 이메일 로드
     useEffect(() => {
@@ -97,29 +94,15 @@ export function CheckoutContent() {
         setError(null)
 
         try {
-            const isKakaopay = selectedPaymentMethod === 'kakaopay'
             const termsAgreedAt = new Date().toISOString()
 
-            // 카카오페이 모바일 redirectUrl: planId·email·termsAgreedAt을 파라미터로 포함
-            const redirectUrl = isKakaopay
-                ? `${window.location.origin}/dashboard/subscription/payment-return` +
-                  `?planId=${encodeURIComponent(planId)}` +
-                  `&email=${encodeURIComponent(email)}` +
-                  `&termsAgreedAt=${encodeURIComponent(termsAgreedAt)}`
-                : undefined
-
-            // 1. PortOne SDK로 빌링키 발급 (결제창 팝업 or 카카오페이 앱 이동)
+            // 1. PortOne SDK로 빌링키 발급 (결제창 팝업)
             const billingResult = await requestBillingKey({
                 planId,
-                paymentMethod: selectedPaymentMethod,
-                ...(redirectUrl && { redirectUrl }),
             })
 
-            // 카카오페이 모바일 REDIRECTION 케이스:
-            // requestBillingKey Promise가 resolve되지 않고 앱 이동 → redirectUrl 페이지에서 처리
-            // PC 카카오페이(IFRAME)나 카드는 Promise가 정상 resolve됨
             if (!billingResult.success || !billingResult.billingKey) {
-                throw new Error(billingResult.error || `${isKakaopay ? '카카오페이' : '카드'} 등록에 실패했습니다.`)
+                throw new Error(billingResult.error || '카드 등록에 실패했습니다.')
             }
 
             // 2. 서버에 구독 시작 요청
@@ -180,10 +163,15 @@ export function CheckoutContent() {
                             <CreditCard className="w-5 h-5" />
                             결제 수단
                         </h2>
-                        <PaymentMethodSelector
-                            value={selectedPaymentMethod}
-                            onChange={setSelectedPaymentMethod}
-                        />
+                        <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center gap-3">
+                            <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                                <CreditCard className="w-6 h-6 text-primary" />
+                            </div>
+                            <div>
+                                <p className="font-semibold text-gray-900 dark:text-gray-100">신용/체크카드</p>
+                                <p className="text-sm text-gray-500">한국 발행 모든 카드 지원</p>
+                            </div>
+                        </div>
                     </section>
 
                     {/* Email Section */}

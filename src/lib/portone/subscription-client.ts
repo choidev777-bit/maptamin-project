@@ -9,7 +9,6 @@
  */
 
 import * as PortOne from '@portone/browser-sdk/v2';
-import type { PaymentMethod } from './types';
 
 /* ──────────────────────────────────────────────
  * Types
@@ -18,23 +17,12 @@ import type { PaymentMethod } from './types';
 export interface IssueBillingKeyRequest {
     /** 구독할 플랜 ID (starter / pro / premium) */
     planId: string;
-    /**
-     * 결제 수단 (기본값: 'card')
-     * - 'card': 신용/체크카드 (NHN KCP)
-     * - 'kakaopay': 카카오페이 (billingKeyMethod: EASY_PAY)
-     */
-    paymentMethod?: PaymentMethod;
     /** 구매자 정보 */
     customer?: {
         fullName?: string;
         email?: string;
         phoneNumber?: string;
     };
-    /**
-     * 모바일 REDIRECTION 복귀 URL (카카오페이 선택 시 CheckoutContent에서 주입)
-     * planId·email·termsAgreedAt을 쿼리파라미터로 포함하여 payment-return 페이지에서 처리
-     */
-    redirectUrl?: string;
 }
 
 export interface IssueBillingKeyResult {
@@ -53,8 +41,6 @@ export interface IssueBillingKeyResult {
 const STORE_ID = process.env.NEXT_PUBLIC_PORTONE_STORE_ID || '';
 /** 정기결제(구독)용 채널 키 - NHN KCP */
 const CHANNEL_KEY = process.env.NEXT_PUBLIC_PORTONE_BILLING_CHANNEL_KEY || '';
-/** 정기결제(구독)용 채널 키 - 카카오페이 */
-const KAKAOPAY_CHANNEL_KEY = process.env.NEXT_PUBLIC_PORTONE_KAKAOPAY_BILLING_CHANNEL_KEY || '';
 
 /* ──────────────────────────────────────────────
  * Helper
@@ -94,17 +80,14 @@ export async function requestBillingKey(
     const issueId = generateIssueId();
     const planName = request.planId === 'premium' ? '프리미엄' :
         request.planId === 'pro' ? '프로' : '스타터';
-    const method = request.paymentMethod ?? 'card';
-    const isKakaopay = method === 'kakaopay';
 
     try {
         const response = await PortOne.requestIssueBillingKey({
             storeId: STORE_ID,
-            channelKey: isKakaopay ? KAKAOPAY_CHANNEL_KEY : CHANNEL_KEY,
-            billingKeyMethod: isKakaopay ? 'EASY_PAY' : 'CARD',
+            channelKey: CHANNEL_KEY,
+            billingKeyMethod: 'CARD',
             issueId,
             issueName: `맵타민 ${planName} 플랜 정기구독`,
-            ...(request.redirectUrl && { redirectUrl: request.redirectUrl }),
             customer: request.customer
                 ? {
                     fullName: request.customer.fullName,

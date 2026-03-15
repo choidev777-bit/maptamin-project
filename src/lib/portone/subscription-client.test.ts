@@ -4,8 +4,7 @@
  * 테스트 대상: src/lib/portone/subscription-client.ts
  *
  * 검증 항목:
- *   - card 선택 → KCP 채널 키 + billingKeyMethod 'CARD'
- *   - kakaopay 선택 → 카카오페이 채널 키 + billingKeyMethod 'EASY_PAY'
+ *   - card → KCP 채널 키 + billingKeyMethod 'CARD'
  *   - paymentMethod 미지정 → 기본값 card
  */
 
@@ -15,7 +14,6 @@ jest.mock('@portone/browser-sdk/v2', () => ({
 }))
 
 const MOCK_KCP_BILLING_KEY = 'channel-key-kcp-billing-test'
-const MOCK_KAKAOPAY_BILLING_KEY = 'channel-key-kakaopay-billing-test'
 const MOCK_SUB_STORE_ID = 'store-test-12345'
 const originalSubEnv = process.env
 
@@ -26,7 +24,6 @@ beforeEach(() => {
         ...originalSubEnv,
         NEXT_PUBLIC_PORTONE_STORE_ID: MOCK_SUB_STORE_ID,
         NEXT_PUBLIC_PORTONE_BILLING_CHANNEL_KEY: MOCK_KCP_BILLING_KEY,
-        NEXT_PUBLIC_PORTONE_KAKAOPAY_BILLING_CHANNEL_KEY: MOCK_KAKAOPAY_BILLING_KEY,
     }
 })
 
@@ -38,59 +35,11 @@ async function importSubscriptionClient() {
     return await import('./subscription-client')
 }
 
-describe('requestBillingKey - 결제 수단 분기', () => {
+describe('requestBillingKey - 카드 결제', () => {
     it('[card] KCP 채널 키와 billingKeyMethod CARD를 사용해야 한다', async () => {
         const { requestBillingKey } = await importSubscriptionClient()
 
         mockRequestIssueBillingKey.mockResolvedValueOnce({ billingKey: 'billing_abc' })
-
-        await requestBillingKey({ planId: 'pro', paymentMethod: 'card' })
-
-        expect(mockRequestIssueBillingKey).toHaveBeenCalledWith(
-            expect.objectContaining({
-                channelKey: MOCK_KCP_BILLING_KEY,
-                billingKeyMethod: 'CARD',
-            })
-        )
-    })
-
-    it('[kakaopay] 카카오페이 채널 키와 billingKeyMethod EASY_PAY를 사용해야 한다', async () => {
-        const { requestBillingKey } = await importSubscriptionClient()
-
-        mockRequestIssueBillingKey.mockResolvedValueOnce({ billingKey: 'billing_def' })
-
-        await requestBillingKey({ planId: 'starter', paymentMethod: 'kakaopay' })
-
-        expect(mockRequestIssueBillingKey).toHaveBeenCalledWith(
-            expect.objectContaining({
-                channelKey: MOCK_KAKAOPAY_BILLING_KEY,
-                billingKeyMethod: 'EASY_PAY',
-            })
-        )
-    })
-
-    it('[kakaopay] redirectUrl을 포함해야 한다', async () => {
-        const { requestBillingKey } = await importSubscriptionClient()
-
-        mockRequestIssueBillingKey.mockResolvedValueOnce({ billingKey: 'billing_ghi' })
-
-        await requestBillingKey({
-            planId: 'premium',
-            paymentMethod: 'kakaopay',
-            redirectUrl: 'https://maptamin.com/dashboard/subscription/payment-return?planId=premium',
-        })
-
-        expect(mockRequestIssueBillingKey).toHaveBeenCalledWith(
-            expect.objectContaining({
-                redirectUrl: expect.stringContaining('/dashboard/subscription/payment-return'),
-            })
-        )
-    })
-
-    it('[default] paymentMethod 미지정 시 card로 동작해야 한다', async () => {
-        const { requestBillingKey } = await importSubscriptionClient()
-
-        mockRequestIssueBillingKey.mockResolvedValueOnce({ billingKey: 'billing_000' })
 
         await requestBillingKey({ planId: 'pro' })
 
@@ -102,12 +51,12 @@ describe('requestBillingKey - 결제 수단 분기', () => {
         )
     })
 
-    it('[kakaopay] issueName이 포함되어야 한다', async () => {
+    it('[card] issueName이 포함되어야 한다', async () => {
         const { requestBillingKey } = await importSubscriptionClient()
 
         mockRequestIssueBillingKey.mockResolvedValueOnce({ billingKey: 'billing_jkl' })
 
-        await requestBillingKey({ planId: 'pro', paymentMethod: 'kakaopay' })
+        await requestBillingKey({ planId: 'pro' })
 
         expect(mockRequestIssueBillingKey).toHaveBeenCalledWith(
             expect.objectContaining({

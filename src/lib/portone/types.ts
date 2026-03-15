@@ -5,6 +5,5 @@
 /**
  * 결제 수단 선택 타입
  * - 'card': 신용/체크카드 (NHN KCP 채널)
- * - 'kakaopay': 카카오페이 (카카오페이 전용 채널, payMethod: EASY_PAY)
  */
-export type PaymentMethod = 'card' | 'kakaopay'
+export type PaymentMethod = 'card'

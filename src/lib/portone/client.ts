@@ -7,7 +7,6 @@
  */
 
 import * as PortOne from '@portone/browser-sdk/v2';
-import type { PaymentMethod } from './types';
 
 /* ──────────────────────────────────────────────
  * Types
@@ -28,17 +27,6 @@ export interface TicketPaymentRequest {
         email?: string;
         phoneNumber?: string;
     };
-    /**
-     * 결제 수단 (기본값: 'card')
-     * - 'card': 신용/체크카드 (NHN KCP)
-     * - 'kakaopay': 카카오페이 (payMethod: EASY_PAY)
-     */
-    paymentMethod?: PaymentMethod;
-    /**
-     * 모바일 REDIRECTION 복귀 URL (카카오페이 선택 시 client.ts 내부에서 자동 생성)
-     * 테스트 환경에서 명시적으로 주입할 때만 사용 (선택)
-     */
-    redirectUrl?: string;
 }
 
 export interface TicketPaymentResult {
@@ -57,8 +45,6 @@ export interface TicketPaymentResult {
 const STORE_ID = process.env.NEXT_PUBLIC_PORTONE_STORE_ID || '';
 /** 일반결제(티켓 구매)용 채널 키 - NHN KCP */
 const CHANNEL_KEY = process.env.NEXT_PUBLIC_PORTONE_TICKET_CHANNEL_KEY || '';
-/** 일반결제(티켓 구매)용 채널 키 - 카카오페이 */
-const KAKAOPAY_CHANNEL_KEY = process.env.NEXT_PUBLIC_PORTONE_KAKAOPAY_TICKET_CHANNEL_KEY || '';
 
 /* ──────────────────────────────────────────────
  * Helper
@@ -105,27 +91,16 @@ export async function requestTicketPayment(
 
     const paymentId = generatePaymentId();
     const orderName = buildOrderName(request.platform, request.quantity);
-    const method = request.paymentMethod ?? 'card';
-    const isKakaopay = method === 'kakaopay';
-
-    // 카카오페이 모바일 REDIRECTION 복귀 URL
-    // platform·quantity·amount를 쿼리파라미터로 포함하여 payment-return 페이지에서 바로 검증 가능
-    const redirectUrl = isKakaopay
-        ? (request.redirectUrl ??
-            `${typeof window !== 'undefined' ? window.location.origin : ''}/dashboard/shop/payment-return` +
-            `?platform=${request.platform}&quantity=${request.quantity}&amount=${request.totalAmount}`)
-        : undefined;
 
     try {
         const response = await PortOne.requestPayment({
             storeId: STORE_ID,
-            channelKey: isKakaopay ? KAKAOPAY_CHANNEL_KEY : CHANNEL_KEY,
+            channelKey: CHANNEL_KEY,
             paymentId,
             orderName,
             totalAmount: request.totalAmount,
             currency: 'CURRENCY_KRW',
-            payMethod: isKakaopay ? 'EASY_PAY' : 'CARD',
-            ...(redirectUrl && { redirectUrl }),
+            payMethod: 'CARD',
             customer: request.customer
                 ? {
                     fullName: request.customer.fullName,
