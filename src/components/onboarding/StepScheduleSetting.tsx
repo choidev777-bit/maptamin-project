@@ -203,20 +203,17 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
 
             {/* A. 네이버 분석 요일/시간 */}
             <div className="rounded-xl border border-gray-200 bg-white p-6">
-                <h3 className="mb-1 flex items-center gap-2 text-base font-semibold text-gray-800">
-                    분석 실행 시간 설정
-                </h3>
-                <p className="mb-5 text-xs text-gray-500">선택한 요일에 자동으로 순위를 분석합니다</p>
-
-                {/* 네이버 요일 선택 — 복수 선택 + 매일 버튼 */}
+                {/* 네이버 요일 선택 */}
                 <div className="mb-4">
-                    <label className="mb-2 block text-sm font-medium text-gray-700">분석 요일 (여러 개 선택 가능)</label>
+                    <label className="mb-2 block text-sm font-medium text-gray-700">
+                        <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded bg-[#03C75A] text-[10px] font-bold text-white">N</span>
+                        네이버 분석 요일을 선택해주세요 (여러 개 선택 가능)</label>
 
                     {/* 매일 버튼 */}
                     <div className="flex gap-2 mb-2">
                         <button
                             type="button"
-                            onClick={() => setNaverCrawlingDays([0,1,2,3,4,5,6])}
+                            onClick={() => setNaverCrawlingDays(naverCrawlingDays.length === 7 ? [] : [0,1,2,3,4,5,6])}
                             className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${naverCrawlingDays.length === 7
                                 ? 'bg-[#00C896] text-white shadow-md shadow-[#00C896]/20'
                                 : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -254,9 +251,43 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                     </div>
                 </div>
 
-                {/* Premium: 구글 요일 선택 — 단수 */}
-                {isPremium && (
-                    <div className="mb-4 mt-6 pt-6 border-t border-gray-100">
+                {/* 네이버 분석 시간 */}
+                <div>
+                    <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+                        <Clock className="h-4 w-4" />
+                        분석 시간
+                    </label>
+                    <div className="relative">
+                        <select
+                            value={naverCrawlingTime}
+                            onChange={e => setNaverCrawlingTime(e.target.value)}
+                            className="w-full appearance-none rounded-lg border border-gray-200 bg-white py-2.5 pl-3 pr-10 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#00C896]"
+                        >
+                            {HOURS.map(h => (
+                                <option key={h.value} value={h.value}>{h.label}</option>
+                            ))}
+                        </select>
+                        <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                            <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 네이버 미리보기 */}
+                {naverCrawlingDays.length > 0 && (
+                    <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                        매주 <strong>{naverCrawlingDays.sort((a,b) => a-b).map(d => getDayLabel(d)).join(', ')}요일 {naverCrawlingTime}</strong>에 자동 분석됩니다
+                    </div>
+                )}
+            </div>
+
+            {/* B. 구글 분석 요일/시간 (Premium only) */}
+            {isPremium && (
+                <div className="rounded-xl border border-gray-200 bg-white p-6">
+                    {/* 구글 요일 선택 — 단수 */}
+                    <div className="mb-4">
                         <label className="mb-2 block text-sm font-medium text-gray-700">
                             <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded bg-[#4285F4] text-[10px] font-bold text-white">G</span>
                             구글 분석 요일 1개를 선택해주세요
@@ -281,39 +312,12 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                             })}
                         </div>
                     </div>
-                )}
 
-                {/* 네이버 분석 시간 */}
-                <div>
-                    <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
-                        <Clock className="h-4 w-4" />
-                        네이버 분석 시간
-                    </label>
-                    <div className="relative">
-                        <select
-                            value={naverCrawlingTime}
-                            onChange={e => setNaverCrawlingTime(e.target.value)}
-                            className="w-full appearance-none rounded-lg border border-gray-200 bg-white py-2.5 pl-3 pr-10 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#00C896]"
-                        >
-                            {HOURS.map(h => (
-                                <option key={h.value} value={h.value}>{h.label}</option>
-                            ))}
-                        </select>
-                        <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
-                            <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 구글 분석 시간 (Premium only) */}
-                {isPremium && (
-                    <div className="mt-4">
+                    {/* 구글 분석 시간 */}
+                    <div>
                         <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
                             <Clock className="h-4 w-4" />
-                            <span className="mr-0.5 inline-flex h-5 w-5 items-center justify-center rounded bg-[#4285F4] text-[10px] font-bold text-white">G</span>
-                            구글 분석 시간
+                            분석 시간
                         </label>
                         <div className="relative">
                             <select
@@ -332,19 +336,15 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                             </div>
                         </div>
                     </div>
-                )}
 
-                {/* 미리보기 */}
-                {naverCrawlingDays.length > 0 ? (
-                    <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
-                        매주 <strong>{naverCrawlingDays.sort((a,b) => a-b).map(d => getDayLabel(d)).join(', ')}요일 {naverCrawlingTime}</strong>에 자동 분석됩니다
-                    </div>
-                ) : (
-                    <div className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-600">
-                        요일을 선택하지 않으면 자동 리포트가 비활성화됩니다
-                    </div>
-                )}
-            </div>
+                    {/* 구글 미리보기 */}
+                    {googleCrawlingDay !== null && (
+                        <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                            매주 <strong>{getDayLabel(googleCrawlingDay)}요일 {googleCrawlingTime}</strong>에 자동 분석됩니다
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* 카카오톡 안내 */}
             <div className="rounded-xl border border-[#00C896]/20 bg-[#E5F9F4] px-5 py-4">
