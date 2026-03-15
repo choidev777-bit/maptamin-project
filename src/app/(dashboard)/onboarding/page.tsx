@@ -248,12 +248,14 @@ export default function OnboardingPage() {
                 }
             }
 
-            // 4. 구글 웰컴 리포트: DataForSEO 처리 트리거 (fire-and-forget)
+            // 4. 구글 웰컴 리포트: Oracle VM dispatch 트리거 (fire-and-forget)
+            // → Oracle VM이 DataForSEO 처리 + 카카오 알림톡 발송까지 처리
             if (gSearchId) {
-                fetch(`/api/search/${gSearchId}/process`, {
+                fetch('/api/queue/dispatch', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     keepalive: true,
-                }).catch(e => console.error('Google welcome process trigger failed:', e))
+                }).catch(e => console.error('Google welcome dispatch trigger failed:', e))
             }
 
             // 5. welcome_report_sent 플래그 — 하나라도 성공한 경우에만 true
