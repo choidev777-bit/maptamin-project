@@ -413,7 +413,7 @@ export function ReportSettingsContent({
                                     {/* 매일 버튼 */}
                                     <button
                                         type="button"
-                                        onClick={() => setNaverCrawlingDays([0,1,2,3,4,5,6])}
+                                        onClick={() => setNaverCrawlingDays(naverCrawlingDays.length === 7 ? [] : [0,1,2,3,4,5,6])}
                                         className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${naverCrawlingDays.length === 7
                                             ? 'bg-[#00C896] text-white shadow-md shadow-[#00C896]/20'
                                             : 'border border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:bg-gray-50'
