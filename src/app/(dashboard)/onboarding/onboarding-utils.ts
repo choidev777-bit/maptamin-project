@@ -26,7 +26,8 @@ export interface GridData {
 export interface ScheduleData {
     naverCrawlingDays: number[]
     googleCrawlingDay?: number | null
-    crawlingTime: string
+    naverCrawlingTime: string
+    googleCrawlingTime?: string
     notifyImmediate: boolean
     phone?: string
 }

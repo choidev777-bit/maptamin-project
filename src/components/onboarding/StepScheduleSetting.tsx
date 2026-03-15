@@ -23,7 +23,8 @@ const HOURS = Array.from({ length: 24 }, (_, i) => {
 interface ScheduleData {
     naverCrawlingDays: number[]
     googleCrawlingDay?: number | null
-    crawlingTime: string
+    naverCrawlingTime: string
+    googleCrawlingTime?: string
     notifyImmediate: boolean
     phone?: string
 }
@@ -38,7 +39,8 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
     const isPremium = planId === 'premium'
     const [naverCrawlingDays, setNaverCrawlingDays] = useState<number[]>([])
     const [googleCrawlingDay, setGoogleCrawlingDay] = useState<number | null>(null)
-    const [crawlingTime, setCrawlingTime] = useState('09:00')
+    const [naverCrawlingTime, setNaverCrawlingTime] = useState('09:00')
+    const [googleCrawlingTime, setGoogleCrawlingTime] = useState('09:00')
     const [phone, setPhone] = useState('')
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -95,7 +97,7 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                     grid_distance: onboardingData?.grid?.distance ?? 1,
                     crawling_days: naverCrawlingDays,
                     crawling_day: naverCrawlingDays[0] ?? null,
-                    crawling_time: crawlingTime,
+                    crawling_time: naverCrawlingTime,
                     is_active: naverCrawlingDays.length > 0,
                 })
 
@@ -121,7 +123,7 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                         grid_distance: onboardingData?.grid?.distance ?? 1,
                         crawling_day: googleCrawlingDay,
                         crawling_days: googleCrawlingDay !== null ? [googleCrawlingDay] : [],
-                        crawling_time: crawlingTime,
+                        crawling_time: googleCrawlingTime,
                         is_active: googleCrawlingDay !== null,
                     })
 
@@ -158,7 +160,8 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
             onComplete({
                 naverCrawlingDays,
                 googleCrawlingDay: isPremium ? googleCrawlingDay : undefined,
-                crawlingTime,
+                naverCrawlingTime,
+                googleCrawlingTime: isPremium ? googleCrawlingTime : undefined,
                 notifyImmediate: true,
                 phone,
             })
@@ -280,16 +283,16 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                     </div>
                 )}
 
-                {/* 시간 선택 */}
+                {/* 네이버 분석 시간 */}
                 <div>
                     <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
                         <Clock className="h-4 w-4" />
-                        분석 시간
+                        네이버 분석 시간
                     </label>
                     <div className="relative">
                         <select
-                            value={crawlingTime}
-                            onChange={e => setCrawlingTime(e.target.value)}
+                            value={naverCrawlingTime}
+                            onChange={e => setNaverCrawlingTime(e.target.value)}
                             className="w-full appearance-none rounded-lg border border-gray-200 bg-white py-2.5 pl-3 pr-10 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#00C896]"
                         >
                             {HOURS.map(h => (
@@ -304,10 +307,37 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                     </div>
                 </div>
 
+                {/* 구글 분석 시간 (Premium only) */}
+                {isPremium && (
+                    <div className="mt-4">
+                        <label className="mb-2 flex items-center gap-2 text-sm font-medium text-gray-700">
+                            <Clock className="h-4 w-4" />
+                            <span className="mr-0.5 inline-flex h-5 w-5 items-center justify-center rounded bg-[#4285F4] text-[10px] font-bold text-white">G</span>
+                            구글 분석 시간
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={googleCrawlingTime}
+                                onChange={e => setGoogleCrawlingTime(e.target.value)}
+                                className="w-full appearance-none rounded-lg border border-gray-200 bg-white py-2.5 pl-3 pr-10 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#4285F4]"
+                            >
+                                {HOURS.map(h => (
+                                    <option key={h.value} value={h.value}>{h.label}</option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+                                <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* 미리보기 */}
                 {naverCrawlingDays.length > 0 ? (
                     <div className="mt-4 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-700">
-                        매주 <strong>{naverCrawlingDays.sort((a,b) => a-b).map(d => getDayLabel(d)).join(', ')}요일 {crawlingTime}</strong>에 자동 분석됩니다
+                        매주 <strong>{naverCrawlingDays.sort((a,b) => a-b).map(d => getDayLabel(d)).join(', ')}요일 {naverCrawlingTime}</strong>에 자동 분석됩니다
                     </div>
                 ) : (
                     <div className="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-600">
