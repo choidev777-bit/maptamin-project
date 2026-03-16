@@ -168,6 +168,7 @@ export async function POST(request: Request) {
                         place_lat: centerLat,
                         place_lng: centerLng,
                         keywords: job.keywords || [],
+                        local_keywords: job.local_keywords || [],
                         platform: job.platform || 'naver',
                         grid_points: gridPointsWithCoords,
                         grid_distance: gridDistance,

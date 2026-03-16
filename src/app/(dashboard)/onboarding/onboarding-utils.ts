@@ -34,7 +34,7 @@ export interface ScheduleData {
 
 export interface OnboardingData {
     store?: { naverPlace: Place; googlePlace?: Place }
-    keywords?: { naverKeywords: string[]; googleKeywords?: string[] }
+    keywords?: { naverKeywords: string[]; googleKeywords?: string[]; localNaverKeywords?: string[] }
     competitors?: { competitors: Place[] }
     grid?: GridData
     schedule?: ScheduleData

@@ -19,6 +19,7 @@ export const PLAN_CONFIG: Record<string, {
     ticketsGoogle: number;
     keywordsNaver: number;
     keywordsGoogle: number;
+    localKeywordsNaver: number;  // 지역명 키워드 한도
     competitorsNaver: number;
     competitorsGoogle: number;
     channels: 'none' | 'naver' | 'naver+google';
@@ -32,6 +33,7 @@ export const PLAN_CONFIG: Record<string, {
         ticketsGoogle: 0,
         keywordsNaver: 0,
         keywordsGoogle: 0,
+        localKeywordsNaver: 0,
         competitorsNaver: 0,
         competitorsGoogle: 0,
         channels: 'none',
@@ -45,6 +47,7 @@ export const PLAN_CONFIG: Record<string, {
         ticketsGoogle: 0,
         keywordsNaver: 2,
         keywordsGoogle: 0,
+        localKeywordsNaver: 2,
         competitorsNaver: 0,
         competitorsGoogle: 0,
         channels: 'naver',
@@ -58,6 +61,7 @@ export const PLAN_CONFIG: Record<string, {
         ticketsGoogle: 0,
         keywordsNaver: 5,
         keywordsGoogle: 0,
+        localKeywordsNaver: 5,
         competitorsNaver: 5,
         competitorsGoogle: 0,
         channels: 'naver',
@@ -71,6 +75,7 @@ export const PLAN_CONFIG: Record<string, {
         ticketsGoogle: 10,
         keywordsNaver: 5,
         keywordsGoogle: 5,
+        localKeywordsNaver: 5,
         competitorsNaver: 50,
         competitorsGoogle: 50,
         channels: 'naver+google',
@@ -99,6 +104,7 @@ export function getPlanLimit(planId: string = 'starter') {
         competitorsGoogle: plan.competitorsGoogle,
         keywordsNaver: plan.keywordsNaver,
         keywordsGoogle: plan.keywordsGoogle,
+        localKeywordsNaver: plan.localKeywordsNaver,
         ticketsNaver: plan.ticketsNaver,
         ticketsGoogle: plan.ticketsGoogle,
         channels: plan.channels,

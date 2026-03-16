@@ -55,8 +55,12 @@ export function NaverResultsContent({ search, results, competitors, planId }: Pr
         competitors.length > 0 ? competitors[0].place_id : null
     )
 
-    // Filter results for selected keyword
-    const filteredResults = results.filter(r => r.keyword === selectedKeyword)
+    // ── 업종/지역명 결과 분리 ──
+    const industryResults = results.filter(r => r.grid_index >= 0)
+    const localResults = results.filter(r => r.grid_index === -1)
+
+    // 업종 결과 중 선택된 키워드만 필터링 (기존 동작)
+    const filteredIndustry = industryResults.filter(r => r.keyword === selectedKeyword)
 
     const selectedCompetitor = competitors.find(c => c.place_id === selectedCompetitorId)
     const isStarter = planId === 'starter'
@@ -65,22 +69,23 @@ export function NaverResultsContent({ search, results, competitors, planId }: Pr
     return (
         <div className="space-y-6">
             <SearchResultsOverview
-                results={filteredResults}
+                results={filteredIndustry}
+                localResults={localResults.length > 0 ? localResults : undefined}
                 topRankThreshold={5}
                 gridDistance={search.grid_distance}
             />
 
-            {/* Keyword Tabs */}
+            {/* Keyword Tabs — 업종 결과만 전달 (지역명 혼입 방지) */}
             <KeywordTabs
                 keywords={search.keywords}
-                results={results}
+                results={industryResults}
                 onKeywordChange={setSelectedKeyword}
             />
 
-            {/* Rank Heatmap - Now using Naver Maps! */}
+            {/* Rank Heatmap — 업종 결과만 전달 */}
             <NaverRankHeatmap
                 center={{ lat: search.place_lat, lng: search.place_lng }}
-                results={results}
+                results={industryResults}
                 selectedKeyword={selectedKeyword}
             />
 
@@ -94,7 +99,7 @@ export function NaverResultsContent({ search, results, competitors, planId }: Pr
                                 competitors={competitors}
                                 selectedId={selectedCompetitorId}
                                 onSelect={setSelectedCompetitorId}
-                                myResults={filteredResults}
+                                myResults={filteredIndustry}
                                 maxCompetitors={maxCompetitors}
                                 topRankThreshold={5}
                             />

@@ -105,6 +105,7 @@ export async function PUT(request: NextRequest) {
         let syncPlaceId = undefined
         let syncPlaceName = undefined
         let syncKeywords = undefined
+        let syncLocalKeywords: string[] | undefined = undefined
 
         if (is_active) {
             const [placeRes, keywordsRes] = await Promise.all([
@@ -116,7 +117,7 @@ export async function PUT(request: NextRequest) {
                     .maybeSingle(),
                 supabase
                     .from('managed_keywords')
-                    .select('keyword')
+                    .select('keyword, keyword_type')
                     .eq('user_id', user.id)
                     .eq('platform', platform),
             ])
@@ -128,8 +129,12 @@ export async function PUT(request: NextRequest) {
                 )
             }
 
-            const keywords = (keywordsRes.data || []).map(k => k.keyword)
-            if (keywords.length === 0) {
+            // 업종/지역명 키워드 분리
+            const allKeywords = keywordsRes.data || []
+            const industryKeywords = allKeywords.filter(k => (k.keyword_type || 'industry') === 'industry').map(k => k.keyword)
+            const localKeywords = allKeywords.filter(k => k.keyword_type === 'local').map(k => k.keyword)
+
+            if (industryKeywords.length === 0) {
                 return NextResponse.json(
                     { error: '키워드를 먼저 등록해주세요.', code: 'NO_KEYWORDS' },
                     { status: 400 }
@@ -138,7 +143,8 @@ export async function PUT(request: NextRequest) {
 
             syncPlaceId = placeRes.data.place_id
             syncPlaceName = placeRes.data.place_name
-            syncKeywords = keywords
+            syncKeywords = industryKeywords
+            syncLocalKeywords = localKeywords
         }
 
         // 4. 스케줄 업데이트
@@ -159,6 +165,7 @@ export async function PUT(request: NextRequest) {
             updateData.place_id = syncPlaceId
             updateData.place_name = syncPlaceName
             updateData.keywords = syncKeywords
+            updateData.local_keywords = syncLocalKeywords ?? []
         }
 
         const { error: updateError } = await supabase

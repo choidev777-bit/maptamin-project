@@ -37,7 +37,8 @@ export async function POST(request: Request) {
     */
 
     const body = await bodyPromise
-    const { placeName, placeAddress, placeLat, placeLng, keywords, gridPoints, distance, distanceUnit, placeId, reportType } = body
+    const { placeName, placeAddress, placeLat, placeLng, keywords, local_keywords: rawLocalKeywords, gridPoints, distance, distanceUnit, placeId, reportType } = body
+    const local_keywords: string[] = Array.isArray(rawLocalKeywords) ? rawLocalKeywords : []
 
     // --- Welcome Report 분기 (최소 변경) ---
     const isWelcome = reportType === 'welcome'
@@ -84,6 +85,14 @@ export async function POST(request: Request) {
         }, { status: 403 })
     }
 
+    // 2-b. Validate Local Keywords Count (Plan Limit)
+    if (local_keywords.length > planConfig.localKeywordsNaver) {
+        return NextResponse.json({
+            error: 'PLAN_LIMIT_EXCEEDED',
+            message: `현재 플랜에서는 지역명 키워드를 최대 ${planConfig.localKeywordsNaver}개까지 사용할 수 있습니다.`,
+        }, { status: 403 })
+    }
+
     // 3. Ticket Check (웰컴 리포트는 무료 — Skip)
     if (!isWelcome) {
         const remainingTickets = subscription?.remaining_tickets_naver || 0
@@ -118,6 +127,7 @@ export async function POST(request: Request) {
             place_lat: placeLat,
             place_lng: placeLng,
             keywords,
+            local_keywords,
             grid_points: gridPoints,
             grid_distance: distance,
             distance_unit: distanceUnit,

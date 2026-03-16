@@ -202,6 +202,7 @@ export default function OnboardingPage() {
                             placeLng: data.store.naverPlace.lng,
                             placeId: data.store.naverPlace.placeId,
                             keywords: data.keywords.naverKeywords,
+                            local_keywords: data.keywords.localNaverKeywords ?? [],
                             gridPoints: data.grid.naverGrid,
                             distance: data.grid.distance,
                             distanceUnit: 'km',

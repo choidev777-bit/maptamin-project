@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Search, SearchResult } from '@/lib/types'
-import { calculateRankTrend, extractKeywordsFromTrend } from '@/lib/utils/rank-trend'
+import { calculateRankTrend, calculateLocalKeywordTrend, extractKeywordsFromTrend } from '@/lib/utils/rank-trend'
 import { canAccessPlatform } from '@/lib/utils/subscription'
 import { HistoryPageContent } from '@/components/history/HistoryPageContent'
 
@@ -59,7 +59,7 @@ export default async function HistoryPage() {
     // 자동 리포트(daily+weekly)의 search_results만 조회 (그래프용)
     const allFilteredSearches = [...naverSearches, ...googleSearches]
     const scheduledSearchIds = allFilteredSearches
-        .filter(s => (s.report_type === 'daily' || s.report_type === 'weekly') && s.status === 'completed')
+        .filter(s => (s.report_type === 'daily' || s.report_type === 'weekly' || s.report_type === 'welcome') && s.status === 'completed')
         .map(s => s.id)
 
     let searchResults: SearchResult[] = []
@@ -72,13 +72,18 @@ export default async function HistoryPage() {
         searchResults = (resultsData as SearchResult[]) || []
     }
 
-    // 플랫폼별 트렌드 데이터 계산
-    const naverTrend = calculateRankTrend(naverSearches, searchResults)
-    const googleTrend = calculateRankTrend(googleSearches, searchResults)
+    // 플랫폼별 트렌드 데이터 계산 (업종 키워드: grid_index >= 0)
+    const industryResults = searchResults.filter(r => r.grid_index >= 0)
+    const naverTrend = calculateRankTrend(naverSearches, industryResults)
+    const googleTrend = calculateRankTrend(googleSearches, industryResults)
 
     // 키워드 목록: trendData에서 추출 (과거 키워드도 포함)
     const naverKeywords = extractKeywordsFromTrend(naverTrend)
     const googleKeywords = extractKeywordsFromTrend(googleTrend)
+
+    // 지역명 키워드 트렌드 (네이버만)
+    const naverLocalTrend = calculateLocalKeywordTrend(naverSearches, searchResults)
+    const naverLocalKeywords = extractKeywordsFromTrend(naverLocalTrend)
 
     return (
         <div className="max-w-7xl mx-auto pb-12">
@@ -88,6 +93,8 @@ export default async function HistoryPage() {
                 googleTrend={googleTrend}
                 naverKeywords={naverKeywords}
                 googleKeywords={googleKeywords}
+                naverLocalTrend={naverLocalTrend}
+                naverLocalKeywords={naverLocalKeywords}
                 canGoogle={canGoogle}
             />
         </div>

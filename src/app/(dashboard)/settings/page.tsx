@@ -38,6 +38,7 @@ export default async function SettingsPage() {
         limitCompetitorGoogle: planConfig.competitorsGoogle,
         limitKeywordsNaver: planConfig.keywordsNaver,
         limitKeywordsGoogle: planConfig.keywordsGoogle,
+        limitLocalKeywordsNaver: planConfig.localKeywordsNaver,
         maxSearchesPerDay: 1,
     }
 

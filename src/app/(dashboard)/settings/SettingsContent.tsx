@@ -29,6 +29,7 @@ interface Props {
         limitCompetitorGoogle: number
         limitKeywordsNaver: number
         limitKeywordsGoogle: number
+        limitLocalKeywordsNaver: number
         maxSearchesPerDay: number
     }
 }
@@ -250,6 +251,7 @@ export function SettingsContent({ user, planStats }: Props) {
                         planId={planStats.plan}
                         maxNaverKeywords={planStats.limitKeywordsNaver}
                         maxGoogleKeywords={planStats.limitKeywordsGoogle}
+                        maxLocalNaverKeywords={planStats.limitLocalKeywordsNaver ?? 0}
                         canGoogle={canGoogle}
                         onUpgradeClick={() => setUpgradePrompt({ message: '구글 키워드 관리는 프리미엄 플랜에서 이용 가능합니다.', requiredPlan: '프리미엄' })}
                     />

@@ -15,6 +15,7 @@ export interface Search {
     place_lat: number
     place_lng: number
     keywords: string[]
+    local_keywords?: string[]  // 지역명 키워드 (예: '홍대 카페') — grid_index=-1로 저장
     grid_points: GridPoint[]
     grid_distance: number
     distance_unit: 'km' | 'mile'
@@ -148,6 +149,7 @@ export interface ManagedKeyword {
     user_id: string;
     platform: 'naver' | 'google';
     keyword: string;
+    keyword_type?: 'industry' | 'local';  // 'industry'=업종, 'local'=지역명 (기본값: 'industry')
     locked_until: string;
     created_at: string;
 }
@@ -159,6 +161,7 @@ export interface SearchSchedule {
     place_id: string;
     place_name: string;
     keywords: string[];
+    local_keywords?: string[];    // 지역명 키워드 (cron 자동 리포트용)
     grid_config: GridPoint[];
     grid_distance?: number;       // NEW: 그리드 간격
     distance_unit?: 'km' | 'mile'; // NEW: 거리 단위

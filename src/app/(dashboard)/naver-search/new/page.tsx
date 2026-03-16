@@ -22,6 +22,7 @@ interface GridPointSelection {
 interface RegisteredKeyword {
     keyword: string
     platform: 'naver' | 'google'
+    keyword_type: 'industry' | 'local'
 }
 
 // Simplified steps: No place selection (handled via modal)
@@ -116,14 +117,15 @@ export default function NewNaverSearchPage() {
             // Registered keywords (naver only)
             const { data: kwData } = await supabase
                 .from('managed_keywords')
-                .select('keyword, platform')
+                .select('keyword, platform, keyword_type')
                 .eq('user_id', user.id)
                 .eq('platform', 'naver')
 
             if (kwData && kwData.length > 0) {
-                setRegisteredKeywords(kwData)
-                // Default: all checked
-                setSelectedKeywords(new Set(kwData.map(k => k.keyword)))
+                setRegisteredKeywords(kwData.map(k => ({ ...k, keyword_type: k.keyword_type || 'industry' })))
+                // Default: 업종 키워드만 체크박스에 표시 (지역명은 자동 포함)
+                const industryKeywords = kwData.filter(k => (k.keyword_type || 'industry') === 'industry')
+                setSelectedKeywords(new Set(industryKeywords.map(k => k.keyword)))
             }
         }
         fetchData()
@@ -249,6 +251,8 @@ export default function NewNaverSearchPage() {
 
     const hasTicket = remainingTickets > 0
     const keywords = Array.from(selectedKeywords)
+    const localKeywords = registeredKeywords.filter(k => k.keyword_type === 'local').map(k => k.keyword)
+    const industryKeywords = registeredKeywords.filter(k => k.keyword_type === 'industry')
     const allowedGridSizes = getAllowedGridSizes(subscription.planId)
 
     const handleGridSizeChange = (size: number) => {
@@ -317,6 +321,7 @@ export default function NewNaverSearchPage() {
                     placeLat: lat,
                     placeLng: lng,
                     keywords: keywords.filter(k => k.trim()),
+                    local_keywords: localKeywords,
                     gridPoints: gridPointsWithCoords,
                     distance: gridDistance,
                     distanceUnit,
@@ -483,30 +488,48 @@ export default function NewNaverSearchPage() {
                                         </Link>
                                     </div>
                                 ) : (
-                                    <div className="space-y-2">
-                                        {registeredKeywords.map((kw) => (
-                                            <label
-                                                key={kw.keyword}
-                                                className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedKeywords.has(kw.keyword)
-                                                    ? 'border-emerald-500 bg-emerald-50'
-                                                    : 'border-gray-200 bg-white hover:border-gray-300'
-                                                    }`}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedKeywords.has(kw.keyword)}
-                                                    onChange={() => toggleKeyword(kw.keyword)}
-                                                    className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                                                />
-                                                <span className={`font-medium ${selectedKeywords.has(kw.keyword) ? 'text-emerald-800' : 'text-gray-700'
-                                                    }`}>
-                                                    {kw.keyword}
-                                                </span>
-                                            </label>
-                                        ))}
-                                        <p className="text-xs text-gray-400 mt-2">
-                                            {selectedKeywords.size}개 선택됨 · 키워드는 설정에서 관리할 수 있습니다
-                                        </p>
+                                    <div className="space-y-4">
+                                        {/* 업종 키워드 체크박스 */}
+                                        <div className="space-y-2">
+                                            {industryKeywords.map((kw) => (
+                                                <label
+                                                    key={kw.keyword}
+                                                    className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedKeywords.has(kw.keyword)
+                                                        ? 'border-emerald-500 bg-emerald-50'
+                                                        : 'border-gray-200 bg-white hover:border-gray-300'
+                                                        }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedKeywords.has(kw.keyword)}
+                                                        onChange={() => toggleKeyword(kw.keyword)}
+                                                        className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                                    />
+                                                    <span className={`font-medium ${selectedKeywords.has(kw.keyword) ? 'text-emerald-800' : 'text-gray-700'
+                                                        }`}>
+                                                        {kw.keyword}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                            <p className="text-xs text-gray-400 mt-2">
+                                                {selectedKeywords.size}개 선택됨 · 키워드는 설정에서 관리할 수 있습니다
+                                            </p>
+                                        </div>
+
+                                        {/* 지역명 키워드 자동 포함 안내 */}
+                                        {localKeywords.length > 0 && (
+                                            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                                                <p className="text-sm font-semibold text-amber-800 mb-2">📍 지역명 키워드 (자동 포함)</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {localKeywords.map(kw => (
+                                                        <span key={kw} className="px-3 py-1 bg-amber-100 text-amber-800 text-sm rounded-full font-medium">
+                                                            {kw}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <p className="text-xs text-amber-600 mt-2">위치에 관계없이 동일한 순위로 추적됩니다.</p>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

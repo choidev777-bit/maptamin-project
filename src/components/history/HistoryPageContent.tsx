@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic'
 import { Search } from '@/lib/types'
 import { RankTrendDataPoint } from '@/lib/utils/rank-trend'
 import { HistoryTable } from './HistoryTable'
-import { Lock, TrendingUp, BarChart3 } from 'lucide-react'
+import { Lock, TrendingUp, BarChart3, MapPin } from 'lucide-react'
 
 // Vercel best practice: bundle-dynamic-imports — recharts를 포함한 전체 컴포넌트를 lazy load
 const RankTrendChart = dynamic(() => import('./RankTrendChart'), {
@@ -23,6 +23,8 @@ interface Props {
     googleTrend: RankTrendDataPoint[]
     naverKeywords: string[]
     googleKeywords: string[]
+    naverLocalTrend: RankTrendDataPoint[]
+    naverLocalKeywords: string[]
     canGoogle: boolean
 }
 
@@ -32,6 +34,8 @@ export function HistoryPageContent({
     googleTrend,
     naverKeywords,
     googleKeywords,
+    naverLocalTrend,
+    naverLocalKeywords,
     canGoogle,
 }: Props) {
     const [activePlatform, setActivePlatform] = useState<'naver' | 'google'>('naver')
@@ -115,6 +119,33 @@ export function HistoryPageContent({
                     )}
                 </div>
             </div>
+
+            {/* ── Section 1-B: 지역명 키워드 순위 변화 그래프 (네이버 전용) ── */}
+            {naverLocalTrend.length >= 1 && (
+                <div className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-amber-100 overflow-hidden">
+                    {/* 헤더 */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-6 pb-4 gap-4">
+                        <div className="flex items-center gap-2">
+                            <MapPin className="w-5 h-5 text-amber-500" />
+                            <h2 className="text-lg font-bold text-gray-900">
+                                지역명 키워드 순위 변화
+                                <span className="text-sm font-normal text-gray-400 ml-2">(자동 보고서 기준)</span>
+                            </h2>
+                        </div>
+                        <span className="px-3 py-1 bg-amber-50 text-amber-600 text-xs font-semibold rounded-full">
+                            네이버 전용
+                        </span>
+                    </div>
+
+                    {/* 그래프 */}
+                    <div className="px-6 pb-6">
+                        <RankTrendChart
+                            trendData={naverLocalTrend}
+                            keywords={naverLocalKeywords}
+                        />
+                    </div>
+                </div>
+            )}
 
             {/* ── Section 2: 진단 기록 테이블 ── */}
             <div className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden">

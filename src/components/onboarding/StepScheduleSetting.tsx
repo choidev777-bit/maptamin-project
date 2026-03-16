@@ -93,6 +93,7 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                     place_id: onboardingData?.store?.naverPlace?.placeId ?? '',
                     place_name: onboardingData?.store?.naverPlace?.name ?? '',
                     keywords: onboardingData?.keywords?.naverKeywords ?? [],
+                    local_keywords: onboardingData?.keywords?.localNaverKeywords ?? [],
                     grid_config: naverGridConfig,
                     grid_distance: onboardingData?.grid?.distance ?? 1,
                     crawling_days: naverCrawlingDays,

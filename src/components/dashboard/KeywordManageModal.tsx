@@ -9,6 +9,7 @@ interface ManagedKeyword {
     id: string
     keyword: string
     platform: 'naver' | 'google'
+    keyword_type: 'industry' | 'local'
     created_at: string
 }
 
@@ -16,10 +17,11 @@ interface KeywordManageModalProps {
     isOpen: boolean
     onClose: () => void
     platform: 'naver' | 'google'
+    keywordType?: 'industry' | 'local'
     maxKeywords: number
 }
 
-export function KeywordManageModal({ isOpen, onClose, platform, maxKeywords }: KeywordManageModalProps) {
+export function KeywordManageModal({ isOpen, onClose, platform, keywordType = 'industry', maxKeywords }: KeywordManageModalProps) {
     const router = useRouter()
     const [keywords, setKeywords] = useState<ManagedKeyword[]>([])
     const [loading, setLoading] = useState(true)
@@ -38,14 +40,15 @@ export function KeywordManageModal({ isOpen, onClose, platform, maxKeywords }: K
 
         const { data } = await supabase
             .from('managed_keywords')
-            .select('id, keyword, platform, created_at')
+            .select('id, keyword, platform, keyword_type, created_at')
             .eq('user_id', user.id)
             .eq('platform', platform)
+            .eq('keyword_type', keywordType)
             .order('created_at', { ascending: true })
 
         setKeywords(data || [])
         setLoading(false)
-    }, [platform])
+    }, [platform, keywordType])
 
     useEffect(() => {
         if (isOpen) {
@@ -73,6 +76,7 @@ export function KeywordManageModal({ isOpen, onClose, platform, maxKeywords }: K
                     user_id: user.id,
                     keyword: trimmed,
                     platform,
+                    keyword_type: keywordType,
                 })
 
             if (insertError) {
