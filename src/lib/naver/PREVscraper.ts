@@ -284,8 +284,8 @@ async function scrapeOnPage(
                         // 🛠️ Tolerance (여유범위) 추가 - 약 2km (0.02도)
                         const BUFFER = 0.02;
 
-                        const isLatIn = lat >= (minLat - BUFFER) && lat <= (maxLat + BUFFER);
-                        const isLngIn = lng >= (minLng - BUFFER) && lng <= (maxLng + BUFFER);
+                        const isLatIn = lat! >= (minLat - BUFFER) && lat! <= (maxLat + BUFFER);
+                        const isLngIn = lng! >= (minLng - BUFFER) && lng! <= (maxLng + BUFFER);
 
                         isBoundaryValid = isLatIn && isLngIn;
 
@@ -329,7 +329,7 @@ async function scrapeOnPage(
         await forceZoomIn(page);
 
         // 좌표 이동 (필수: 서버가 IP 기반이 아닌 해당 위치 데이터를 보내게 하려면 이동해야 함)
-        await moveToLocation(page, lat, lng);
+        await moveToLocation(page, lat!, lng!);
         await forceZoomIn(page);
 
         // ========== Step 4: 키워드 검색 ==========
@@ -396,7 +396,7 @@ async function scrapeOnPage(
                     await forceZoomIn(page);
 
                     // 좌표 이동 & 검색
-                    await moveToLocation(page, lat, lng);
+                    await moveToLocation(page, lat!, lng!);
                     await forceZoomIn(page);
 
                     const retryInput = page.locator(searchInputSelector);

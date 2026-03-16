@@ -259,7 +259,22 @@ async function processSearch(search: any) {
                 }
             }
 
-            console.log(`[Worker] Starting Naver Scrape for ${search.place_name} (${tasks.length} tasks)...`);
+            console.log(`[Worker] Starting Naver Scrape for ${search.place_name} (${tasks.length} industry tasks)...`);
+
+            // ── 지역명 키워드 태스크 추가 (좌표 없이, gridIndex = -1) ──
+            const localKeywords: string[] = Array.isArray(search.local_keywords) ? search.local_keywords : [];
+            if (localKeywords.length > 0) {
+                for (const localKw of localKeywords) {
+                    tasks.push({
+                        keyword: localKw,
+                        // lat, lng 생략 (undefined)
+                        gridIndex: -1,
+                        targetBusinessName,
+                    });
+                }
+                console.log(`[Worker] Added ${localKeywords.length} local keyword tasks (total: ${tasks.length})`);
+            }
+
             results = await scrapeNaverBatch(tasks, undefined, search.id, checkJobStatus);
 
         } else if (search.platform === 'google') {
@@ -312,10 +327,12 @@ async function processSearch(search: any) {
         if (isAlive && results && results.length > 0) {
             // ── 부분 실패 감지 (Naver only) ──
             if (search.platform === 'naver') {
-                const failedTasks = results.filter((r: any) => !r.results || r.results.length === 0);
+                // 업종 키워드(gridIndex >= 0)만 부분 실패 감지 (지역명은 결과가 없을 수 있음)
+                const industryResults = results.filter((r: any) => r.gridIndex >= 0);
+                const failedTasks = industryResults.filter((r: any) => !r.results || r.results.length === 0);
                 if (failedTasks.length > 0) {
                     throw new Error(
-                        `Partial failure: ${failedTasks.length}/${results.length} tasks have empty results`
+                        `Partial failure: ${failedTasks.length}/${industryResults.length} industry tasks have empty results`
                     );
                 }
             }
@@ -342,8 +359,8 @@ async function processSearch(search: any) {
                         keyword: r.keyword,
                         rank: r.targetRank || null,
                         grid_index: r.gridIndex,
-                        grid_lat: r.lat,
-                        grid_lng: r.lng,
+                        grid_lat: r.lat ?? null,
+                        grid_lng: r.lng ?? null,
                         competitors: r.results.map((c: any) => ({
                             name: c.businessName,
                             rank: c.rank,
@@ -513,6 +530,7 @@ async function processScheduleJob(job: any) {
         place_lat: place?.lat || 0,
         place_lng: place?.lng || 0,
         keywords: job.keywords || [],
+        local_keywords: job.local_keywords || [],
         platform: job.platform || 'naver',
         grid_points: gridConfig,
         grid_distance: job.grid_distance || (gridConfig[0] as any)?.distance || 1,

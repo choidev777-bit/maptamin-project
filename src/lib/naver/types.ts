@@ -45,8 +45,8 @@ export interface ScrapeResult {
  */
 export interface NaverScrapeTask {
     keyword: string;
-    lat: number;
-    lng: number;
+    lat?: number;
+    lng?: number;
     gridIndex: number;
     targetBusinessName?: string;
 }
@@ -57,8 +57,8 @@ export interface NaverScrapeTask {
 export interface NaverScrapeBatchResult extends ScrapeResult {
     keyword: string;
     gridIndex: number;
-    lat: number;
-    lng: number;
+    lat?: number;
+    lng?: number;
 }
 
 /**

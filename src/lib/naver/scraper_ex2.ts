@@ -43,11 +43,12 @@ function delay(ms: number): Promise<void> {
  */
 async function fetchListApiResults(
     context: BrowserContext,
-    lat: number,
-    lng: number,
+    lat: number | undefined,
+    lng: number | undefined,
     keyword: string
 ): Promise<{ results: NaverPlaceResult[]; dataUsageBytes: number }> {
-    const listUrl = `https://pcmap.place.naver.com/place/list?query=${encodeURIComponent(keyword)}&x=${lng}&y=${lat}&display=70&locale=ko`;
+    const coordParams = (lat !== undefined && lng !== undefined) ? `&x=${lng}&y=${lat}` : '';
+    const listUrl = `https://pcmap.place.naver.com/place/list?query=${encodeURIComponent(keyword)}${coordParams}&display=70&locale=ko`;
 
     let newPage: Page | null = null;
     try {
@@ -274,7 +275,8 @@ export async function scrapeNaverBatch(
                 }
 
                 const taskDuration = (Date.now() - taskStartTime) / 1000;
-                console.log(`[Scraper Ex2] ✅ Task ${i + 1}/${tasks.length} [${lat.toFixed(5)}, ${lng.toFixed(5)}] keyword="${keyword}": rank=${targetRank ?? '-'} | ${taskResults.length}개 | ⏱️ ${taskDuration.toFixed(2)}s | 📊 ${(taskDataUsage / 1024).toFixed(0)} KB`);
+                const coordStr = (lat !== undefined && lng !== undefined) ? `[${lat.toFixed(5)}, ${lng.toFixed(5)}]` : '[좌표없음]';
+                console.log(`[Scraper Ex2] ✅ Task ${i + 1}/${tasks.length} ${coordStr} keyword="${keyword}": rank=${targetRank ?? '-'} | ${taskResults.length}개 | ⏱️ ${taskDuration.toFixed(2)}s | 📊 ${(taskDataUsage / 1024).toFixed(0)} KB`);
 
                 results.push({
                     success: true,
@@ -291,7 +293,8 @@ export async function scrapeNaverBatch(
 
             } catch (error) {
                 const err = error instanceof Error ? error.message : 'Unknown';
-                console.error(`[Scraper Ex2] ❌ Task ${i + 1}/${tasks.length} [${lat.toFixed(5)}, ${lng.toFixed(5)}] keyword="${keyword}" Error: ${err}`);
+                const errCoordStr = (lat !== undefined && lng !== undefined) ? `[${lat.toFixed(5)}, ${lng.toFixed(5)}]` : '[좌표없음]';
+                console.error(`[Scraper Ex2] ❌ Task ${i + 1}/${tasks.length} ${errCoordStr} keyword="${keyword}" Error: ${err}`);
                 results.push({
                     success: false,
                     results: [],
@@ -369,7 +372,7 @@ export async function scrapeNaverBatch(
 
                     try {
                         const retryStart = Date.now();
-                        const { results: retryResults, dataUsageBytes: retryDataUsage } = await fetchListApiResults(retryContext, task.lat, task.lng, task.keyword);
+                        const { results: retryResults, dataUsageBytes: retryDataUsage } = await fetchListApiResults(retryContext, task.lat as any, task.lng as any, task.keyword);
                         totalDataUsage += retryDataUsage;
 
                         if (retryResults.length > 0) {
@@ -395,15 +398,18 @@ export async function scrapeNaverBatch(
                                 dataUsageBytes: retryDataUsage,
                                 durationSeconds: retryDuration
                             };
-                            console.log(`[Scraper Ex2] 🔄 재시도 성공: Task ${idx + 1} [${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}] keyword="${task.keyword}" → rank=${targetRank ?? '-'} | ${retryResults.length}개`);
+                            const retryCoordStr = (task.lat !== undefined && task.lng !== undefined) ? `[${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}]` : '[좌표없음]';
+                            console.log(`[Scraper Ex2] 🔄 재시도 성공: Task ${idx + 1} ${retryCoordStr} keyword="${task.keyword}" → rank=${targetRank ?? '-'} | ${retryResults.length}개`);
                             retrySuccess++;
                         } else {
-                            console.log(`[Scraper Ex2] 🔄 재시도 실패: Task ${idx + 1} [${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}] keyword="${task.keyword}" → 여전히 빈 결과`);
+                            const retryFailCoordStr = (task.lat !== undefined && task.lng !== undefined) ? `[${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}]` : '[좌표없음]';
+                            console.log(`[Scraper Ex2] 🔄 재시도 실패: Task ${idx + 1} ${retryFailCoordStr} keyword="${task.keyword}" → 여전히 빈 결과`);
                             retryFail++;
                         }
                     } catch (retryError) {
                         const errMsg = retryError instanceof Error ? retryError.message : 'Unknown';
-                        console.log(`[Scraper Ex2] 🔄 재시도 에러: Task ${idx + 1} [${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}] keyword="${task.keyword}" → ${errMsg}`);
+                        const retryErrCoordStr = (task.lat !== undefined && task.lng !== undefined) ? `[${task.lat.toFixed(5)}, ${task.lng.toFixed(5)}]` : '[좌표없음]';
+                        console.log(`[Scraper Ex2] 🔄 재시도 에러: Task ${idx + 1} ${retryErrCoordStr} keyword="${task.keyword}" → ${errMsg}`);
                         retryFail++;
                     }
                 }
