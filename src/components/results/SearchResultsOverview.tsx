@@ -13,25 +13,27 @@ interface Props {
 export function SearchResultsOverview({ results, topRankThreshold = 3, gridDistance }: Props) {
     const stats = useMemo(() => {
         if (!results || results.length === 0) {
-            return { averageRank: 0, topExposureShare: 0, totalPoints: 0, topExposureCount: 0 };
+            return { averageRank: 0, topExposureShare: 0, totalPoints: 0, topExposureCount: 0, rankedCount: 0, visibilityRate: 0 };
         }
 
         const rankedResults = results.filter(r => r.rank !== null);
         const totalPoints = results.length;
+        const rankedCount = rankedResults.length;
 
         let averageRank = 0;
         let topExposureCount = 0;
 
-        if (rankedResults.length > 0) {
+        if (rankedCount > 0) {
             const sum = rankedResults.reduce((acc, curr) => acc + (curr.rank as number), 0);
-            averageRank = Math.round((sum / rankedResults.length) * 10) / 10;
+            averageRank = Math.round((sum / rankedCount) * 10) / 10;
             topExposureCount = rankedResults.filter(r => (r.rank as number) <= topRankThreshold).length;
         }
 
         // Share of top N out of *all scanned points*, not just ranked ones
         const topExposureShare = totalPoints > 0 ? Math.round((topExposureCount / totalPoints) * 100) : 0;
+        const visibilityRate = totalPoints > 0 ? Math.round((rankedCount / totalPoints) * 100) : 0;
 
-        return { averageRank, topExposureShare, totalPoints, topExposureCount };
+        return { averageRank, topExposureShare, totalPoints, topExposureCount, rankedCount, visibilityRate };
     }, [results, topRankThreshold]);
 
     if (results.length === 0) return null;
@@ -53,6 +55,9 @@ export function SearchResultsOverview({ results, topRankThreshold = 3, gridDista
                             {stats.averageRank > 0 ? `${stats.averageRank}위` : '-'}
                         </h3>
                     </div>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                        노출된 {stats.rankedCount}개 좌표 기준
+                    </p>
                 </div>
             </div>
 
@@ -88,8 +93,11 @@ export function SearchResultsOverview({ results, topRankThreshold = 3, gridDista
                     <div className="flex items-baseline gap-3">
                         <h3 className="text-4xl font-bold text-gray-900 dark:text-white">{stats.totalPoints}개</h3>
                     </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        전체 노출률: {stats.rankedCount}/{stats.totalPoints} ({stats.visibilityRate}%)
+                    </p>
                     {gridDistance && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                             분석 좌표 간격: {gridDistance * 1000}m
                         </p>
                     )}
