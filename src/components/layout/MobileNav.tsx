@@ -30,7 +30,7 @@ export function MobileNav({ user, subscription, isOnboarding = false }: Props) {
 
     const navItems = [
         { href: '/dashboard', label: '대시보드', icon: Home, isLocked: isOnboarding },
-        { href: '/history', label: '진단 기록', icon: History, isLocked: isOnboarding },
+        { href: '/history', label: '분석 기록', icon: History, isLocked: isOnboarding },
         {
             label: '내 순위 검색',
             icon: Search,

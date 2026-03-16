@@ -63,7 +63,7 @@ function PaymentResultContent() {
                         구매 상품
                     </span>
                     <span className="font-semibold text-slate-900">
-                        {platform === 'naver' ? '네이버' : '구글'} 실시간 진단 티켓
+                        {platform === 'naver' ? '네이버' : '구글'} 실시간 분석 티켓
                     </span>
                 </div>
 

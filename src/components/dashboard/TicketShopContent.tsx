@@ -103,7 +103,7 @@ export function TicketShopContent({
                     <ArrowLeft className="w-4 h-4" />
                     돌아가기
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900">실시간 진단 티켓 구매</h1>
+                <h1 className="text-2xl font-bold text-gray-900">실시간 분석 티켓 구매</h1>
                 <p className="text-gray-500 mt-1">
                     현재 <span className="font-semibold text-gray-700">{planName}</span> 플랜
                 </p>
@@ -111,7 +111,7 @@ export function TicketShopContent({
 
             {/* 상품 설명 */}
             <div className="bg-gray-50 rounded-xl border border-gray-200 p-5 mb-6">
-                <h2 className="text-sm font-semibold text-gray-700 mb-2">실시간 진단 티켓이란?</h2>
+                <h2 className="text-sm font-semibold text-gray-700 mb-2">실시간 분석 티켓이란?</h2>
                 <p className="text-sm text-gray-600 leading-relaxed">
                     정기 리포트(주 1회) 외에, 지금 당장 내 매장 순위가 궁금할 때 사용하는 즉시 조회 기능입니다. 소진 시 추가 구매가 가능합니다. (1,500원/장)
                 </p>

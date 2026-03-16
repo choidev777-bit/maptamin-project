@@ -65,7 +65,7 @@ function generatePaymentId(): string {
  */
 function buildOrderName(platform: Platform, quantity: number): string {
     const platformName = platform === 'naver' ? '네이버' : '구글';
-    return `${platformName} 실시간 진단 티켓 ${quantity}장`;
+    return `${platformName} 실시간 분석 티켓 ${quantity}장`;
 }
 
 /* ──────────────────────────────────────────────

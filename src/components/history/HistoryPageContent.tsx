@@ -99,7 +99,7 @@ export function HistoryPageContent({
 
                 {/* 그래프 */}
                 <div className="px-6 pb-6">
-                    {currentTrend.length >= 2 ? (
+                    {currentTrend.length >= 1 ? (
                         <RankTrendChart
                             trendData={currentTrend}
                             keywords={currentKeywords}
@@ -109,12 +109,8 @@ export function HistoryPageContent({
                             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                                 <BarChart3 className="w-8 h-8 text-gray-300" />
                             </div>
-                            <p className="text-gray-500 font-medium">
-                                자동 리포트가 2회 이상 누적되면
-                            </p>
-                            <p className="text-gray-500">
-                                순위 변화 그래프가 표시됩니다.
-                            </p>
+                            <p className="text-gray-500 font-medium">분석 기록이 쌓이면</p>
+                            <p className="text-gray-500">순위 변화 그래프가 표시됩니다.</p>
                         </div>
                     )}
                 </div>

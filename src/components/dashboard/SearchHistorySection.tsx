@@ -129,7 +129,7 @@ export function SearchHistorySection({ searches }: Props) {
                     <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                         <SearchIcon className="w-8 h-8 text-gray-300" />
                     </div>
-                    <h3 className="text-base font-medium text-gray-900">아직 진단 기록이 없습니다</h3>
+                    <h3 className="text-base font-medium text-gray-900">아직 분석 기록이 없습니다</h3>
                     <p className="text-gray-500 mt-1 text-sm">위의 카드를 통해 새 키워드를 진단해보세요!</p>
                 </div>
             ) : (

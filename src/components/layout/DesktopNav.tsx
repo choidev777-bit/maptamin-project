@@ -32,7 +32,7 @@ export function DesktopNav({ user, subscription }: Props) {
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                     <History className="w-4 h-4" />
-                    진단 기록
+                    분석 기록
                 </Link>
 
                 <NavDropdown

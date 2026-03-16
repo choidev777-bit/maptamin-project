@@ -90,7 +90,7 @@ export function HistoryTable({ searches }: Props) {
                 <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <SearchIcon className="w-8 h-8 text-gray-300" />
                 </div>
-                <h3 className="text-base font-medium text-gray-900">진단 기록이 없습니다</h3>
+                <h3 className="text-base font-medium text-gray-900">분석 기록이 없습니다</h3>
                 <p className="text-gray-500 mt-1 text-sm">필터 조건을 확인하거나, 새 진단을 시작해보세요.</p>
             </div>
         )
