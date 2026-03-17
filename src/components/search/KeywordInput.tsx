@@ -8,6 +8,7 @@ interface Props {
     maxKeywords?: number
     placeholder?: string
     platform?: 'naver' | 'google'
+    keywordType?: 'industry' | 'local'
 }
 
 export function KeywordInput({
@@ -15,7 +16,8 @@ export function KeywordInput({
     onChange,
     maxKeywords = 3,
     placeholder,
-    platform = 'naver'
+    platform = 'naver',
+    keywordType = 'industry'
 }: Props) {
     const addKeyword = () => {
         if (keywords.length < maxKeywords) {
@@ -74,13 +76,10 @@ export function KeywordInput({
                 </button>
             )}
 
-            {platform === 'naver' ? (
+            {platform === 'naver' && keywordType !== 'local' ? (
                 <div className="rounded-xl bg-gray-50 p-4 border border-gray-200">
                     <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5 mb-2">
-                        ⚠️ 네이버 키워드는 지역명을 빼고 입력해주세요!
-                    </p>
-                    <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-                        네이버 알고리즘에서는 상호명과 업종/서비스만 입력해야 정확한 순위 결과를 얻을 수 있습니다.
+                        ⚠️ 업종 키워드는 지역명을 빼고 입력해주세요!
                     </p>
                     <div className="text-sm space-y-2">
                         <p className="flex items-start gap-2 text-emerald-700 bg-white border border-emerald-100 p-2.5 rounded-lg">
@@ -93,14 +92,14 @@ export function KeywordInput({
                         </p>
                     </div>
                 </div>
-            ) : (
+            ) : platform === 'google' ? (
                 <div className="rounded-xl bg-gray-50 p-4 border border-gray-200">
                     <p className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
                         💡 구글 키워드는 지역명을 포함해도 괜찮습니다.
                     </p>
                     <p className="mt-1 text-sm text-gray-600">예시: 시청역 혼밥, 강남역 맛집 등</p>
                 </div>
-            )}
+            ) : null}
         </div>
     )
 }

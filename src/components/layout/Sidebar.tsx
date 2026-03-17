@@ -219,12 +219,12 @@ export function Sidebar({
                                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                             }
                         `}
-                        title={!isExpanded ? '실시간 순위 진단' : undefined}
+                        title={!isExpanded ? '실시간 순위 분석' : undefined}
                     >
                         <Search className="w-5 h-5 flex-shrink-0" />
                         {isExpanded && (
                             <>
-                                <span className="flex-1 text-left whitespace-nowrap">실시간 순위 진단</span>
+                                <span className="flex-1 text-left whitespace-nowrap">실시간 순위 분석</span>
                                 <ChevronDown
                                     className={`w-4 h-4 transition-transform ${searchGroupOpen ? 'rotate-0' : '-rotate-90'}`}
                                 />

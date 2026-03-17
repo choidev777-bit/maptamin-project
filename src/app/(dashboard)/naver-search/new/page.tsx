@@ -548,38 +548,7 @@ export default function NewNaverSearchPage() {
                                     </p>
                                 </div>
 
-                                {/* 분석 범위 선택 */}
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700 mb-2 block">분석 범위</label>
-                                    <div className="flex gap-3">
-                                        {[3, 5, 7].map((size) => {
-                                            const allowed = allowedGridSizes.includes(size)
-                                            return (
-                                                <button
-                                                    key={size}
-                                                    onClick={() => handleGridSizeChange(size)}
-                                                    disabled={!allowed}
-                                                    className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition-all ${selectedGridSize === size
-                                                        ? 'border-[#00C896] bg-[#E5F9F4] text-[#00A87D]'
-                                                        : allowed
-                                                            ? 'border-gray-200 text-gray-700 hover:border-gray-300'
-                                                            : 'border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50'
-                                                        }`}
-                                                >
-                                                    {size}×{size}
-                                                    <span className="block text-xs font-normal mt-0.5">
-                                                        {size * size}좌표
-                                                    </span>
-                                                    {!allowed && (
-                                                        <span className="block text-[10px] text-gray-400 mt-0.5">🔒</span>
-                                                    )}
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-
-                                {/* 분석 좌표 간격 설정 (온보딩 스타일) */}
+                                {/* 분석 좌표 간격 설정 */}
                                 <div className="rounded-xl border border-gray-200 bg-white p-6 space-y-4">
                                     <div>
                                         <h3 className="font-semibold text-gray-900">분석 좌표 간격 설정</h3>
@@ -628,6 +597,8 @@ export default function NewNaverSearchPage() {
                                         onPointsChange={setGridPoints}
                                         gridDistance={gridDistance}
                                         maxPoints={selectedGridSize * selectedGridSize}
+                                        allowedGridSizes={allowedGridSizes}
+                                        onGridSizeChange={handleGridSizeChange}
                                         onReset={() => {
                                             setGridDistance(0.3)
                                             setGridPoints(GRID_TEMPLATES[selectedGridSize] || DEFAULT_GRID_POINTS)

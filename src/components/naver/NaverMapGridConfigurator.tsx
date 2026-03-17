@@ -21,6 +21,8 @@ interface Props {
     gridDistance: number // in km
     maxPoints?: number
     onReset?: () => void
+    allowedGridSizes?: number[]
+    onGridSizeChange?: (size: number) => void
 }
 
 const PRESETS = [
@@ -162,6 +164,8 @@ export function NaverMapGridConfigurator({
     gridDistance,
     maxPoints = 49,
     onReset,
+    allowedGridSizes = [3, 5, 7],
+    onGridSizeChange,
 }: Props) {
     const clientId = process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID
 
@@ -191,6 +195,7 @@ export function NaverMapGridConfigurator({
 
     // Apply preset
     const applyPreset = useCallback((size: number) => {
+        if (!allowedGridSizes.includes(size)) return
         const newPoints: GridPoint[] = []
         const presetHalf = Math.floor(size / 2)
 
@@ -200,7 +205,8 @@ export function NaverMapGridConfigurator({
             }
         }
         onPointsChange(newPoints)
-    }, [onPointsChange])
+        onGridSizeChange?.(size)
+    }, [onPointsChange, onGridSizeChange, allowedGridSizes])
 
     const enabledCount = selectedPoints.filter(p => p.enabled).length
 
@@ -233,19 +239,26 @@ export function NaverMapGridConfigurator({
 
             {/* Preset Buttons */}
             <div className="flex gap-3">
-                {PRESETS.map(preset => (
-                    <button
-                        key={preset.size}
-                        onClick={() => applyPreset(preset.size)}
-                        className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-medium ${enabledCount === preset.points
-                            ? 'border-[#00C896] bg-[#E5F9F4] text-[#00A87D]'
-                            : 'border-gray-200 hover:border-[#00C896]/50 hover:bg-[#E5F9F4]/50 text-gray-700'
+                {PRESETS.map(preset => {
+                    const allowed = allowedGridSizes.includes(preset.size)
+                    return (
+                        <button
+                            key={preset.size}
+                            onClick={() => applyPreset(preset.size)}
+                            disabled={!allowed}
+                            className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-medium ${
+                                !allowed
+                                    ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
+                                    : enabledCount === preset.points
+                                        ? 'border-[#00C896] bg-[#E5F9F4] text-[#00A87D]'
+                                        : 'border-gray-200 hover:border-[#00C896]/50 hover:bg-[#E5F9F4]/50 text-gray-700'
                             }`}
-                    >
-                        <span className="text-lg">{preset.label}</span>
-                        <span className="block text-xs text-gray-500 mt-0.5">{preset.points}개 좌표</span>
-                    </button>
-                ))}
+                        >
+                            <span className="text-lg">{preset.label}</span>
+                            <span className="block text-xs mt-0.5">{allowed ? `${preset.points}개 좌표` : '🔒'}</span>
+                        </button>
+                    )
+                })}
                 <button
                     onClick={onReset}
                     className="py-3 px-4 rounded-xl border-2 border-gray-200 hover:border-red-300 hover:bg-red-50/50 text-gray-700 transition-all cursor-pointer"

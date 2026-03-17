@@ -134,10 +134,37 @@ export default function StepKeywordRegister({ planId, onComplete }: Props) {
                 </div>
             )}
 
+            {/* ── 지역명 키워드 섹션 (네이버 탭일 때만) ── */}
+            {(!isPremium || activeTab === 'naver') && maxLocalKeywords > 0 && (
+                <div className="rounded-xl border border-gray-200 bg-white p-6">
+                    <div className="mb-4">
+                        <h3 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
+                            지역명 키워드
+                        </h3>
+                        <p className="mt-1.5 text-sm text-gray-500 leading-relaxed">
+                            상위노출을 목표로하는 지역명 키워드를 입력하세요.
+                        </p>
+                    </div>
+
+                    <KeywordInput
+                        keywords={localNaverKeywords}
+                        onChange={setLocalNaverKeywords}
+                        maxKeywords={maxLocalKeywords}
+                        placeholder="예: 홍대 카페, 강남역 미용실"
+                        platform="naver"
+                        keywordType="local"
+                    />
+
+
+                </div>
+            )}
+
             {/* 키워드 입력 영역 */}
             <div className="rounded-xl border border-gray-200 bg-white p-6">
                 {(!isPremium || activeTab === 'naver') && (
                     <div>
+                        <h3 className="text-base font-bold text-gray-900 mb-1">업종 키워드</h3>
+                        <p className="mt-1 mb-3 text-sm text-gray-500">위치에 따라 순위가 달라지는 키워드로, 플레이스 순위 지도의 핵심입니다.</p>
                         {!isPremium && (
                             <p className="mb-4 text-sm font-medium text-gray-700">
                                 업종 키워드 ({naverKeywords.filter(k => k.trim()).length}/{limits.naver}개)
@@ -148,6 +175,7 @@ export default function StepKeywordRegister({ planId, onComplete }: Props) {
                             onChange={setNaverKeywords}
                             maxKeywords={limits.naver}
                             platform="naver"
+                            keywordType="industry"
                         />
                     </div>
                 )}
@@ -164,43 +192,10 @@ export default function StepKeywordRegister({ planId, onComplete }: Props) {
                 )}
             </div>
 
-            {/* ── 지역명 키워드 섹션 (네이버 탭일 때만) ── */}
-            {(!isPremium || activeTab === 'naver') && maxLocalKeywords > 0 && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-6">
-                    <div className="mb-4">
-                        <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
-                            <MapPin className="h-4 w-4 text-amber-600" />
-                            지역명 키워드
-                            <span className="ml-1 text-xs font-normal text-gray-500">(선택)</span>
-                        </h3>
-                        <p className="mt-1.5 text-xs text-gray-500 leading-relaxed">
-                            위치에 관계없이 동일한 순위로 추적됩니다.
-                        </p>
-                    </div>
-
-                    <KeywordInput
-                        keywords={localNaverKeywords}
-                        onChange={setLocalNaverKeywords}
-                        maxKeywords={maxLocalKeywords}
-                        placeholder="예: 홍대 카페, 강남역 미용실"
-                        platform="naver"
-                    />
-
-                    <div className="mt-4 rounded-lg bg-white border border-amber-100 p-3">
-                        <p className="text-xs text-gray-600 leading-relaxed">
-                            <span className="font-semibold text-amber-700">💡 지역명 키워드란?</span><br />
-                            지역명이 포함된 키워드(예: 홍대 카페)는 검색 위치와 관계없이 동일한 순위입니다.
-                            업종 키워드의 좌표별 순위를 개선하면 지역명 키워드 순위에도 영향을 줄 수 있으므로,
-                            함께 추적하면 효과를 확인할 수 있습니다.
-                        </p>
-                    </div>
-                </div>
-            )}
-
             {/* 안내 문구 */}
             <div className="rounded-xl border border-[#00C896]/20 bg-[#E5F9F4] p-4">
                 <p className="text-sm text-gray-700 leading-relaxed">
-                    이 키워드는 <strong>자동 리포트</strong>와 <strong>실시간 진단</strong>에 모두 사용됩니다.<br />
+                    이 키워드는 <strong>자동 리포트</strong>와 <strong>실시간 분석</strong>에 모두 사용됩니다.<br />
                     등록하신 키워드는 언제든지 자유롭게 변경할 수 있습니다.
                 </p>
             </div>
