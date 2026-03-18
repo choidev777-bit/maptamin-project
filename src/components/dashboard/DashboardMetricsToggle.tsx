@@ -8,10 +8,17 @@ import { KeywordInsight } from '@/lib/utils/insights'
 import { Lock } from 'lucide-react'
 
 interface MetricsData {
-    insights: {
+    industryInsights: {
         rising: KeywordInsight | null
         dropping: KeywordInsight | null
+        hasData: boolean
     }
+    localInsights?: {
+        rising: KeywordInsight | null
+        dropping: KeywordInsight | null
+        hasData: boolean
+    }
+    hasLocalKeywords?: boolean
 }
 
 interface Props {
@@ -68,7 +75,15 @@ export function DashboardMetricsToggle({ naverData, googleData, canGoogle }: Pro
                         리포트 요약 <span className="text-sm font-normal text-gray-400 ml-2">({activePlatform === 'naver' ? '네이버' : '구글'})</span>
                     </h3>
                 </div>
-                <QuickInsightsRow rising={currentData.insights.rising} dropping={currentData.insights.dropping} />
+                <QuickInsightsRow
+                    rising={currentData.industryInsights.rising}
+                    dropping={currentData.industryInsights.dropping}
+                    hasData={currentData.industryInsights.hasData}
+                    localRising={currentData.localInsights?.rising ?? null}
+                    localDropping={currentData.localInsights?.dropping ?? null}
+                    hasLocalData={currentData.localInsights?.hasData ?? false}
+                    showLocal={activePlatform === 'naver' && !!currentData.hasLocalKeywords}
+                />
             </div>
 
             {/* 업그레이드 유도 모달 */}

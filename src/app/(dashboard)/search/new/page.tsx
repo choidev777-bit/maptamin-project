@@ -449,9 +449,9 @@ export default function NewSearchPage() {
                             {step === 1 && (
                                 <div className="space-y-6">
                                     <div>
-                                        <h2 className="text-2xl font-bold text-gray-900">검색 키워드 선택</h2>
+                                        <h2 className="text-2xl font-bold text-gray-900">분석 키워드 선택</h2>
                                         <p className="mt-2 text-gray-600">
-                                            등록된 키워드 중 검색할 키워드를 선택하세요.
+                                            등록된 키워드 중 분석할 키워드를 선택하세요.
                                         </p>
                                     </div>
 

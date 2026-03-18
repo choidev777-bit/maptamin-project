@@ -63,9 +63,6 @@ export default async function DashboardPage() {
     const naverSearches = searches.filter(s => s.platform === 'naver')
     const googleSearches = searches.filter(s => s.platform === 'google')
 
-    const naverInsights = calculateWeeklyInsights(naverSearches, searchResults)
-    const googleInsights = calculateWeeklyInsights(googleSearches, searchResults)
-
     // Fetch managed places
     const { data: managedPlaces } = await supabase
         .from('managed_places')
@@ -81,7 +78,7 @@ export default async function DashboardPage() {
     // Fetch managed keywords
     const { data: managedKeywords } = await supabase
         .from('managed_keywords')
-        .select('keyword, platform')
+        .select('keyword, platform, keyword_type')
         .eq('user_id', user?.id)
 
     // Fetch Schedules to determine Auto Report status
@@ -101,15 +98,29 @@ export default async function DashboardPage() {
     const naverCompetitors = competitors?.filter(c => c.platform === 'naver') || []
     const googleCompetitors = competitors?.filter(c => c.platform === 'google') || []
 
-    const naverKeywords = managedKeywords?.filter(k => k.platform === 'naver').map(k => k.keyword) || []
+    const naverIndustryKeywords = managedKeywords?.filter(k => k.platform === 'naver' && (k.keyword_type === 'industry' || !k.keyword_type)).map(k => k.keyword) || []
+    const naverLocalKeywords = managedKeywords?.filter(k => k.platform === 'naver' && k.keyword_type === 'local').map(k => k.keyword) || []
     const googleKeywords = managedKeywords?.filter(k => k.platform === 'google').map(k => k.keyword) || []
 
+    // Insights 계산 (keyword 분리 후)
+    const naverIndustryInsights = calculateWeeklyInsights(
+        naverSearches, searchResults,
+        naverIndustryKeywords.length > 0 ? naverIndustryKeywords : undefined
+    )
+    const naverLocalInsights = calculateWeeklyInsights(
+        naverSearches, searchResults,
+        naverLocalKeywords.length > 0 ? naverLocalKeywords : undefined
+    )
+    const googleInsights = calculateWeeklyInsights(googleSearches, searchResults)
+
     const naverData = {
-        insights: naverInsights
+        industryInsights: naverIndustryInsights,
+        localInsights: naverLocalInsights,
+        hasLocalKeywords: naverLocalKeywords.length > 0,
     }
 
     const googleData = {
-        insights: googleInsights
+        industryInsights: googleInsights,
     }
 
     return (
@@ -145,8 +156,10 @@ export default async function DashboardPage() {
                             competitorCount={naverCompetitors.length}
                             firstCompetitorName={naverCompetitors[0]?.place_name}
                             isLocked={!canNaver}
-                            keywords={naverKeywords}
+                            keywords={naverIndustryKeywords}
+                            localKeywords={naverLocalKeywords}
                             maxKeywords={limits.keywordsNaver}
+                            maxLocalKeywords={limits.localKeywordsNaver}
                             maxCompetitors={limits.competitorsNaver}
                             planId={planId}
                         />

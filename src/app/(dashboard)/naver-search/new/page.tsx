@@ -123,9 +123,8 @@ export default function NewNaverSearchPage() {
 
             if (kwData && kwData.length > 0) {
                 setRegisteredKeywords(kwData.map(k => ({ ...k, keyword_type: k.keyword_type || 'industry' })))
-                // Default: 업종 키워드만 체크박스에 표시 (지역명은 자동 포함)
-                const industryKeywords = kwData.filter(k => (k.keyword_type || 'industry') === 'industry')
-                setSelectedKeywords(new Set(industryKeywords.map(k => k.keyword)))
+                // Default: 모든 키워드 선택
+                setSelectedKeywords(new Set(kwData.map(k => k.keyword)))
             }
         }
         fetchData()
@@ -252,6 +251,7 @@ export default function NewNaverSearchPage() {
     const hasTicket = remainingTickets > 0
     const keywords = Array.from(selectedKeywords)
     const localKeywords = registeredKeywords.filter(k => k.keyword_type === 'local').map(k => k.keyword)
+    const selectedLocalKeywords = localKeywords.filter(k => selectedKeywords.has(k))
     const industryKeywords = registeredKeywords.filter(k => k.keyword_type === 'industry')
     const allowedGridSizes = getAllowedGridSizes(subscription.planId)
 
@@ -272,8 +272,10 @@ export default function NewNaverSearchPage() {
 
     const canProceed = () => {
         switch (step) {
-            case 1:
-                return selectedKeywords.size > 0
+            case 1: {
+                const selectedIndustryCount = industryKeywords.filter(k => selectedKeywords.has(k.keyword)).length
+                return selectedIndustryCount > 0
+            }
             case 2:
                 return enabledGridCount > 0
             case 3:
@@ -320,8 +322,8 @@ export default function NewNaverSearchPage() {
                     placeAddress,
                     placeLat: lat,
                     placeLng: lng,
-                    keywords: keywords.filter(k => k.trim()),
-                    local_keywords: localKeywords,
+                    keywords: keywords.filter(k => k.trim() && !localKeywords.includes(k)),
+                    local_keywords: selectedLocalKeywords,
                     gridPoints: gridPointsWithCoords,
                     distance: gridDistance,
                     distanceUnit,
@@ -470,9 +472,9 @@ export default function NewNaverSearchPage() {
                         {step === 1 && (
                             <div className="space-y-6">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">검색 키워드 선택</h2>
+                                    <h2 className="text-2xl font-bold text-gray-900">분석 키워드 선택</h2>
                                     <p className="mt-2 text-gray-600">
-                                        등록된 키워드 중 검색할 키워드를 선택하세요.
+                                        등록된 키워드 중 분석할 키워드를 선택하세요.
                                     </p>
                                 </div>
 
@@ -488,9 +490,38 @@ export default function NewNaverSearchPage() {
                                         </Link>
                                     </div>
                                 ) : (
-                                    <div className="space-y-4">
+                                    <div className="space-y-6">
+                                        {/* 지역명 키워드 체크박스 */}
+                                        {localKeywords.length > 0 && (
+                                            <div className="space-y-2">
+                                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">지역명 키워드</p>
+                                                {localKeywords.map((kw) => (
+                                                    <label
+                                                        key={kw}
+                                                        className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${selectedKeywords.has(kw)
+                                                            ? 'border-emerald-500 bg-emerald-50'
+                                                            : 'border-gray-200 bg-white hover:border-gray-300'
+                                                            }`}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedKeywords.has(kw)}
+                                                            onChange={() => toggleKeyword(kw)}
+                                                            className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                                        />
+                                                        <span className={`font-medium ${selectedKeywords.has(kw) ? 'text-emerald-800' : 'text-gray-700'}`}>
+                                                            {kw}
+                                                        </span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        )}
+
                                         {/* 업종 키워드 체크박스 */}
                                         <div className="space-y-2">
+                                            {localKeywords.length > 0 && (
+                                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">업종 키워드</p>
+                                            )}
                                             {industryKeywords.map((kw) => (
                                                 <label
                                                     key={kw.keyword}
@@ -515,21 +546,6 @@ export default function NewNaverSearchPage() {
                                                 {selectedKeywords.size}개 선택됨 · 키워드는 설정에서 관리할 수 있습니다
                                             </p>
                                         </div>
-
-                                        {/* 지역명 키워드 자동 포함 안내 */}
-                                        {localKeywords.length > 0 && (
-                                            <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-                                                <p className="text-sm font-semibold text-amber-800 mb-2">📍 지역명 키워드 (자동 포함)</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {localKeywords.map(kw => (
-                                                        <span key={kw} className="px-3 py-1 bg-amber-100 text-amber-800 text-sm rounded-full font-medium">
-                                                            {kw}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                                <p className="text-xs text-amber-600 mt-2">위치에 관계없이 동일한 순위로 추적됩니다.</p>
-                                            </div>
-                                        )}
                                     </div>
                                 )}
                             </div>

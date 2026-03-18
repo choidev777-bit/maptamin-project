@@ -31,6 +31,9 @@ export function KeywordManageModal({ isOpen, onClose, platform, keywordType = 'i
 
     const platformName = platform === 'naver' ? '네이버' : '구글'
     const accentColor = platform === 'naver' ? '#00C896' : '#3b82f6'
+    const modalTitle = platform === 'naver'
+        ? (keywordType === 'local' ? '지역명 키워드 관리' : '업종 키워드 관리')
+        : '구글 키워드 관리'
 
     const fetchKeywords = useCallback(async () => {
         setLoading(true)
@@ -83,7 +86,7 @@ export function KeywordManageModal({ isOpen, onClose, platform, keywordType = 'i
                 if (insertError.code === '23505' || insertError.message.includes('duplicate key')) {
                     setError('이미 등록된 키워드입니다.')
                 } else {
-                    setError(insertError.message)
+                    setError('키워드 추가 중 오류가 발생했습니다.')
                 }
             } else {
                 setNewKeyword('')
@@ -106,7 +109,7 @@ export function KeywordManageModal({ isOpen, onClose, platform, keywordType = 'i
             .eq('id', id)
 
         if (deleteError) {
-            setError(deleteError.message)
+            setError('키워드 삭제 중 오류가 발생했습니다.')
         } else {
             await fetchKeywords()
             router.refresh()
@@ -129,7 +132,7 @@ export function KeywordManageModal({ isOpen, onClose, platform, keywordType = 'i
                             <Key className="w-4 h-4" style={{ color: accentColor }} />
                         </div>
                         <div>
-                            <h3 className="text-base font-bold text-gray-900 dark:text-white">{platformName} 키워드 관리</h3>
+                            <h3 className="text-base font-bold text-gray-900 dark:text-white">{modalTitle}</h3>
                             <p className="text-xs text-gray-500 dark:text-slate-400">{keywords.length}/{maxKeywords}개 등록됨</p>
                         </div>
                     </div>
@@ -196,7 +199,7 @@ export function KeywordManageModal({ isOpen, onClose, platform, keywordType = 'i
                                 value={newKeyword}
                                 onChange={(e) => setNewKeyword(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && addKeyword()}
-                                placeholder={platform === 'naver' ? '키워드 입력 (예: 강남 맛집)' : '키워드 입력 (예: best cafe)'}
+                                placeholder="키워드 입력"
                                 className="flex-1 px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent transition-shadow"
                                 style={{ ['--tw-ring-color' as string]: accentColor } as React.CSSProperties}
                                 disabled={saving}

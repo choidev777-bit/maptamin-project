@@ -31,17 +31,20 @@ interface Props {
     firstCompetitorName?: string
     isLocked?: boolean
     keywords?: string[]
+    localKeywords?: string[]
     maxKeywords?: number
+    maxLocalKeywords?: number
     maxCompetitors?: number
     planId?: string
 }
 
-export function DashboardPlatformCard({ platform, data, competitorCount = 0, firstCompetitorName, isLocked = false, keywords = [], maxKeywords = 0, maxCompetitors = 0, planId = 'free' }: Props) {
+export function DashboardPlatformCard({ platform, data, competitorCount = 0, firstCompetitorName, isLocked = false, keywords = [], localKeywords, maxKeywords = 0, maxLocalKeywords = 0, maxCompetitors = 0, planId = 'free' }: Props) {
     const lockExempt = isPlaceLockExempt(planId)
     const router = useRouter()
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false)
     const [isKeywordModalOpen, setIsKeywordModalOpen] = useState(false)
+    const [isLocalKeywordModalOpen, setIsLocalKeywordModalOpen] = useState(false)
     const [isCompetitorModalOpen, setIsCompetitorModalOpen] = useState(false)
 
     const handleRegister = async (place: Place) => {
@@ -160,13 +163,26 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
 
                                 {/* 키워드/경쟁사 관리 버튼 */}
                                 <div className="flex flex-col gap-2 mt-3">
+                                    {/* 네이버: 지역명/업종 분리 | 구글: 통합 */}
+                                    {platform === 'naver' && localKeywords !== undefined && (
+                                        <button
+                                            onClick={() => setIsLocalKeywordModalOpen(true)}
+                                            className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-slate-700/50 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-100 dark:border-slate-600 transition-colors group/btn"
+                                        >
+                                            <span className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+                                                <Key className="w-4 h-4 text-[#00C896]" />
+                                                저장된 지역명 키워드: <span className="font-bold text-gray-900 dark:text-white">{localKeywords.length}개</span>
+                                            </span>
+                                            <ChevronRight className="w-4 h-4 text-gray-400 group-hover/btn:text-gray-600 transition-colors" />
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => setIsKeywordModalOpen(true)}
                                         className="flex items-center justify-between w-full px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-slate-700/50 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-100 dark:border-slate-600 transition-colors group/btn"
                                     >
                                         <span className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
                                             <Key className={`w-4 h-4 ${platform === 'naver' ? 'text-[#00C896]' : 'text-blue-500'}`} />
-                                            저장된 키워드: <span className="font-bold text-gray-900 dark:text-white">{keywords.length}개</span>
+                                            {platform === 'naver' ? '저장된 업종 키워드' : '저장된 키워드'}: <span className="font-bold text-gray-900 dark:text-white">{keywords.length}개</span>
                                         </span>
                                         <ChevronRight className="w-4 h-4 text-gray-400 group-hover/btn:text-gray-600 transition-colors" />
                                     </button>
@@ -229,12 +245,22 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                 />
             )}
 
-            {/* 키워드 관리 모달 */}
+            {/* 키워드 관리 모달 (업종) */}
             <KeywordManageModal
                 isOpen={isKeywordModalOpen}
                 onClose={() => setIsKeywordModalOpen(false)}
                 platform={platform}
+                keywordType="industry"
                 maxKeywords={maxKeywords}
+            />
+
+            {/* 키워드 관리 모달 (지역명, 네이버 전용) */}
+            <KeywordManageModal
+                isOpen={isLocalKeywordModalOpen}
+                onClose={() => setIsLocalKeywordModalOpen(false)}
+                platform="naver"
+                keywordType="local"
+                maxKeywords={maxLocalKeywords}
             />
 
             {/* 경쟁사 관리 모달 */}

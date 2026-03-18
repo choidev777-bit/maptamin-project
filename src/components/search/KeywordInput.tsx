@@ -84,7 +84,7 @@ export function KeywordInput({
                     <div className="text-sm space-y-2">
                         <p className="flex items-start gap-2 text-emerald-700 bg-white border border-emerald-100 p-2.5 rounded-lg">
                             <span className="shrink-0 mt-0.5">✅</span>
-                            <span><strong>좋은 예시:</strong> 카페, 맛집, 네일샵, 근처 삼겹살, 근처 분위기 좋은 카페</span>
+                            <span><strong>좋은 예시:</strong> 카페, 맛집, 네일샵, 삼겹살, 분위기 좋은 카페</span>
                         </p>
                         <p className="flex items-start gap-2 text-red-700 bg-white border border-red-100 p-2.5 rounded-lg">
                             <span className="shrink-0 mt-0.5">❌</span>

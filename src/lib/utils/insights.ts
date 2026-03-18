@@ -13,15 +13,16 @@ export interface KeywordInsight {
  */
 export function calculateWeeklyInsights(
     searches: Search[],
-    searchResults: SearchResult[]
-): { rising: KeywordInsight | null; dropping: KeywordInsight | null } {
+    searchResults: SearchResult[],
+    keywordFilter?: string[]
+): { rising: KeywordInsight | null; dropping: KeywordInsight | null; hasData: boolean } {
     // 1. Filter only completed daily and weekly reports
     const weeklySearches = searches.filter(
         (s) => (s.report_type === 'daily' || s.report_type === 'weekly') && s.status === 'completed'
     )
 
     if (weeklySearches.length < 2) {
-        return { rising: null, dropping: null }
+        return { rising: null, dropping: null, hasData: false }
     }
 
     // Sort by created_at descending (newest first)
@@ -32,7 +33,7 @@ export function calculateWeeklyInsights(
     const previousSearch = weeklySearches.find(s => s.id !== latestSearch.id)
 
     if (!previousSearch) {
-        return { rising: null, dropping: null }
+        return { rising: null, dropping: null, hasData: false }
     }
 
     // 2. Get results for these specific searches
@@ -42,8 +43,9 @@ export function calculateWeeklyInsights(
     const insights: KeywordInsight[] = []
 
     // 3. Compare ranks for each keyword
-    // Assuming each search has results for its keywords
-    latestSearch.keywords.forEach((keyword) => {
+    // keywordFilter가 주어지면 해당 키워드만, 아니면 전체 keywords
+    const targetKeywords = keywordFilter || latestSearch.keywords
+    targetKeywords.forEach((keyword) => {
         // We calculate the average rank across all grid points for this keyword
         const latestRankRanks = latestResults
             .filter((r) => r.keyword === keyword && r.rank !== null)
@@ -77,7 +79,7 @@ export function calculateWeeklyInsights(
     })
 
     if (insights.length === 0) {
-        return { rising: null, dropping: null }
+        return { rising: null, dropping: null, hasData: true }
     }
 
     // Sort insights by rankChange descending
@@ -87,6 +89,7 @@ export function calculateWeeklyInsights(
         // The one with the highest positive change
         rising: insights[0].rankChange > 0 ? insights[0] : null,
         // The one with the lowest negative change (at the end of the array)
-        dropping: insights[insights.length - 1].rankChange < 0 ? insights[insights.length - 1] : null
+        dropping: insights[insights.length - 1].rankChange < 0 ? insights[insights.length - 1] : null,
+        hasData: true,
     }
 }

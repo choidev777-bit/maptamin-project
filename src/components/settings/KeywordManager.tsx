@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Key, Plus, Trash2, Lock, AlertCircle, MapPin } from 'lucide-react'
+import { Key, Plus, Trash2, Lock, AlertCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface ManagedKeyword {
@@ -24,6 +24,7 @@ interface Props {
 
 export function KeywordManager({ planId, maxNaverKeywords, maxGoogleKeywords, maxLocalNaverKeywords, canGoogle, onUpgradeClick }: Props) {
     const router = useRouter()
+    const [selectedPlatform, setSelectedPlatform] = useState<'naver' | 'google'>('naver')
     const [naverKeywords, setNaverKeywords] = useState<ManagedKeyword[]>([])
     const [googleKeywords, setGoogleKeywords] = useState<ManagedKeyword[]>([])
     const [localNaverKeywords, setLocalNaverKeywords] = useState<ManagedKeyword[]>([])
@@ -89,7 +90,7 @@ export function KeywordManager({ planId, maxNaverKeywords, maxGoogleKeywords, ma
                 if (insertError.code === '23505' || insertError.message.includes('duplicate key')) {
                     setError('이미 등록된 키워드입니다.')
                 } else {
-                    setError(insertError.message)
+                    setError('키워드 추가 중 오류가 발생했습니다.')
                 }
             } else {
                 if (keywordType === 'local') setNewLocalNaverKeyword('')
@@ -99,7 +100,7 @@ export function KeywordManager({ planId, maxNaverKeywords, maxGoogleKeywords, ma
                 router.refresh()
             }
         } catch {
-            setError('키워드 추가 중 오류가 발생했습니다')
+            setError('키워드 추가 중 오류가 발생했습니다.')
         } finally {
             setSaving(false)
         }
@@ -113,7 +114,7 @@ export function KeywordManager({ planId, maxNaverKeywords, maxGoogleKeywords, ma
             .eq('id', id)
 
         if (deleteError) {
-            setError(deleteError.message)
+            setError('키워드 삭제 중 오류가 발생했습니다.')
         } else {
             fetchData()
             router.refresh()
@@ -137,9 +138,30 @@ export function KeywordManager({ planId, maxNaverKeywords, maxGoogleKeywords, ma
 
     return (
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">
-                키워드 관리
-            </h2>
+            {/* Header + Toggle */}
+            <div className="flex justify-between items-center mb-1">
+                <h2 className="text-lg font-semibold text-gray-900">키워드 관리</h2>
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                    <button
+                        onClick={() => { setSelectedPlatform('naver'); setError(null) }}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${selectedPlatform === 'naver'
+                            ? 'bg-white text-emerald-600 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-900'
+                            }`}
+                    >
+                        네이버
+                    </button>
+                    <button
+                        onClick={() => { setSelectedPlatform('google'); setError(null) }}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${selectedPlatform === 'google'
+                            ? 'bg-white text-blue-600 shadow-sm'
+                            : 'text-gray-500 hover:text-gray-900'
+                            }`}
+                    >
+                        구글
+                    </button>
+                </div>
+            </div>
             <p className="text-sm text-gray-500 mb-6">순위를 분석할 검색 키워드를 등록하세요.</p>
 
             {error && (
@@ -149,188 +171,189 @@ export function KeywordManager({ planId, maxNaverKeywords, maxGoogleKeywords, ma
                 </div>
             )}
 
-            {/* Naver 업종 Keywords */}
-            <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                        <h3 className="text-sm font-semibold text-emerald-700 flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                            네이버 업종 키워드
-                        </h3>
-                    </div>
-                    <span className="text-xs text-gray-400">
-                        {naverKeywords.length}/{maxNaverKeywords}
-                    </span>
-                </div>
+            {/* ── 네이버 탭 ── */}
+            {selectedPlatform === 'naver' && (
+                <div className="space-y-6">
+                    {/* 지역명 키워드 */}
+                    {maxLocalNaverKeywords > 0 && (
+                        <div>
+                            <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-sm font-semibold text-emerald-700 flex items-center gap-1.5">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                    지역명 키워드
+                                </h3>
+                                <span className="text-xs text-gray-400">
+                                    {localNaverKeywords.length}/{maxLocalNaverKeywords}
+                                </span>
+                            </div>
 
-                <div className="space-y-2">
-                    {naverKeywords.map((kw) => (
-                        <div
-                            key={kw.id}
-                            className="flex items-center justify-between px-3 py-2.5 bg-emerald-50 border border-emerald-100 rounded-lg"
-                        >
-                            <span className="text-sm text-emerald-800 font-medium">{kw.keyword}</span>
-                            <button
-                                onClick={() => deleteKeyword(kw.id, 'naver')}
-                                className="p-1 rounded transition-colors text-gray-400 hover:text-red-500 hover:bg-red-50"
-                                title="삭제"
-                            >
-                                <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                        </div>
-                    ))}
+                            <div className="space-y-2">
+                                {localNaverKeywords.map((kw) => (
+                                    <div
+                                        key={kw.id}
+                                        className="flex items-center justify-between px-3 py-2.5 bg-emerald-50 border border-emerald-100 rounded-lg"
+                                    >
+                                        <span className="text-sm text-emerald-800 font-medium">{kw.keyword}</span>
+                                        <button
+                                            onClick={() => deleteKeyword(kw.id, 'naver')}
+                                            className="p-1 rounded transition-colors text-gray-400 hover:text-red-500 hover:bg-red-50"
+                                            title="삭제"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                ))}
 
-                    {naverKeywords.length < maxNaverKeywords && (
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={newNaverKeyword}
-                                onChange={(e) => setNewNaverKeyword(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && addKeyword('naver', 'industry')}
-                                placeholder="키워드 입력"
-                                className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                            />
-                            <button
-                                onClick={() => addKeyword('naver', 'industry')}
-                                disabled={!newNaverKeyword.trim() || saving}
-                                className="px-3 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                            >
-                                <Plus className="w-4 h-4" />
-                                추가
-                            </button>
+                                {localNaverKeywords.length < maxLocalNaverKeywords && (
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={newLocalNaverKeyword}
+                                            onChange={(e) => setNewLocalNaverKeyword(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && addKeyword('naver', 'local')}
+                                            placeholder="키워드 입력"
+                                            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                        />
+                                        <button
+                                            onClick={() => addKeyword('naver', 'local')}
+                                            disabled={!newLocalNaverKeyword.trim() || saving}
+                                            className="px-3 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            추가
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
-                </div>
-            </div>
 
-            {/* Naver 지역명 Keywords */}
-            {maxLocalNaverKeywords > 0 && (
-                <div className="mb-6">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                            <h3 className="text-sm font-semibold text-amber-700 flex items-center gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-amber-600" />
-                                네이버 지역명 키워드
+                    {/* 업종 키워드 */}
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-semibold text-emerald-700 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                업종 키워드
                             </h3>
+                            <span className="text-xs text-gray-400">
+                                {naverKeywords.length}/{maxNaverKeywords}
+                            </span>
                         </div>
-                        <span className="text-xs text-gray-400">
-                            {localNaverKeywords.length}/{maxLocalNaverKeywords}
-                        </span>
-                    </div>
 
-                    <div className="space-y-2">
-                        {localNaverKeywords.map((kw) => (
-                            <div
-                                key={kw.id}
-                                className="flex items-center justify-between px-3 py-2.5 bg-amber-50 border border-amber-100 rounded-lg"
-                            >
-                                <span className="text-sm text-amber-800 font-medium">{kw.keyword}</span>
-                                <button
-                                    onClick={() => deleteKeyword(kw.id, 'naver')}
-                                    className="p-1 rounded transition-colors text-gray-400 hover:text-red-500 hover:bg-red-50"
-                                    title="삭제"
+                        <div className="space-y-2">
+                            {naverKeywords.map((kw) => (
+                                <div
+                                    key={kw.id}
+                                    className="flex items-center justify-between px-3 py-2.5 bg-emerald-50 border border-emerald-100 rounded-lg"
                                 >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                        ))}
+                                    <span className="text-sm text-emerald-800 font-medium">{kw.keyword}</span>
+                                    <button
+                                        onClick={() => deleteKeyword(kw.id, 'naver')}
+                                        className="p-1 rounded transition-colors text-gray-400 hover:text-red-500 hover:bg-red-50"
+                                        title="삭제"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            ))}
 
-                        {localNaverKeywords.length < maxLocalNaverKeywords && (
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newLocalNaverKeyword}
-                                    onChange={(e) => setNewLocalNaverKeyword(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && addKeyword('naver', 'local')}
-                                    placeholder="예: 홍대 카페, 강남역 미용실"
-                                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                                />
-                                <button
-                                    onClick={() => addKeyword('naver', 'local')}
-                                    disabled={!newLocalNaverKeyword.trim() || saving}
-                                    className="px-3 py-2 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    추가
-                                </button>
-                            </div>
-                        )}
+                            {naverKeywords.length < maxNaverKeywords && (
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={newNaverKeyword}
+                                        onChange={(e) => setNewNaverKeyword(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && addKeyword('naver', 'industry')}
+                                        placeholder="키워드 입력"
+                                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                    />
+                                    <button
+                                        onClick={() => addKeyword('naver', 'industry')}
+                                        disabled={!newNaverKeyword.trim() || saving}
+                                        className="px-3 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        추가
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Google Keywords */}
-            <div>
-                <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
+            {/* ── 구글 탭 ── */}
+            {selectedPlatform === 'google' && (
+                <div>
+                    <div className="flex items-center justify-between mb-3">
                         <h3 className="text-sm font-semibold text-blue-700 flex items-center gap-1.5">
                             <span className="w-2 h-2 rounded-full bg-blue-500" />
                             구글 키워드
                         </h3>
-                    </div>
-                    {canGoogle ? (
-                        <span className="text-xs text-gray-400">
-                            {googleKeywords.length}/{maxGoogleKeywords}
-                        </span>
-                    ) : (
-                        <button
-                            onClick={onUpgradeClick}
-                            className="text-xs text-[#00C896] hover:text-[#00B386] font-medium"
-                        >
-                            프리미엄 업그레이드 →
-                        </button>
-                    )}
-                </div>
-
-                {canGoogle ? (
-                    <div className="space-y-2">
-                        {googleKeywords.map((kw) => (
-                            <div
-                                key={kw.id}
-                                className="flex items-center justify-between px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-lg"
+                        {canGoogle ? (
+                            <span className="text-xs text-gray-400">
+                                {googleKeywords.length}/{maxGoogleKeywords}
+                            </span>
+                        ) : (
+                            <button
+                                onClick={onUpgradeClick}
+                                className="text-xs text-[#00C896] hover:text-[#00B386] font-medium"
                             >
-                                <span className="text-sm text-blue-800 font-medium">{kw.keyword}</span>
-                                <button
-                                    onClick={() => deleteKeyword(kw.id, 'google')}
-                                    className="p-1 rounded transition-colors text-gray-400 hover:text-red-500 hover:bg-red-50"
-                                    title="삭제"
-                                >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                            </div>
-                        ))}
-
-                        {googleKeywords.length < maxGoogleKeywords && (
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newGoogleKeyword}
-                                    onChange={(e) => setNewGoogleKeyword(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && addKeyword('google', 'industry')}
-                                    placeholder="키워드 입력"
-                                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                />
-                                <button
-                                    onClick={() => addKeyword('google', 'industry')}
-                                    disabled={!newGoogleKeyword.trim() || saving}
-                                    className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                                >
-                                    <Plus className="w-4 h-4" />
-                                    추가
-                                </button>
-                            </div>
+                                프리미엄 업그레이드 →
+                            </button>
                         )}
                     </div>
-                ) : (
-                    <div
-                        className="flex flex-col items-center justify-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200 cursor-pointer"
-                        onClick={onUpgradeClick}
-                    >
-                        <Lock className="w-5 h-5 text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-400">프리미엄 플랜에서 이용 가능</p>
-                    </div>
-                )}
-            </div>
+
+                    {canGoogle ? (
+                        <div className="space-y-2">
+                            {googleKeywords.map((kw) => (
+                                <div
+                                    key={kw.id}
+                                    className="flex items-center justify-between px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-lg"
+                                >
+                                    <span className="text-sm text-blue-800 font-medium">{kw.keyword}</span>
+                                    <button
+                                        onClick={() => deleteKeyword(kw.id, 'google')}
+                                        className="p-1 rounded transition-colors text-gray-400 hover:text-red-500 hover:bg-red-50"
+                                        title="삭제"
+                                    >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            ))}
+
+                            {googleKeywords.length < maxGoogleKeywords && (
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={newGoogleKeyword}
+                                        onChange={(e) => setNewGoogleKeyword(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && addKeyword('google', 'industry')}
+                                        placeholder="키워드 입력"
+                                        className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    />
+                                    <button
+                                        onClick={() => addKeyword('google', 'industry')}
+                                        disabled={!newGoogleKeyword.trim() || saving}
+                                        className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        추가
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div
+                            className="flex flex-col items-center justify-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200 cursor-pointer"
+                            onClick={onUpgradeClick}
+                        >
+                            <Lock className="w-5 h-5 text-gray-400 mb-2" />
+                            <p className="text-sm text-gray-400">프리미엄 플랜에서 이용 가능</p>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     )
 }
