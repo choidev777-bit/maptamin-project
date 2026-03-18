@@ -467,7 +467,7 @@ export default function NewNaverSearchPage() {
                     </div>
 
                     {/* Step Content */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-8">
                         {/* Step 1: Keyword Selection */}
                         {step === 1 && (
                             <div className="space-y-6">
@@ -586,13 +586,13 @@ export default function NewNaverSearchPage() {
                                             </div>
                                         </div>
 
-                                        <div className="flex gap-2">
+                                        <div className="grid grid-cols-5 sm:flex gap-1.5">
                                             {DISTANCE_PRESETS.map(preset => (
                                                 <button
                                                     key={preset.value}
                                                     type="button"
                                                     onClick={() => setGridDistance(preset.value)}
-                                                    className={`flex-1 min-w-0 py-2 px-1 rounded-lg text-xs sm:text-sm font-medium transition-all ${gridDistance === preset.value
+                                                    className={`py-2 px-1 rounded-lg text-xs font-medium transition-all ${gridDistance === preset.value
                                                         ? 'bg-[#E5F9F4] text-[#00A87D] border-2 border-[#00C896]'
                                                         : 'bg-gray-50 text-gray-600 border-2 border-transparent hover:bg-gray-100'
                                                         }`}
@@ -653,9 +653,9 @@ export default function NewNaverSearchPage() {
                                                 </span>
                                             </div>
                                         )}
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">업종 키워드 ({keywords.filter(k => k.trim() && !localKeywords.includes(k)).length}개)</span>
-                                            <span className="font-medium text-gray-900">
+                                        <div className="flex justify-between gap-2">
+                                            <span className="text-gray-600 flex-shrink-0">업종 키워드 ({keywords.filter(k => k.trim() && !localKeywords.includes(k)).length}개)</span>
+                                            <span className="font-medium text-gray-900 text-right break-all">
                                                 {keywords.filter(k => k.trim() && !localKeywords.includes(k)).join(', ') || '-'}
                                             </span>
                                         </div>
