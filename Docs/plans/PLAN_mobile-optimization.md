@@ -291,7 +291,7 @@ style={{ height: '500px' }}  // 고정 높이
 ## 진행 상황
 
 - [x] Phase 1: 데이터 테이블 (SearchHistorySection, HistoryTable, TicketShop)
-- [ ] Phase 2: 그리드 설정 (GridConfigurator — 3×3/5×5/7×7 버튼)
+- [x] Phase 2: 그리드 설정 (GridConfigurator — 3×3/5×5/7×7 버튼)
 - [ ] Phase 3: 검색 결과 (AverageRankCard, 경쟁사비교, 지도 높이)
 - [ ] Phase 4: 검색 신청 폼 (search/new, naver-search/new, report-settings)
 - [ ] Phase 5: 랜딩·나머지 + 전체 최종 확인

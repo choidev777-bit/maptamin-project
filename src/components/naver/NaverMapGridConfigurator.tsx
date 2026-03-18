@@ -238,7 +238,7 @@ export function NaverMapGridConfigurator({
             </div>
 
             {/* Preset Buttons */}
-            <div className="flex gap-3">
+            <div className="grid grid-cols-4 gap-2">
                 {PRESETS.map(preset => {
                     const allowed = allowedGridSizes.includes(preset.size)
                     return (
@@ -246,7 +246,7 @@ export function NaverMapGridConfigurator({
                             key={preset.size}
                             onClick={() => applyPreset(preset.size)}
                             disabled={!allowed}
-                            className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-medium ${
+                            className={`py-2.5 px-2 rounded-xl border-2 transition-all font-medium text-center ${
                                 !allowed
                                     ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
                                     : enabledCount === preset.points
@@ -254,14 +254,14 @@ export function NaverMapGridConfigurator({
                                         : 'border-gray-200 hover:border-[#00C896]/50 hover:bg-[#E5F9F4]/50 text-gray-700'
                             }`}
                         >
-                            <span className="text-lg">{preset.label}</span>
-                            <span className="block text-xs mt-0.5">{allowed ? `${preset.points}개 좌표` : '🔒'}</span>
+                            <span className="text-base sm:text-lg">{preset.label}</span>
+                            <span className="block text-xs mt-0.5">{allowed ? `${preset.points}개` : '🔒'}</span>
                         </button>
                     )
                 })}
                 <button
                     onClick={onReset}
-                    className="py-3 px-4 rounded-xl border-2 border-gray-200 hover:border-red-300 hover:bg-red-50/50 text-gray-700 transition-all cursor-pointer"
+                    className="py-2.5 px-2 rounded-xl border-2 border-gray-200 hover:border-red-300 hover:bg-red-50/50 text-gray-700 transition-all cursor-pointer text-center"
                 >
                     <span className="text-sm">초기화</span>
                 </button>
@@ -270,7 +270,7 @@ export function NaverMapGridConfigurator({
             {/* Map */}
             <div className="rounded-2xl overflow-hidden border-2 border-gray-200 shadow-lg">
                 <NavermapsProvider ncpKeyId={clientId}>
-                    <MapDiv style={{ width: '100%', height: '400px' }}>
+                    <MapDiv style={{ width: '100%', height: 'clamp(280px, 50vw, 400px)' }}>
                         <MapContent
                             centerLat={centerLat}
                             centerLng={centerLng}

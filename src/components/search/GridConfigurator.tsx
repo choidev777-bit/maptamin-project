@@ -87,6 +87,41 @@ export function GridConfigurator({ selectedPoints, onPointsChange, maxPoints = 4
         setIsDragging(false)
     }
 
+    // 모바일 터치 드래그 지원
+    const getButtonFromTouch = (touch: React.Touch): { row: number; col: number } | null => {
+        const el = document.elementFromPoint(touch.clientX, touch.clientY)
+        if (!el) return null
+        const rowStr = el.getAttribute('data-row')
+        const colStr = el.getAttribute('data-col')
+        if (rowStr === null || colStr === null) return null
+        return { row: parseInt(rowStr, 10), col: parseInt(colStr, 10) }
+    }
+
+    const handleTouchStart = (e: React.TouchEvent, row: number, col: number) => {
+        const isCenter = row === 0 && col === 0
+        if (isCenter) return
+        e.preventDefault() // 스크롤 방지 (드래그 선택 모드)
+        const currentlyEnabled = isPointEnabled(row, col)
+        setDragMode(currentlyEnabled ? 'disable' : 'enable')
+        setIsDragging(true)
+        togglePoint(row, col)
+    }
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        if (!isDragging) return
+        e.preventDefault()
+        const touch = e.touches[0]
+        const cell = getButtonFromTouch(touch)
+        if (!cell) return
+        const isCenter = cell.row === 0 && cell.col === 0
+        if (isCenter) return
+        togglePoint(cell.row, cell.col, dragMode === 'enable')
+    }
+
+    const handleTouchEnd = () => {
+        setIsDragging(false)
+    }
+
     const enabledCount = selectedPoints.filter(p => p.enabled).length
 
     return (
@@ -109,30 +144,36 @@ export function GridConfigurator({ selectedPoints, onPointsChange, maxPoints = 4
             </div>
 
             {/* Preset Buttons */}
-            <div className="flex gap-3">
+            <div className="grid grid-cols-4 gap-2">
                 {PRESETS.map(preset => (
                     <button
                         key={preset.size}
                         onClick={() => applyPreset(preset.size)}
-                        className={`flex-1 py-3 px-4 rounded-xl border-2 transition-all font-medium ${enabledCount === preset.points
+                        className={`py-2.5 px-2 rounded-xl border-2 transition-all font-medium text-center ${enabledCount === preset.points
                             ? 'border-blue-500 bg-blue-50 text-blue-700'
                             : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 text-gray-700'
                             }`}
                     >
-                        <span className="text-lg">{preset.label}</span>
-                        <span className="block text-xs text-gray-500 mt-0.5">{preset.points}개 지점</span>
+                        <span className="text-base sm:text-lg">{preset.label}</span>
+                        <span className="block text-xs text-gray-500 mt-0.5">{preset.points}개</span>
                     </button>
                 ))}
                 <button
                     onClick={clearAll}
-                    className="py-3 px-4 rounded-xl border-2 border-gray-200 hover:border-red-300 hover:bg-red-50/50 text-gray-700 transition-all"
+                    className="py-2.5 px-2 rounded-xl border-2 border-gray-200 hover:border-red-300 hover:bg-red-50/50 text-gray-700 transition-all text-center"
                 >
                     <span className="text-sm">초기화</span>
                 </button>
             </div>
 
             {/* Grid Canvas */}
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 overflow-x-auto">
+            <div
+                className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 sm:p-6 overflow-x-auto"
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{ touchAction: isDragging ? 'none' : 'pan-x pan-y' }}
+            >
+                <p className="text-xs text-gray-400 mb-3 sm:hidden">좌우로 스크롤하거나 터치하여 좌표를 선택하세요</p>
                 <div
                     className="inline-grid gap-1 select-none"
                     style={{ gridTemplateColumns: `repeat(${gridSize}, 1fr)` }}
@@ -147,8 +188,11 @@ export function GridConfigurator({ selectedPoints, onPointsChange, maxPoints = 4
                             return (
                                 <button
                                     key={`${row}-${col}`}
+                                    data-row={row}
+                                    data-col={col}
                                     onMouseDown={() => handleMouseDown(row, col)}
                                     onMouseEnter={() => handleMouseEnter(row, col)}
+                                    onTouchStart={(e) => handleTouchStart(e, row, col)}
                                     className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 transition-all duration-150 ${isCenter
                                         ? 'bg-blue-600 border-blue-600 cursor-default shadow-lg shadow-blue-600/30'
                                         : isEnabled
