@@ -233,3 +233,122 @@ export function calculateLocalKeywordTrend(
 
     return trendData
 }
+/**
+ * 키워드별 '노출된 좌표 수' 추이를 계산합니다.
+ * dataPoint[keyword] = 해당 날짜에 rank !== null인 좌표 수 (정수)
+ */
+export function calculateExposureCountTrend(
+    searches: Search[],
+    searchResults: SearchResult[]
+): RankTrendDataPoint[] {
+    const weeklySearches = searches.filter(
+        (s) => (s.report_type === 'daily' || s.report_type === 'weekly' || s.report_type === 'welcome') && s.status === 'completed'
+    )
+    if (weeklySearches.length === 0) return []
+
+    weeklySearches.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+    const resultsBySearchId = new Map<string, SearchResult[]>()
+    for (const result of searchResults) {
+        const existing = resultsBySearchId.get(result.search_id)
+        if (existing) existing.push(result)
+        else resultsBySearchId.set(result.search_id, [result])
+    }
+
+    const dateGroupMap = new Map<string, { search: typeof weeklySearches[0], results: SearchResult[] }[]>()
+    for (const search of weeklySearches) {
+        const createdAt = new Date(search.created_at)
+        const month = String(createdAt.getMonth() + 1).padStart(2, '0')
+        const day = String(createdAt.getDate()).padStart(2, '0')
+        const dateKey = `${createdAt.getFullYear()}-${month}-${day}`
+        const results = resultsBySearchId.get(search.id) || []
+        const existing = dateGroupMap.get(dateKey)
+        if (existing) existing.push({ search, results })
+        else dateGroupMap.set(dateKey, [{ search, results }])
+    }
+
+    const trendData: RankTrendDataPoint[] = []
+    for (const [dateKey, entries] of dateGroupMap) {
+        const [, month, day] = dateKey.split('-')
+        const dataPoint: RankTrendDataPoint = { date: `${month}/${day}`, fullDate: dateKey }
+
+        const allKeywords = new Set<string>()
+        for (const entry of entries) {
+            for (const kw of entry.search.keywords) allKeywords.add(kw)
+        }
+
+        for (const keyword of allKeywords) {
+            let exposedCount = 0
+            for (const entry of entries) {
+                exposedCount += entry.results.filter(r => r.keyword === keyword && r.rank !== null).length
+            }
+            dataPoint[keyword] = exposedCount
+        }
+
+        trendData.push(dataPoint)
+    }
+
+    return trendData
+}
+
+/**
+ * 키워드별 '상위 노출률' 추이를 계산합니다.
+ * dataPoint[keyword] = Math.round(topCount / totalCount * 100) (0~100 정수)
+ */
+export function calculateTopExposureRateTrend(
+    searches: Search[],
+    searchResults: SearchResult[],
+    threshold = 5
+): RankTrendDataPoint[] {
+    const weeklySearches = searches.filter(
+        (s) => (s.report_type === 'daily' || s.report_type === 'weekly' || s.report_type === 'welcome') && s.status === 'completed'
+    )
+    if (weeklySearches.length === 0) return []
+
+    weeklySearches.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+    const resultsBySearchId = new Map<string, SearchResult[]>()
+    for (const result of searchResults) {
+        const existing = resultsBySearchId.get(result.search_id)
+        if (existing) existing.push(result)
+        else resultsBySearchId.set(result.search_id, [result])
+    }
+
+    const dateGroupMap = new Map<string, { search: typeof weeklySearches[0], results: SearchResult[] }[]>()
+    for (const search of weeklySearches) {
+        const createdAt = new Date(search.created_at)
+        const month = String(createdAt.getMonth() + 1).padStart(2, '0')
+        const day = String(createdAt.getDate()).padStart(2, '0')
+        const dateKey = `${createdAt.getFullYear()}-${month}-${day}`
+        const results = resultsBySearchId.get(search.id) || []
+        const existing = dateGroupMap.get(dateKey)
+        if (existing) existing.push({ search, results })
+        else dateGroupMap.set(dateKey, [{ search, results }])
+    }
+
+    const trendData: RankTrendDataPoint[] = []
+    for (const [dateKey, entries] of dateGroupMap) {
+        const [, month, day] = dateKey.split('-')
+        const dataPoint: RankTrendDataPoint = { date: `${month}/${day}`, fullDate: dateKey }
+
+        const allKeywords = new Set<string>()
+        for (const entry of entries) {
+            for (const kw of entry.search.keywords) allKeywords.add(kw)
+        }
+
+        for (const keyword of allKeywords) {
+            let totalCount = 0
+            let topCount = 0
+            for (const entry of entries) {
+                const kwResults = entry.results.filter(r => r.keyword === keyword)
+                totalCount += kwResults.length
+                topCount += kwResults.filter(r => r.rank !== null && (r.rank as number) <= threshold).length
+            }
+            dataPoint[keyword] = totalCount > 0 ? Math.round((topCount / totalCount) * 100) : 0
+        }
+
+        trendData.push(dataPoint)
+    }
+
+    return trendData
+}

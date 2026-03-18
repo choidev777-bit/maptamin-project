@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Search, SearchResult } from '@/lib/types'
-import { calculateRankTrend, calculateLocalKeywordTrend, extractKeywordsFromTrend } from '@/lib/utils/rank-trend'
+import { calculateRankTrend, calculateLocalKeywordTrend, extractKeywordsFromTrend, calculateExposureCountTrend, calculateTopExposureRateTrend } from '@/lib/utils/rank-trend'
 import { canAccessPlatform } from '@/lib/utils/subscription'
 import { HistoryPageContent } from '@/components/history/HistoryPageContent'
 
@@ -85,6 +85,14 @@ export default async function HistoryPage() {
     const naverLocalTrend = calculateLocalKeywordTrend(naverSearches, searchResults)
     const naverLocalKeywords = extractKeywordsFromTrend(naverLocalTrend)
 
+    // 노출된 좌표 수 추이
+    const naverExposureTrend = calculateExposureCountTrend(naverSearches, industryResults)
+    const googleExposureTrend = calculateExposureCountTrend(googleSearches, industryResults)
+
+    // 상위 노출률 추이 (1~5위 기준)
+    const naverTopRateTrend = calculateTopExposureRateTrend(naverSearches, industryResults)
+    const googleTopRateTrend = calculateTopExposureRateTrend(googleSearches, industryResults)
+
     return (
         <div className="max-w-7xl mx-auto pb-12">
             <HistoryPageContent
@@ -95,6 +103,10 @@ export default async function HistoryPage() {
                 googleKeywords={googleKeywords}
                 naverLocalTrend={naverLocalTrend}
                 naverLocalKeywords={naverLocalKeywords}
+                naverExposureTrend={naverExposureTrend}
+                googleExposureTrend={googleExposureTrend}
+                naverTopRateTrend={naverTopRateTrend}
+                googleTopRateTrend={googleTopRateTrend}
                 canGoogle={canGoogle}
             />
         </div>

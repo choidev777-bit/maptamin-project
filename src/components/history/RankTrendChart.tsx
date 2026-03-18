@@ -26,12 +26,15 @@ const KEYWORD_COLORS = [
     '#10B981', // 에메랄드
 ]
 
+type YAxisMode = 'rank' | 'count' | 'percent'
+
 interface Props {
     trendData: RankTrendDataPoint[]
     keywords: string[]
+    yAxisMode?: YAxisMode
 }
 
-export function RankTrendChart({ trendData, keywords }: Props) {
+export function RankTrendChart({ trendData, keywords, yAxisMode = 'rank' }: Props) {
     // 기본값: 모든 키워드 활성
     const [activeKeywords, setActiveKeywords] = useState<Set<string>>(
         () => new Set(keywords)
@@ -103,13 +106,13 @@ export function RankTrendChart({ trendData, keywords }: Props) {
                             axisLine={{ stroke: '#E5E7EB' }}
                         />
                         <YAxis
-                            reversed
-                            domain={[1, 'auto']}
+                            reversed={yAxisMode === 'rank'}
+                            domain={yAxisMode === 'rank' ? [1, 'auto'] : yAxisMode === 'percent' ? [0, 100] : [0, 'auto']}
                             tick={{ fontSize: 12, fill: '#9CA3AF' }}
                             tickLine={false}
                             axisLine={{ stroke: '#E5E7EB' }}
                             label={{
-                                value: '순위',
+                                value: yAxisMode === 'rank' ? '순위' : yAxisMode === 'percent' ? '%' : '개',
                                 position: 'insideTopLeft',
                                 offset: 10,
                                 style: { fontSize: 11, fill: '#9CA3AF' },
@@ -130,7 +133,12 @@ export function RankTrendChart({ trendData, keywords }: Props) {
                                                 />
                                                 <span className="text-gray-600">{entry.dataKey}:</span>
                                                 <span className="font-bold text-gray-900">
-                                                    {entry.value !== null ? `${entry.value}위` : '순위 밖'}
+                                                    {entry.value !== null
+                                                        ? yAxisMode === 'rank' ? `${entry.value}위`
+                                                        : yAxisMode === 'percent' ? `${entry.value}%`
+                                                        : `${entry.value}개`
+                                                        : '-'
+                                                    }
                                                 </span>
                                             </div>
                                         ))}

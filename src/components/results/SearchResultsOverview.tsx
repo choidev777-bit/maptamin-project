@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { SearchResult } from '@/lib/types';
-import { BarChart2, PieChart, MapPin, Navigation } from 'lucide-react';
+import { BarChart2, PieChart, MapPin, Navigation, Info } from 'lucide-react';
 import { getRankColor } from '@/lib/utils/rank-colors';
 
 interface Props {
@@ -22,12 +22,15 @@ export function SearchResultsOverview({ results, localResults, topRankThreshold 
         const totalPoints = results.length;
         const rankedCount = rankedResults.length;
 
+        const UNRANKED_PENALTY = 71;
         let averageRank = 0;
         let topExposureCount = 0;
 
-        if (rankedCount > 0) {
-            const sum = rankedResults.reduce((acc, curr) => acc + (curr.rank as number), 0);
-            averageRank = Math.round((sum / rankedCount) * 10) / 10;
+        if (totalPoints > 0) {
+            const rankedSum = rankedResults.reduce((acc, curr) => acc + (curr.rank as number), 0);
+            const unrankedCount = totalPoints - rankedCount;
+            const totalSum = rankedSum + UNRANKED_PENALTY * unrankedCount;
+            averageRank = Math.round((totalSum / totalPoints) * 10) / 10;
             topExposureCount = rankedResults.filter(r => (r.rank as number) <= topRankThreshold).length;
         }
 
@@ -69,13 +72,22 @@ export function SearchResultsOverview({ results, localResults, topRankThreshold 
                                 <BarChart2 className="w-5 h-5" />
                             </div>
                         </div>
-                        <div className="flex items-baseline gap-3">
+                        <div className="flex items-baseline gap-2">
                             <h3 className="text-4xl font-bold text-gray-900 dark:text-white">
                                 {stats.averageRank > 0 ? `${stats.averageRank}위` : '-'}
                             </h3>
+                            {stats.totalPoints > stats.rankedCount && stats.averageRank > 0 && (
+                                <div className="relative group/tip">
+                                    <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-20">
+                                        순위권 외 좌표는 71위로 처리하여 계산한 값입니다.
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                            노출된 {stats.rankedCount}개 좌표 기준
+                            전체 {stats.totalPoints}개 좌표 기준
                         </p>
                     </div>
                 </div>
