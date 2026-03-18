@@ -127,8 +127,8 @@ export async function POST(
         // 실패 시 티켓 환불 (웰컴 리포트는 무료이므로 제외)
         if (search.report_type !== 'welcome') {
             try {
-                await supabase.rpc('refund_ticket', { p_platform: 'google' })
-                console.log(`[Process] Refunded google ticket for search ${searchId}`)
+                await supabase.rpc('refund_ticket', { p_platform: search.platform })
+                console.log(`[Process] Refunded ${search.platform} ticket for search ${searchId}`)
             } catch (refundErr) {
                 console.error(`[Process] Ticket refund failed for search ${searchId}:`, refundErr)
             }

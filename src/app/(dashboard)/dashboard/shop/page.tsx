@@ -28,11 +28,20 @@ export default async function ShopPage() {
     const remainingTicketsNaver = subscription?.remaining_tickets_naver || 0
     const remainingTicketsGoogle = subscription?.remaining_tickets_google || 0
 
+    // 티켓 구매 내역 조회 (최신순 20건)
+    const { data: paymentHistory } = await supabase
+        .from('payment_history')
+        .select('id, payment_id, platform, quantity, amount, status, created_at, refunded_at')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(20)
+
     return (
         <TicketShopContent
             planId={planId}
             remainingTicketsNaver={remainingTicketsNaver}
             remainingTicketsGoogle={remainingTicketsGoogle}
+            paymentHistory={paymentHistory || []}
         />
     )
 }

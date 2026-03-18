@@ -102,6 +102,49 @@ export async function POST(request: Request) {
             )
         }
 
+        // ── 6-b. 잔여 티켓 조회 ──
+        const { data: subscription, error: subError } = await supabase
+            .from('user_subscriptions')
+            .select('remaining_tickets_naver, remaining_tickets_google')
+            .eq('user_id', user.id)
+            .single()
+
+        if (subError || !subscription) {
+            return NextResponse.json(
+                { error: '구독 정보를 확인할 수 없습니다.', code: 'SUBSCRIPTION_NOT_FOUND' },
+                { status: 500 }
+            )
+        }
+
+        const remainingTickets = paymentHistory.platform === 'naver'
+            ? subscription.remaining_tickets_naver
+            : subscription.remaining_tickets_google
+
+        // ── 6-c. 이 결제보다 나중에 구매한 같은 플랫폼 티켓 합계 (FIFO) ──
+        const { data: laterPurchases } = await supabase
+            .from('payment_history')
+            .select('quantity')
+            .eq('user_id', user.id)
+            .eq('platform', paymentHistory.platform)
+            .eq('status', 'paid')
+            .gt('created_at', paymentHistory.created_at)
+
+        const laterPurchasedTotal = (laterPurchases || [])
+            .reduce((sum: number, p: { quantity: number }) => sum + p.quantity, 0)
+
+        // ── 6-d. FIFO 기반 사용 여부 판단 ──
+        const availableFromThisPurchase = remainingTickets - laterPurchasedTotal
+
+        if (availableFromThisPurchase < paymentHistory.quantity) {
+            return NextResponse.json(
+                {
+                    error: '티켓을 이미 사용하여 환불이 불가합니다.',
+                    code: 'INSUFFICIENT_TICKETS_FOR_REFUND',
+                },
+                { status: 409 }
+            )
+        }
+
         // ── 7. PortOne 결제 취소 ──
         try {
             await cancelPayment(paymentId, reason)

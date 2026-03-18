@@ -2,15 +2,27 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, Minus, Plus, Lock, ShoppingCart, CreditCard, Ticket, Loader2, CheckCircle2, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Minus, Plus, Lock, ShoppingCart, CreditCard, Ticket, Loader2, CheckCircle2, AlertCircle, Undo2 } from 'lucide-react'
 import { canAccessPlatform, getPlanDisplayName } from '@/lib/utils/subscription'
 import { TICKET_PRICE, calculateTicketPrice, formatPrice } from '@/lib/pricing/ticket-price'
 import { requestTicketPayment } from '@/lib/portone/client'
+
+interface PaymentHistoryItem {
+    id: string
+    payment_id: string
+    platform: 'naver' | 'google'
+    quantity: number
+    amount: number
+    status: 'paid' | 'refunded'
+    created_at: string
+    refunded_at: string | null
+}
 
 interface Props {
     planId: string
     remainingTicketsNaver: number
     remainingTicketsGoogle: number
+    paymentHistory: PaymentHistoryItem[]
 }
 
 type Platform = 'naver' | 'google'
@@ -19,16 +31,61 @@ export function TicketShopContent({
     planId,
     remainingTicketsNaver,
     remainingTicketsGoogle,
+    paymentHistory,
 }: Props) {
     const router = useRouter()
     const [selectedPlatform, setSelectedPlatform] = useState<Platform>('naver')
     const [quantity, setQuantity] = useState(1)
     const [isPurchasing, setIsPurchasing] = useState(false)
     const [resultMessage, setResultMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+    const [refundingPaymentId, setRefundingPaymentId] = useState<string | null>(null)
+    const [refundConfirmTarget, setRefundConfirmTarget] = useState<PaymentHistoryItem | null>(null)
+    const [refundMessage, setRefundMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
     const hasGoogle = canAccessPlatform(planId, 'google')
     const planName = getPlanDisplayName(planId)
     const totalPrice = calculateTicketPrice(quantity)
+
+    const isRefundable = (item: PaymentHistoryItem): boolean => {
+        if (item.status !== 'paid') return false
+        const daysSince = (Date.now() - new Date(item.created_at).getTime()) / (1000 * 60 * 60 * 24)
+        return daysSince <= 7
+    }
+
+    const formatDate = (dateStr: string) => {
+        const d = new Date(dateStr)
+        return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+    }
+
+    const handleRefund = async (item: PaymentHistoryItem) => {
+        setRefundingPaymentId(item.payment_id)
+        setRefundMessage(null)
+        setRefundConfirmTarget(null)
+
+        try {
+            const response = await fetch('/api/payment/refund', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    paymentId: item.payment_id,
+                    reason: '고객 환불 요청',
+                }),
+            })
+            const data = await response.json()
+
+            if (!response.ok) {
+                setRefundMessage({ type: 'error', text: data.error || '환불에 실패했습니다.' })
+                return
+            }
+
+            setRefundMessage({ type: 'success', text: data.message || '환불이 완료되었습니다.' })
+            router.refresh()
+        } catch {
+            setRefundMessage({ type: 'error', text: '환불 처리 중 오류가 발생했습니다.' })
+        } finally {
+            setRefundingPaymentId(null)
+        }
+    }
 
     const handleQuantityChange = (value: number) => {
         setQuantity(prev => Math.max(1, prev + value))
@@ -331,6 +388,152 @@ export function TicketShopContent({
                     </>
                 )}
             </button>
+
+            {/* 구매 내역 */}
+            {paymentHistory.length > 0 && (
+                <div className="bg-white rounded-xl border border-gray-200 p-5 mt-6 shadow-sm">
+                    <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <Ticket className="w-4 h-4 text-gray-400" />
+                        구매 내역
+                    </h2>
+
+                    {/* 환불 결과 메시지 */}
+                    {refundMessage && (
+                        <div
+                            className={`flex items-center gap-2 p-3 rounded-lg mb-3 text-sm font-medium ${
+                                refundMessage.type === 'success'
+                                    ? 'bg-green-50 border border-green-200 text-green-700'
+                                    : 'bg-red-50 border border-red-200 text-red-700'
+                            }`}
+                        >
+                            {refundMessage.type === 'success' ? (
+                                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                            ) : (
+                                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                            )}
+                            {refundMessage.text}
+                        </div>
+                    )}
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-gray-100">
+                                    <th className="text-left py-2 px-2 text-xs font-semibold text-gray-500">구매일</th>
+                                    <th className="text-left py-2 px-2 text-xs font-semibold text-gray-500">플랫폼</th>
+                                    <th className="text-right py-2 px-2 text-xs font-semibold text-gray-500">수량</th>
+                                    <th className="text-right py-2 px-2 text-xs font-semibold text-gray-500">금액</th>
+                                    <th className="text-center py-2 px-2 text-xs font-semibold text-gray-500">상태</th>
+                                    <th className="text-right py-2 px-2 text-xs font-semibold text-gray-500"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {paymentHistory.map((item) => (
+                                    <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="py-2.5 px-2 text-gray-600 whitespace-nowrap">
+                                            {formatDate(item.created_at)}
+                                        </td>
+                                        <td className="py-2.5 px-2">
+                                            <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
+                                                item.platform === 'naver'
+                                                    ? 'bg-green-50 text-green-700'
+                                                    : 'bg-blue-50 text-blue-700'
+                                            }`}>
+                                                {item.platform === 'naver' ? 'N' : 'G'}
+                                                {item.platform === 'naver' ? '네이버' : '구글'}
+                                            </span>
+                                        </td>
+                                        <td className="py-2.5 px-2 text-right text-gray-700 font-medium">
+                                            {item.quantity}장
+                                        </td>
+                                        <td className="py-2.5 px-2 text-right text-gray-700 font-medium">
+                                            {item.amount.toLocaleString()}원
+                                        </td>
+                                        <td className="py-2.5 px-2 text-center">
+                                            {item.status === 'refunded' ? (
+                                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                                                    환불완료
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600">
+                                                    결제완료
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="py-2.5 px-2 text-right">
+                                            {isRefundable(item) && (
+                                                <button
+                                                    onClick={() => setRefundConfirmTarget(item)}
+                                                    disabled={refundingPaymentId === item.payment_id}
+                                                    className="text-xs font-semibold text-amber-600 hover:text-amber-700 transition-colors disabled:opacity-50 flex items-center gap-1 ml-auto"
+                                                >
+                                                    {refundingPaymentId === item.payment_id ? (
+                                                        <Loader2 className="w-3 h-3 animate-spin" />
+                                                    ) : (
+                                                        <Undo2 className="w-3 h-3" />
+                                                    )}
+                                                    환불
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* 환불 확인 모달 */}
+            {refundConfirmTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                                <Undo2 className="w-5 h-5 text-amber-600" />
+                            </div>
+                            <h3 className="text-lg font-bold text-gray-900">
+                                환불 확인
+                            </h3>
+                        </div>
+
+                        <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200">
+                            <p className="text-sm text-amber-800">
+                                정말 환불하시겠습니까?<br />
+                                <strong>{refundConfirmTarget.platform === 'naver' ? '네이버' : '구글'} 티켓 {refundConfirmTarget.quantity}장</strong>이 차감되고,{' '}
+                                <strong>{refundConfirmTarget.amount.toLocaleString()}원</strong>이 환불됩니다.
+                            </p>
+                            <p className="text-xs text-amber-600 mt-2">
+                                티켓을 이미 사용한 경우 환불이 거부될 수 있습니다.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setRefundConfirmTarget(null)}
+                                disabled={!!refundingPaymentId}
+                                className="flex-1 py-3 px-4 rounded-xl text-sm font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                            >
+                                취소
+                            </button>
+                            <button
+                                onClick={() => handleRefund(refundConfirmTarget)}
+                                disabled={!!refundingPaymentId}
+                                className="flex-1 py-3 px-4 rounded-xl text-sm font-semibold bg-amber-600 text-white hover:bg-amber-700 transition-colors disabled:opacity-50"
+                            >
+                                {refundingPaymentId ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        처리 중...
+                                    </span>
+                                ) : (
+                                    '환불하기'
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* 안내 텍스트 */}
             <p className="text-xs text-gray-400 text-center mt-4 leading-relaxed">
