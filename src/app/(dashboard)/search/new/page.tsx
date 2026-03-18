@@ -572,48 +572,32 @@ export default function NewSearchPage() {
                             {step === 3 && (
                                 <div className="space-y-6">
                                     <div>
-                                        <h2 className="text-2xl font-bold text-gray-900">검색 확인</h2>
+                                        <h2 className="text-2xl font-bold text-gray-900">확인 및 시작</h2>
                                         <p className="mt-2 text-gray-600">
-                                            입력한 정보를 확인하고 검색을 시작하세요.
+                                            설정을 확인하고 분석을 시작하세요.
                                         </p>
                                     </div>
 
-                                    <div className="space-y-4">
-                                        {/* Place Summary */}
-                                        <div className="p-5 bg-gray-50 rounded-xl">
-                                            <p className="text-sm font-medium text-gray-500 mb-2">비즈니스</p>
-                                            <p className="font-semibold text-gray-900">{place.name}</p>
-                                            <p className="text-sm text-gray-600">{place.address}</p>
-                                        </div>
-
-                                        {/* Keywords Summary */}
-                                        <div className="p-5 bg-gray-50 rounded-xl">
-                                            <p className="text-sm font-medium text-gray-500 mb-3">키워드</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {keywords.filter(k => k.trim()).map((keyword, i) => (
-                                                    <span
-                                                        key={i}
-                                                        className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium"
-                                                    >
-                                                        {keyword}
-                                                    </span>
-                                                ))}
+                                    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                                        <div className="p-6 space-y-4">
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">매장</span>
+                                                <span className="font-medium text-gray-900">{place.name}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">키워드 ({keywords.filter(k => k.trim()).length}개)</span>
+                                                <span className="font-medium text-gray-900">
+                                                    {keywords.filter(k => k.trim()).join(', ')}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">분석 좌표</span>
+                                                <span className="font-medium text-gray-900">{enabledGridCount}개</span>
                                             </div>
                                         </div>
 
-                                        {/* Grid Summary */}
-                                        <div className="p-5 bg-gray-50 rounded-xl">
-                                            <p className="text-sm font-medium text-gray-500 mb-2">그리드</p>
-                                            <p className="font-semibold text-gray-900">
-                                                {enabledGridCount}개 측정 지점
-                                            </p>
-                                            <p className="text-sm text-gray-600">
-                                                포인트 간격: {gridDistance} {distanceUnit}
-                                            </p>
-                                        </div>
-
                                         {/* Ticket Summary */}
-                                        <div className="bg-gray-50 p-6 border-t border-gray-200 rounded-xl">
+                                        <div className="bg-gray-50 p-6 border-t border-gray-200">
                                             <div className="flex justify-between items-center mb-2">
                                                 <span className="text-gray-600">남은 티켓 (구글)</span>
                                                 <span className="font-medium">{remainingTickets}장</span>
@@ -623,7 +607,7 @@ export default function NewSearchPage() {
                                                 <span className="text-xl font-bold text-red-600">-1장</span>
                                             </div>
                                             <div className="border-t border-gray-200 pt-4 flex justify-between items-center">
-                                                <span className="font-medium text-gray-900">진단 후 잔여</span>
+                                                <span className="font-medium text-gray-900">분석 후 잔여</span>
                                                 <span className={`text-lg font-bold ${hasTicket ? 'text-blue-600' : 'text-red-600'}`}>
                                                     {Math.max(0, remainingTickets - 1)}장
                                                 </span>
@@ -631,7 +615,7 @@ export default function NewSearchPage() {
                                             {!hasTicket && (
                                                 <div className="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg flex items-center gap-2">
                                                     <AlertTriangle className="w-4 h-4" />
-                                                    이번 달 구글 진단 티켓이 모두 소진되어 검색을 시작할 수 없습니다.
+                                                    이번 달 구글 분석 티켓이 모두 소진되어 분석을 시작할 수 없습니다.
                                                 </div>
                                             )}
                                         </div>
@@ -639,7 +623,7 @@ export default function NewSearchPage() {
 
                                     <div className="p-4 bg-amber-50 rounded-lg">
                                         <p className="text-sm text-amber-800">
-                                            ⚠️ 검색 시작 시 티켓 1장이 즉시 차감됩니다. (실패 시 자동 환불)
+                                            ⚠️ 분석 시작 시 티켓 1장이 즉시 차감됩니다. (실패 시 자동 환불)
                                         </p>
                                     </div>
                                 </div>

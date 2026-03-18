@@ -22,7 +22,7 @@ export default function HeroVideoPlayer() {
                     height: '100%',
                     borderRadius: '16px',
                     overflow: 'hidden',
-                    boxShadow: '0 30px 60px -12px rgba(15,35,30,0.1)',
+
                 }}
                 autoPlay
                 loop

@@ -207,13 +207,13 @@ export default function FeatureSection() {
                                 <h3 className="mb-1 break-keep text-base font-bold sm:text-lg">
                                     띵동! 배달 왔습니다
                                     <span className="block text-sm font-normal text-[#00C896] sm:inline sm:ml-1">
-                                        (주간 보고서)
+                                        (일간 리포트)
                                     </span>
                                 </h3>
                                 <p className="break-keep text-xs leading-relaxed text-slate-500 sm:text-sm">
                                     사장님이 가장 한가한 시간을 알려주세요. 맵타민이 알아서
                                     <br className="hidden lg:block" />
-                                    매주 카톡으로 &lsquo;플레이스 순위 지도&rsquo;를 보내드립니다.
+                                    매일 카톡으로 &lsquo;플레이스 순위 지도&rsquo;를 보내드립니다.
                                 </p>
                             </div>
                         </div>
@@ -226,12 +226,12 @@ export default function FeatureSection() {
                                 <h3 className="mb-1 break-keep text-base font-bold sm:text-lg">
                                     지금 당장 확인하고 싶다면?
                                     <span className="block text-sm font-normal text-yellow-500 sm:inline sm:ml-1">
-                                        (실시간 티켓)
+                                        (실시간 분석 티켓)
                                     </span>
                                 </h3>
                                 <p className="break-keep text-xs leading-relaxed text-slate-500 sm:text-sm">
-                                    궁금할 때 참지 마세요. &lsquo;실시간 진단 티켓&rsquo;으로 지금
-                                    이 순간의 순위를 즉시 조회할 수 있습니다.
+                                    궁금할 때 참지 마세요. &lsquo;실시간 분석 티켓&rsquo;으로 지금
+                                    이 순간의 순위를 즉시 분석할 수 있습니다.
                                 </p>
                             </div>
                         </div>

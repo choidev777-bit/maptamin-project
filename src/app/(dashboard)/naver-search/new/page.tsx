@@ -425,7 +425,7 @@ export default function NewNaverSearchPage() {
                             <div className="flex-1">
                                 <p className="text-sm font-medium text-indigo-800">경쟁사가 등록되지 않았습니다</p>
                                 <p className="text-sm text-indigo-700">
-                                    등록하면 검색 결과에서 승/패 비교가 가능해요!
+                                    등록하면 분석 결과에서 승/패 비교가 가능해요!
                                 </p>
                             </div>
                             <Link href="/settings" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium whitespace-nowrap">
@@ -635,20 +635,28 @@ export default function NewNaverSearchPage() {
                                 <div>
                                     <h2 className="text-2xl font-bold text-gray-900">확인 및 시작</h2>
                                     <p className="mt-2 text-gray-600">
-                                        설정을 확인하고 검색을 시작하세요.
+                                        설정을 확인하고 분석을 시작하세요.
                                     </p>
                                 </div>
 
                                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
                                     <div className="p-6 space-y-4">
                                         <div className="flex justify-between">
-                                            <span className="text-gray-600">비즈니스</span>
+                                            <span className="text-gray-600">매장</span>
                                             <span className="font-medium text-gray-900">{placeName}</span>
                                         </div>
+                                        {selectedLocalKeywords.length > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">지역명 키워드 ({selectedLocalKeywords.length}개)</span>
+                                                <span className="font-medium text-gray-900">
+                                                    {selectedLocalKeywords.join(', ')}
+                                                </span>
+                                            </div>
+                                        )}
                                         <div className="flex justify-between">
-                                            <span className="text-gray-600">키워드 ({keywords.filter(k => k.trim()).length}개)</span>
+                                            <span className="text-gray-600">업종 키워드 ({keywords.filter(k => k.trim() && !localKeywords.includes(k)).length}개)</span>
                                             <span className="font-medium text-gray-900">
-                                                {keywords.filter(k => k.trim()).join(', ')}
+                                                {keywords.filter(k => k.trim() && !localKeywords.includes(k)).join(', ') || '-'}
                                             </span>
                                         </div>
                                         <div className="flex justify-between">
@@ -684,7 +692,7 @@ export default function NewNaverSearchPage() {
 
                                 <div className="p-4 bg-amber-50 rounded-lg">
                                     <p className="text-sm text-amber-800">
-                                        ⚠️ 검색 시작 시 티켓 1장이 즉시 차감됩니다. (실패 시 자동 환불)
+                                        ⚠️ 분석 시작 시 티켓 1장이 즉시 차감됩니다. (실패 시 자동 환불)
                                     </p>
                                 </div>
                             </div>

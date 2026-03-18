@@ -45,7 +45,7 @@ export default function HeroSection() {
                         <p className="mx-auto max-w-xl break-keep text-base leading-relaxed text-gray-500 sm:text-lg lg:mx-0 lg:text-xl">
                             초록색은 내 구역, 빨간색은 놓친 구역.
                             <br />
-                            매주 카톡으로 배달되는 [플레이스 순위 지도]로
+                            매일 카톡으로 배달되는 [플레이스 순위 지도]로
                             <br />
                             사장님의 <strong className="text-gray-700">진짜 상권 순위</strong>를 팩트 체크하세요.
                         </p>
