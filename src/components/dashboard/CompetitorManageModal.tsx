@@ -103,7 +103,7 @@ export function CompetitorManageModal({ isOpen, onClose, platform, maxCompetitor
                 <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
                 {/* Modal Content */}
-                <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col overflow-hidden">
+                <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md mx-3 sm:mx-4 max-h-[85vh] flex flex-col overflow-hidden">
                     {/* Header */}
                     <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-slate-700">
                         <div className="flex items-center gap-2.5">

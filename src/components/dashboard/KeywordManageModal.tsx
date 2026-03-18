@@ -124,7 +124,7 @@ export function KeywordManageModal({ isOpen, onClose, platform, keywordType = 'i
             <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
             {/* Modal Content */}
-            <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md mx-3 sm:mx-4 max-h-[85vh] flex flex-col overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-slate-700">
                     <div className="flex items-center gap-2.5">
@@ -200,7 +200,7 @@ export function KeywordManageModal({ isOpen, onClose, platform, keywordType = 'i
                                 onChange={(e) => setNewKeyword(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && addKeyword()}
                                 placeholder="키워드 입력"
-                                className="flex-1 px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent transition-shadow"
+                                className="min-w-0 flex-1 px-3 py-2.5 text-sm border border-gray-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:border-transparent transition-shadow"
                                 style={{ ['--tw-ring-color' as string]: accentColor } as React.CSSProperties}
                                 disabled={saving}
                             />
@@ -209,8 +209,8 @@ export function KeywordManageModal({ isOpen, onClose, platform, keywordType = 'i
                                 disabled={!newKeyword.trim() || saving}
                                 className={`px-4 py-2.5 text-white text-sm font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1 ${platform === 'naver' ? 'bg-[#00C896] hover:bg-[#00B386]' : 'bg-blue-500 hover:bg-blue-600'}`}
                             >
-                                <Plus className="w-4 h-4" />
-                                추가
+                                <Plus className="w-4 h-4 shrink-0" />
+                                <span className="hidden sm:inline">추가</span>
                             </button>
                         </div>
                     </div>
