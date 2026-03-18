@@ -106,7 +106,7 @@ export function HistoryPageContent({
                         <activeTab.icon className={`w-5 h-5 ${activeTab.color}`} />
                         <h2 className="text-lg font-bold text-gray-900">
                             {activeTab.label}
-                            <span className="text-sm font-normal text-gray-400 ml-2">(자동 보고서 기준)</span>
+                            <span className="block sm:inline text-sm font-normal text-gray-400 sm:ml-2">(자동 보고서 기준)</span>
                         </h2>
                     </div>
 
@@ -135,7 +135,7 @@ export function HistoryPageContent({
                 </div>
 
                 {/* 탭 바 */}
-                <div className="flex gap-0 px-6 border-b border-gray-100">
+                <div className="flex gap-0 px-6 border-b border-gray-100 overflow-x-auto scrollbar-none">
                     {tabConfig.map((tab) => {
                         const Icon = tab.icon
                         const isActive = activeGraphTab === tab.id
