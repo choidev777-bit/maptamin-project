@@ -1,7 +1,4 @@
 import { KakaoLoginButton } from '@/components/auth/KakaoLoginButton'
-import { GoogleLoginButton } from '@/components/auth/GoogleLoginButton'
-// ⚠️ TODO: PG 심사 완료 후 아래 import 및 EmailLoginForm 사용 부분 제거
-import { EmailLoginForm } from '@/components/auth/EmailLoginForm'
 import { MaptaminLogo } from '@/components/landing/MaptaminLogo'
 
 export default async function LoginPage({
@@ -22,17 +19,7 @@ export default async function LoginPage({
                     {/* Login Button */}
                     <div className="flex flex-col gap-3">
                         <KakaoLoginButton plan={plan} redirectTo={redirectTo} />
-                        {/* <GoogleLoginButton plan={plan} redirectTo={redirectTo} /> */}
                     </div>
-
-                    {/* ⚠️ TODO: PG 심사 완료 후 아래 구분선 + EmailLoginForm 제거 */}
-                    <div className="flex items-center gap-3">
-                        <div className="flex-1 h-px bg-gray-200" />
-                        <span className="text-xs text-gray-400">또는</span>
-                        <div className="flex-1 h-px bg-gray-200" />
-                    </div>
-
-                    <EmailLoginForm />
 
                     {/* Terms */}
                     <p className="text-xs text-center text-gray-500">

@@ -47,16 +47,20 @@ export function HistoryPageContent({
     canGoogle,
 }: Props) {
     const [activePlatform, setActivePlatform] = useState<'naver' | 'google'>('naver')
+    const [activeGraphTab, setActiveGraphTab] = useState<'rank' | 'exposure' | 'topRate'>('rank')
     const [filterPlatform, setFilterPlatform] = useState<'all' | 'naver' | 'google'>('all')
     const [filterReportType, setFilterReportType] = useState<'all' | 'daily' | 'weekly' | 'realtime' | 'welcome'>('all')
-
-    const currentTrend = activePlatform === 'naver' ? naverTrend : googleTrend
-    const currentKeywords = activePlatform === 'naver' ? naverKeywords : googleKeywords
 
     const handlePlatformToggle = (platform: 'naver' | 'google') => {
         if (platform === 'google' && !canGoogle) return
         setActivePlatform(platform)
     }
+
+    // 탭별 현재 데이터
+    const currentTrend = activePlatform === 'naver' ? naverTrend : googleTrend
+    const currentKeywords = activePlatform === 'naver' ? naverKeywords : googleKeywords
+    const currentExposureTrend = activePlatform === 'naver' ? naverExposureTrend : googleExposureTrend
+    const currentTopRateTrend = activePlatform === 'naver' ? naverTopRateTrend : googleTopRateTrend
 
     // 테이블 필터 적용
     const filteredSearches = searches.filter(s => {
@@ -64,6 +68,27 @@ export function HistoryPageContent({
         if (filterReportType !== 'all' && s.report_type !== filterReportType) return false
         return true
     })
+
+    const tabConfig = [
+        { id: 'rank' as const, label: '평균 순위 변화', icon: TrendingUp, color: 'text-[#00C896]' },
+        { id: 'exposure' as const, label: '노출된 좌표 수', icon: MapPin, color: 'text-emerald-500' },
+        { id: 'topRate' as const, label: '상위 노출률', icon: Rocket, color: 'text-[#00C896]' },
+    ]
+
+    const activeTab = tabConfig.find(t => t.id === activeGraphTab)!
+
+    // 현재 탭 데이터 유효성 확인
+    const currentTabHasData =
+        activeGraphTab === 'rank' ? currentTrend.length >= 1 :
+        activeGraphTab === 'exposure' ? currentExposureTrend.length >= 1 :
+        currentTopRateTrend.length >= 1
+
+    // 현재 탭 빈 상태 안내 문구
+    const emptyMessages: Record<string, string> = {
+        rank: '순위 변화 그래프가 표시됩니다.',
+        exposure: '노출 좌표 수 그래프가 표시됩니다.',
+        topRate: '상위 노출률 그래프가 표시됩니다.',
+    }
 
     return (
         <div className="flex flex-col gap-8">
@@ -73,14 +98,14 @@ export function HistoryPageContent({
                 <p className="text-gray-500 mt-1">자동 리포트 기반 순위 변화 추이와 전체 분석 기록을 확인하세요.</p>
             </div>
 
-            {/* ── Section 1: 순위 변화 그래프 ── */}
+            {/* ── Card 1: 통합 트렌드 그래프 (탭 전환) ── */}
             <div className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden">
-                {/* 그래프 헤더 + 플랫폼 토글 */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-6 pb-4 gap-4">
+                {/* 헤더: 제목 + 플랫폼 토글 */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-6 pt-6 pb-4 gap-4">
                     <div className="flex items-center gap-2">
-                        <TrendingUp className="w-5 h-5 text-[#00C896]" />
+                        <activeTab.icon className={`w-5 h-5 ${activeTab.color}`} />
                         <h2 className="text-lg font-bold text-gray-900">
-                            평균 순위 변화
+                            {activeTab.label}
                             <span className="text-sm font-normal text-gray-400 ml-2">(자동 보고서 기준)</span>
                         </h2>
                     </div>
@@ -109,29 +134,68 @@ export function HistoryPageContent({
                     </div>
                 </div>
 
-                {/* 그래프 */}
-                <div className="px-6 pb-6">
-                    {currentTrend.length >= 1 ? (
-                        <RankTrendChart
-                            trendData={currentTrend}
-                            keywords={currentKeywords}
-                        />
+                {/* 탭 바 */}
+                <div className="flex gap-0 px-6 border-b border-gray-100">
+                    {tabConfig.map((tab) => {
+                        const Icon = tab.icon
+                        const isActive = activeGraphTab === tab.id
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveGraphTab(tab.id)}
+                                className={`flex items-center gap-1.5 px-4 py-3 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${
+                                    isActive
+                                        ? `border-[#00C896] ${tab.color}`
+                                        : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-200'
+                                }`}
+                            >
+                                <Icon className="w-3.5 h-3.5" />
+                                {tab.label}
+                            </button>
+                        )
+                    })}
+                </div>
+
+                {/* 그래프 영역 */}
+                <div className="px-6 pb-6 pt-4">
+                    {currentTabHasData ? (
+                        <>
+                            {activeGraphTab === 'rank' && (
+                                <RankTrendChart
+                                    trendData={currentTrend}
+                                    keywords={currentKeywords}
+                                />
+                            )}
+                            {activeGraphTab === 'exposure' && (
+                                <RankTrendChart
+                                    trendData={currentExposureTrend}
+                                    keywords={currentKeywords}
+                                    yAxisMode="count"
+                                />
+                            )}
+                            {activeGraphTab === 'topRate' && (
+                                <RankTrendChart
+                                    trendData={currentTopRateTrend}
+                                    keywords={currentKeywords}
+                                    yAxisMode="percent"
+                                />
+                            )}
+                        </>
                     ) : (
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                                 <BarChart3 className="w-8 h-8 text-gray-300" />
                             </div>
                             <p className="text-gray-500 font-medium">분석 기록이 쌓이면</p>
-                            <p className="text-gray-500">순위 변화 그래프가 표시됩니다.</p>
+                            <p className="text-gray-500">{emptyMessages[activeGraphTab]}</p>
                         </div>
                     )}
                 </div>
             </div>
 
-            {/* ── Section 1-B: 지역명 키워드 순위 변화 그래프 (네이버 전용) ── */}
+            {/* ── Card 2: 지역명 키워드 순위 변화 (네이버 전용) ── */}
             {naverLocalTrend.length >= 1 && (
                 <div className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden">
-                    {/* 헤더 */}
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-6 pb-4 gap-4">
                         <div className="flex items-center gap-2">
                             <MapPin className="w-5 h-5 text-amber-500" />
@@ -144,8 +208,6 @@ export function HistoryPageContent({
                             네이버 전용
                         </span>
                     </div>
-
-                    {/* 그래프 */}
                     <div className="px-6 pb-6">
                         <RankTrendChart
                             trendData={naverLocalTrend}
@@ -155,109 +217,6 @@ export function HistoryPageContent({
                 </div>
             )}
 
-            {/* ── Section 1-C: 노출된 좌표 수 추이 ── */}
-            <div className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-6 pb-4 gap-4">
-                    <div className="flex items-center gap-2">
-                        <MapPin className="w-5 h-5 text-emerald-500" />
-                        <h2 className="text-lg font-bold text-gray-900">
-                            노출된 좌표 수 추이
-                            <span className="text-sm font-normal text-gray-400 ml-2">(자동 보고서 기준)</span>
-                        </h2>
-                    </div>
-                    {/* 플랫폼 토글 */}
-                    <div className="flex bg-gray-100/80 p-1.5 rounded-xl">
-                        <button
-                            onClick={() => handlePlatformToggle('naver')}
-                            className={`px-5 py-2 text-sm font-bold rounded-lg transition-all ${activePlatform === 'naver'
-                                ? 'bg-white text-[#00C896] shadow-sm ring-1 ring-gray-900/5'
-                                : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'
-                                }`}
-                        >
-                            네이버
-                        </button>
-                        <button
-                            onClick={() => handlePlatformToggle('google')}
-                            className={`px-5 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 ${activePlatform === 'google'
-                                ? 'bg-white text-blue-500 shadow-sm ring-1 ring-gray-900/5'
-                                : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'
-                                }`}
-                        >
-                            구글
-                            {!canGoogle && <Lock className="w-3 h-3 text-slate-400" />}
-                        </button>
-                    </div>
-                </div>
-                <div className="px-6 pb-6">
-                    {(activePlatform === 'naver' ? naverExposureTrend : googleExposureTrend).length >= 1 ? (
-                        <RankTrendChart
-                            trendData={activePlatform === 'naver' ? naverExposureTrend : googleExposureTrend}
-                            keywords={activePlatform === 'naver' ? naverKeywords : googleKeywords}
-                            yAxisMode="count"
-                        />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                <BarChart3 className="w-8 h-8 text-gray-300" />
-                            </div>
-                            <p className="text-gray-500 font-medium">분석 기록이 쌓이면</p>
-                            <p className="text-gray-500">노출 좌표 수 그래프가 표시됩니다.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* ── Section 1-D: 상위 노출률 추이 ── */}
-            <div className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-6 pb-4 gap-4">
-                    <div className="flex items-center gap-2">
-                        <Rocket className="w-5 h-5 text-blue-500" />
-                        <h2 className="text-lg font-bold text-gray-900">
-                            상위 노출률 추이
-                            <span className="text-sm font-normal text-gray-400 ml-2">(1~5위 기준)</span>
-                        </h2>
-                    </div>
-                    {/* 플랫폼 토글 */}
-                    <div className="flex bg-gray-100/80 p-1.5 rounded-xl">
-                        <button
-                            onClick={() => handlePlatformToggle('naver')}
-                            className={`px-5 py-2 text-sm font-bold rounded-lg transition-all ${activePlatform === 'naver'
-                                ? 'bg-white text-[#00C896] shadow-sm ring-1 ring-gray-900/5'
-                                : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'
-                                }`}
-                        >
-                            네이버
-                        </button>
-                        <button
-                            onClick={() => handlePlatformToggle('google')}
-                            className={`px-5 py-2 text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 ${activePlatform === 'google'
-                                ? 'bg-white text-blue-500 shadow-sm ring-1 ring-gray-900/5'
-                                : 'text-gray-500 hover:text-gray-900 hover:bg-white/50'
-                                }`}
-                        >
-                            구글
-                            {!canGoogle && <Lock className="w-3 h-3 text-slate-400" />}
-                        </button>
-                    </div>
-                </div>
-                <div className="px-6 pb-6">
-                    {(activePlatform === 'naver' ? naverTopRateTrend : googleTopRateTrend).length >= 1 ? (
-                        <RankTrendChart
-                            trendData={activePlatform === 'naver' ? naverTopRateTrend : googleTopRateTrend}
-                            keywords={activePlatform === 'naver' ? naverKeywords : googleKeywords}
-                            yAxisMode="percent"
-                        />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
-                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                                <BarChart3 className="w-8 h-8 text-gray-300" />
-                            </div>
-                            <p className="text-gray-500 font-medium">분석 기록이 쌓이면</p>
-                            <p className="text-gray-500">상위 노출률 그래프가 표시됩니다.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
 
             {/* ── Section 2: 분석 기록 테이블 ── */}
             <div className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden">
