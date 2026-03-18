@@ -227,9 +227,9 @@ export function NaverCompetitorComparisonMap({
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col h-full">
-            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-wrap justify-between items-center gap-2 bg-gray-50 dark:bg-gray-800">
                 <h4 className="font-bold text-sm text-gray-900 dark:text-white">경쟁사 분석 지도</h4>
-                <div className="flex gap-4 text-xs">
+                <div className="flex flex-wrap gap-3 text-xs">
                     <div className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                         <span>내 매장 승리 ({summary.wins})</span>
@@ -247,7 +247,7 @@ export function NaverCompetitorComparisonMap({
 
             <div className="relative w-full bg-slate-100 dark:bg-slate-900 flex-grow">
                 <NavermapsProvider ncpKeyId={clientId}>
-                    <MapDiv style={{ width: '100%', height: '500px' }}>
+                    <MapDiv style={{ width: '100%', height: 'clamp(280px, 60vw, 500px)' }}>
                         <MapContent
                             center={center}
                             comparisonPoints={comparisonPoints}

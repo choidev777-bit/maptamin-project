@@ -117,8 +117,8 @@ export function CompetitorComparisonMap({
     return (
         <>
             {/* Summary Bar */}
-            <div className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-xl">
-                <div className="flex-1 grid grid-cols-3 gap-2 text-center">
+            <div className="flex flex-wrap items-center gap-3 p-3 sm:p-4 bg-white border border-gray-200 rounded-xl">
+                <div className="flex-1 min-w-0 grid grid-cols-3 gap-2 text-center">
                     <div className="bg-green-50 rounded-lg py-2">
                         <p className="text-lg font-bold text-green-700">{summary.wins}</p>
                         <p className="text-xs text-green-600">승리</p>
@@ -132,14 +132,14 @@ export function CompetitorComparisonMap({
                         <p className="text-xs text-gray-600">무승부</p>
                     </div>
                 </div>
-                <div className="text-center pl-4 border-l border-gray-200">
+                <div className="text-center pl-3 sm:pl-4 border-l border-gray-200">
                     <p className="text-2xl font-bold text-emerald-600">{summary.winRate}%</p>
                     <p className="text-xs text-gray-500">승률</p>
                 </div>
             </div>
 
             {/* Map */}
-            <div className="rounded-2xl overflow-hidden border-2 border-gray-200 shadow-lg" style={{ height: '500px' }}>
+            <div className="rounded-2xl overflow-hidden border-2 border-gray-200 shadow-lg" style={{ height: 'clamp(280px, 60vw, 500px)' }}>
                 <Map
                     defaultCenter={center}
                     defaultZoom={14}

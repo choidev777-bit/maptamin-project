@@ -47,17 +47,17 @@ export function AverageRankCard({ results, previousAverage }: Props) {
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-700 mb-4">평균 순위</h3>
 
-            <div className="flex items-center gap-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
                 {/* Average Rank Display */}
                 <div
-                    className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold"
+                    className="w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold flex-shrink-0"
                     style={{ backgroundColor: getRankColor(stats.average) }}
                 >
                     {stats.average !== null ? stats.average.toFixed(1) : '-'}
                 </div>
 
                 {/* Stats */}
-                <div className="flex-1 space-y-2">
+                <div className="flex-1 w-full space-y-2">
                     <div className="flex justify-between text-sm">
                         <span className="text-gray-500">순위권 진입</span>
                         <span className="font-medium">{stats.count} / {stats.total} 지점</span>
@@ -87,7 +87,7 @@ export function AverageRankCard({ results, previousAverage }: Props) {
 
                 {/* Change Indicator */}
                 {change !== null && (
-                    <div className={`flex flex-col items-center p-4 rounded-xl ${change > 0 ? 'bg-green-50' : change < 0 ? 'bg-red-50' : 'bg-gray-50'
+                    <div className={`flex flex-row sm:flex-col items-center gap-2 sm:gap-0 p-3 sm:p-4 rounded-xl w-full sm:w-auto justify-center ${change > 0 ? 'bg-green-50' : change < 0 ? 'bg-red-50' : 'bg-gray-50'
                         }`}>
                         {change > 0 ? (
                             <TrendingUp className="w-6 h-6 text-green-600" />

@@ -74,7 +74,7 @@ export function RankHeatmap({ center, results, selectedKeyword }: Props) {
 
     return (
         <>
-            <div className="rounded-2xl overflow-hidden border-2 border-gray-200 shadow-lg" style={{ height: '500px' }}>
+            <div className="rounded-2xl overflow-hidden border-2 border-gray-200 shadow-lg" style={{ height: 'clamp(280px, 60vw, 500px)' }}>
                 <Map
                     defaultCenter={center}
                     defaultZoom={14}
