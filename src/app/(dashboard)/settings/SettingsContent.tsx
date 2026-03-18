@@ -69,7 +69,7 @@ export function SettingsContent({ user, planStats }: Props) {
         try {
             const response = await fetch('/api/auth/delete-account', { method: 'DELETE' })
             const data = await response.json()
-            if (!response.ok) throw new Error(data.error || 'Failed to delete account')
+            if (!response.ok) throw new Error(data.error || '계정 삭제에 실패했습니다.')
             const supabase = createClient()
             await supabase.auth.signOut()
             router.push('/login?deleted=true')

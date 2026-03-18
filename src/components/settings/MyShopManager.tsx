@@ -60,7 +60,7 @@ export function MyShopManager({ planId }: MyShopManagerProps) {
 
             if (!res.ok) {
                 const error = await res.json()
-                alert(error.error || '매장 등록 실패')
+                alert('매장 정보를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.')
                 return
             }
 
@@ -89,7 +89,7 @@ export function MyShopManager({ planId }: MyShopManagerProps) {
 
             if (!res.ok) {
                 const error = await res.json()
-                alert(error.error || '삭제 실패')
+                alert('매장 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.')
                 return
             }
 

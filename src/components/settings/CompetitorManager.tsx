@@ -55,7 +55,7 @@ export function CompetitorManager({ planId, maxNaverCompetitors, maxGoogleCompet
 
             if (!res.ok) {
                 const error = await res.json()
-                alert(error.error || '경쟁사 등록 실패')
+                alert('경쟁사를 등록하지 못했습니다. 잠시 후 다시 시도해주세요.')
                 return
             }
 
@@ -78,7 +78,7 @@ export function CompetitorManager({ planId, maxNaverCompetitors, maxGoogleCompet
 
             if (!res.ok) {
                 const error = await res.json()
-                alert(error.error || '삭제 실패')
+                alert('경쟁사 삭제에 실패했습니다. 잠시 후 다시 시도해주세요.')
                 return
             }
 

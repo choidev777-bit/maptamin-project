@@ -123,7 +123,7 @@ export default function StepCompetitorRegister({ planId, onComplete, onSkip }: P
 
             onComplete({ competitors: allCompetitors })
         } catch (err: any) {
-            setError(err.message)
+            setError('경쟁사 정보를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.')
         } finally {
             setSaving(false)
         }

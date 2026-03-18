@@ -28,7 +28,7 @@ export function DeleteAccountSection() {
             const data = await response.json()
 
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to delete account')
+                throw new Error(data.error || '계정 삭제에 실패했습니다.')
             }
 
             // 2. Sign out locally to clear session immediately

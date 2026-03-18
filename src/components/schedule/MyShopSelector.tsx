@@ -30,7 +30,7 @@ export function MyShopSelector({ platform, onSelect, selectedPlace }: Props) {
                 setShops(filtered)
             } catch (err: any) {
                 console.error(err)
-                setError(err.message)
+                setError('매장 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
             } finally {
                 setLoading(false)
             }
@@ -51,7 +51,7 @@ export function MyShopSelector({ platform, onSelect, selectedPlace }: Props) {
     if (error) {
         return (
             <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
-                <p className="text-red-600">오류: {error}</p>
+                <p className="text-red-600">{error}</p>
             </div>
         )
     }

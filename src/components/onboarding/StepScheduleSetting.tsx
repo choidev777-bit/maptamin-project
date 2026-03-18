@@ -167,7 +167,7 @@ export default function StepScheduleSetting({ planId, onboardingData, onComplete
                 phone,
             })
         } catch (err: any) {
-            setError(err.message)
+            setError('일정 설정을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.')
         } finally {
             setSaving(false)
         }

@@ -97,7 +97,7 @@ export default function StepStoreRegister({ planId, onComplete }: Props) {
                 googlePlace: googlePlace || undefined,
             })
         } catch (err: any) {
-            setError(err.message)
+            setError('매장 정보를 저장하지 못했습니다. 잠시 후 다시 시도해주세요.')
         } finally {
             setSaving(false)
         }

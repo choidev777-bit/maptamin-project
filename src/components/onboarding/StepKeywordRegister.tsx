@@ -73,6 +73,15 @@ export default function StepKeywordRegister({ planId, onComplete }: Props) {
                 keyword_type: 'local' as const,
             }))
 
+            // 지역명 키워드 ↔ 업종 키워드 교차 중복 검사
+            const naverSet = new Set(filteredNaver)
+            const duplicates = filteredLocalNaver.filter(k => naverSet.has(k))
+            if (duplicates.length > 0) {
+                setError(`같은 키워드를 업종과 지역명에 중복으로 입력할 수 없습니다. ("${duplicates[0]}")`)
+                setSaving(false)
+                return
+            }
+
             const allInserts = [...naverInserts, ...googleInserts, ...localNaverInserts]
 
             const { error: insertError } = await supabase
@@ -87,7 +96,12 @@ export default function StepKeywordRegister({ planId, onComplete }: Props) {
                 localNaverKeywords: filteredLocalNaver.length > 0 ? filteredLocalNaver : undefined,
             })
         } catch (err: any) {
-            setError(err.message)
+            const msg = err.message || ''
+            if (msg.includes('duplicate key') || msg.includes('unique constraint')) {
+                setError('이미 등록된 키워드가 있습니다. 페이지를 새로고침 후 다시 시도해주세요.')
+            } else {
+                setError('키워드 저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')
+            }
         } finally {
             setSaving(false)
         }
