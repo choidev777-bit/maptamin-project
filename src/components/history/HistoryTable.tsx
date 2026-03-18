@@ -98,16 +98,16 @@ export function HistoryTable({ searches }: Props) {
 
     return (
         <>
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto after:pointer-events-none after:absolute after:top-0 after:right-0 after:h-full after:w-8 after:bg-gradient-to-l after:from-white after:to-transparent sm:after:hidden">
                 <table className="w-full text-left border-collapse min-w-[700px]">
                     <thead>
                         <tr className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500 font-semibold">
-                            <th className="px-6 py-4">상태</th>
-                            <th className="px-6 py-4">유형</th>
-                            <th className="px-6 py-4">대상 매장명</th>
-                            <th className="px-6 py-4">플랫폼</th>
-                            <th className="px-6 py-4">분석 일시</th>
-                            <th className="px-6 py-4 text-right">상세</th>
+                            <th className="px-3 sm:px-6 py-4">상태</th>
+                            <th className="px-3 sm:px-6 py-4">유형</th>
+                            <th className="px-3 sm:px-6 py-4">대상 매장명</th>
+                            <th className="px-3 sm:px-6 py-4">플랫폼</th>
+                            <th className="px-3 sm:px-6 py-4">분석 일시</th>
+                            <th className="px-3 sm:px-6 py-4 text-right">상세</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-sm">
@@ -121,7 +121,7 @@ export function HistoryTable({ searches }: Props) {
                             return (
                                 <tr key={search.id} className="hover:bg-gray-50/50 transition-colors">
                                     {/* 상태 */}
-                                    <td className="px-6 py-4">
+                                    <td className="px-3 sm:px-6 py-4">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${status.className}`}>
                                             {status.icon}
                                             {status.label}
@@ -129,19 +129,19 @@ export function HistoryTable({ searches }: Props) {
                                     </td>
 
                                     {/* 리포트 유형 */}
-                                    <td className="px-6 py-4">
+                                    <td className="px-3 sm:px-6 py-4">
                                         <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${reportType.className}`}>
                                             {reportType.label}
                                         </span>
                                     </td>
 
                                     {/* 매장명 */}
-                                    <td className="px-6 py-4">
+                                    <td className="px-3 sm:px-6 py-4">
                                         <span className="font-medium text-gray-900">{search.place_name}</span>
                                     </td>
 
                                     {/* 플랫폼 */}
-                                    <td className="px-6 py-4">
+                                    <td className="px-3 sm:px-6 py-4">
                                         <span className={`text-xs font-bold uppercase ${search.platform === 'naver' ? 'text-[#00C896]' : 'text-blue-500'
                                             }`}>
                                             {search.platform === 'naver' ? '네이버' : '구글'}
@@ -149,12 +149,12 @@ export function HistoryTable({ searches }: Props) {
                                     </td>
 
                                     {/* 일시 */}
-                                    <td className="px-6 py-4 text-gray-500">
+                                    <td className="px-3 sm:px-6 py-4 text-gray-500">
                                         {formatDate(search.created_at)}
                                     </td>
 
                                     {/* 상세 */}
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-3 sm:px-6 py-4 text-right">
                                         {search.status === 'completed' ? (
                                             <Link
                                                 href={resultUrl}

@@ -415,7 +415,7 @@ export function TicketShopContent({
                         </div>
                     )}
 
-                    <div className="overflow-x-auto">
+                    <div className="relative overflow-x-auto after:pointer-events-none after:absolute after:top-0 after:right-0 after:h-full after:w-8 after:bg-gradient-to-l after:from-white after:to-transparent sm:after:hidden">
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-gray-100">
