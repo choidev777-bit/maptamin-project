@@ -17,16 +17,23 @@ export function KeywordTabs({ keywords, results, onKeywordChange }: Props) {
         return results.filter(r => r.keyword === activeKeyword)
     }, [results, activeKeyword])
 
+    const UNRANKED_PENALTY = 71
+
     const keywordStats = useMemo(() => {
         return keywords.map(keyword => {
             const keywordResults = results.filter(r => r.keyword === keyword)
             const rankedResults = keywordResults.filter(r => r.rank !== null)
+            const totalPoints = keywordResults.length
 
-            if (rankedResults.length === 0) {
+            if (totalPoints === 0) {
                 return { keyword, average: null, count: 0 }
             }
 
-            const avg = rankedResults.reduce((a, b) => a + (b.rank as number), 0) / rankedResults.length
+            const rankedSum = rankedResults.reduce((a, b) => a + (b.rank as number), 0)
+            const unrankedCount = totalPoints - rankedResults.length
+            const totalSum = rankedSum + UNRANKED_PENALTY * unrankedCount
+            const avg = totalSum / totalPoints
+
             return {
                 keyword,
                 average: Math.round(avg * 10) / 10,
