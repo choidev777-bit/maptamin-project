@@ -1,4 +1,5 @@
 import { KakaoLoginButton } from '@/components/auth/KakaoLoginButton'
+import { EmailLoginForm } from '@/components/auth/EmailLoginForm'
 import { MaptaminLogo } from '@/components/landing/MaptaminLogo'
 
 export default async function LoginPage({
@@ -54,6 +55,7 @@ export default async function LoginPage({
                     {/* Login Button */}
                     <div className="flex flex-col gap-3">
                         <KakaoLoginButton plan={plan} redirectTo={redirectTo} />
+                        <EmailLoginForm />
                     </div>
 
                     {/* Terms */}

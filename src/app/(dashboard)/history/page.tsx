@@ -31,7 +31,8 @@ export default async function HistoryPage() {
             .select('*')
             .eq('user_id', user.id)       // 보안: 본인 데이터만
             .is('deleted_at', null)
-            .order('created_at', { ascending: false }),
+            .order('created_at', { ascending: false })
+            .limit(10000),
         supabase
             .from('managed_places')
             .select('place_id, platform')
@@ -64,12 +65,28 @@ export default async function HistoryPage() {
 
     let searchResults: SearchResult[] = []
     if (scheduledSearchIds.length > 0) {
-        const { data: resultsData } = await supabase
-            .from('search_results')
-            .select('*')
-            .in('search_id', scheduledSearchIds)
+        // Supabase PostgREST max_rows=1000 서버 제한 우회: 페이지네이션
+        const PAGE_SIZE = 1000
+        let page = 0
+        let hasMore = true
+        while (hasMore) {
+            const from = page * PAGE_SIZE
+            const to = from + PAGE_SIZE - 1
+            const { data: chunk } = await supabase
+                .from('search_results')
+                .select('*')
+                .in('search_id', scheduledSearchIds)
+                .range(from, to)
 
-        searchResults = (resultsData as SearchResult[]) || []
+            if (chunk && chunk.length > 0) {
+                searchResults.push(...(chunk as SearchResult[]))
+                hasMore = chunk.length === PAGE_SIZE
+                page++
+            } else {
+                hasMore = false
+            }
+        }
+        console.log(`[history] scheduledSearchIds: ${scheduledSearchIds.length}, searchResults fetched: ${searchResults.length}`)
     }
 
     // 플랫폼별 트렌드 데이터 계산 (업종 키워드: grid_index >= 0)

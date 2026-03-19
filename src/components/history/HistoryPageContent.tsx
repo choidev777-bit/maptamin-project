@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, startTransition } from 'react'
 import dynamic from 'next/dynamic'
 import { Search } from '@/lib/types'
 import { RankTrendDataPoint } from '@/lib/utils/rank-trend'
@@ -16,6 +16,16 @@ const RankTrendChart = dynamic(() => import('./RankTrendChart'), {
         </div>
     ),
 })
+
+// 기간 필터 옵션 — 컴포넌트 외부에 선언 (매 렌더마다 재생성 방지, rerender-hoist)
+type PeriodOption = '7' | '30' | '90' | 'all'
+
+const PERIOD_OPTIONS: { value: PeriodOption; label: string }[] = [
+    { value: '7',   label: '7일' },
+    { value: '30',  label: '30일' },
+    { value: '90',  label: '90일' },
+    { value: 'all', label: '전체' },
+]
 
 interface Props {
     searches: Search[]
@@ -50,10 +60,19 @@ export function HistoryPageContent({
     const [activeGraphTab, setActiveGraphTab] = useState<'rank' | 'exposure' | 'topRate'>('rank')
     const [filterPlatform, setFilterPlatform] = useState<'all' | 'naver' | 'google'>('all')
     const [filterReportType, setFilterReportType] = useState<'all' | 'daily' | 'weekly' | 'realtime' | 'welcome'>('all')
+    const [selectedPeriod, setSelectedPeriod] = useState<PeriodOption>('30')
+    const [selectedLocalPeriod, setSelectedLocalPeriod] = useState<PeriodOption>('30')
 
     const handlePlatformToggle = (platform: 'naver' | 'google') => {
         if (platform === 'google' && !canGoogle) return
         setActivePlatform(platform)
+    }
+
+    const handlePeriodChange = (period: PeriodOption) => {
+        startTransition(() => { setSelectedPeriod(period) })
+    }
+    const handleLocalPeriodChange = (period: PeriodOption) => {
+        startTransition(() => { setSelectedLocalPeriod(period) })
     }
 
     // 탭별 현재 데이터
@@ -61,6 +80,41 @@ export function HistoryPageContent({
     const currentKeywords = activePlatform === 'naver' ? naverKeywords : googleKeywords
     const currentExposureTrend = activePlatform === 'naver' ? naverExposureTrend : googleExposureTrend
     const currentTopRateTrend = activePlatform === 'naver' ? naverTopRateTrend : googleTopRateTrend
+
+    // 기간 필터 cutoff 날짜 계산 (rerender-memo: selectedPeriod가 바뀔 때만 재계산)
+    const cutoffDateStr = useMemo(() => {
+        if (selectedPeriod === 'all') return null
+        const d = new Date()
+        d.setDate(d.getDate() - parseInt(selectedPeriod))
+        return d.toISOString().split('T')[0]  // 'YYYY-MM-DD'
+    }, [selectedPeriod])
+
+    // trend 배열 필터링 — fullDate(YYYY-MM-DD) 문자열 비교로 날짜 범위 적용 (rerender-memo)
+    const filteredTrend = useMemo(
+        () => cutoffDateStr ? currentTrend.filter(p => p.fullDate >= cutoffDateStr) : currentTrend,
+        [currentTrend, cutoffDateStr]
+    )
+    const filteredExposureTrend = useMemo(
+        () => cutoffDateStr ? currentExposureTrend.filter(p => p.fullDate >= cutoffDateStr) : currentExposureTrend,
+        [currentExposureTrend, cutoffDateStr]
+    )
+    const filteredTopRateTrend = useMemo(
+        () => cutoffDateStr ? currentTopRateTrend.filter(p => p.fullDate >= cutoffDateStr) : currentTopRateTrend,
+        [currentTopRateTrend, cutoffDateStr]
+    )
+
+    // 지역명 키워드 trend 필터링 (Card 2 전용 — 독립 기간)
+    const cutoffLocalDateStr = useMemo(() => {
+        if (selectedLocalPeriod === 'all') return null
+        const d = new Date()
+        d.setDate(d.getDate() - parseInt(selectedLocalPeriod))
+        return d.toISOString().split('T')[0]
+    }, [selectedLocalPeriod])
+
+    const filteredLocalTrend = useMemo(
+        () => cutoffLocalDateStr ? naverLocalTrend.filter(p => p.fullDate >= cutoffLocalDateStr) : naverLocalTrend,
+        [naverLocalTrend, cutoffLocalDateStr]
+    )
 
     // 테이블 필터 적용
     const filteredSearches = searches.filter(s => {
@@ -77,11 +131,17 @@ export function HistoryPageContent({
 
     const activeTab = tabConfig.find(t => t.id === activeGraphTab)!
 
-    // 현재 탭 데이터 유효성 확인
-    const currentTabHasData =
+    // 전체 데이터 존재 여부 (기간 필터 무관 — "분석 기록이 쌓이면..." 메시지 판단용)
+    const hasAnyData =
         activeGraphTab === 'rank' ? currentTrend.length >= 1 :
         activeGraphTab === 'exposure' ? currentExposureTrend.length >= 1 :
         currentTopRateTrend.length >= 1
+
+    // 현재 기간 필터 후 데이터 존재 여부 ("선택한 기간에 데이터가 없습니다." 메시지 판단용)
+    const currentTabHasData =
+        activeGraphTab === 'rank' ? filteredTrend.length >= 1 :
+        activeGraphTab === 'exposure' ? filteredExposureTrend.length >= 1 :
+        filteredTopRateTrend.length >= 1
 
     // 현재 탭 빈 상태 안내 문구
     const emptyMessages: Record<string, string> = {
@@ -110,7 +170,7 @@ export function HistoryPageContent({
                         </h2>
                     </div>
 
-                    {/* 플랫폼 토글 */}
+                    {/* 우측: 플랫폼 토글 */}
                     <div className="flex bg-gray-100/80 p-1.5 rounded-xl">
                         <button
                             onClick={() => handlePlatformToggle('naver')}
@@ -131,6 +191,25 @@ export function HistoryPageContent({
                             구글
                             {!canGoogle && <Lock className="w-3 h-3 text-slate-400" />}
                         </button>
+                    </div>
+                </div>
+
+                {/* 기간 필터 — 플랫폼 토글 아래 별도 행 */}
+                <div className="flex justify-end px-6 pb-2">
+                    <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-lg text-xs">
+                        {PERIOD_OPTIONS.map(opt => (
+                            <button
+                                key={opt.value}
+                                onClick={() => handlePeriodChange(opt.value)}
+                                className={`px-2.5 py-1.5 rounded-md font-semibold transition-all ${
+                                    selectedPeriod === opt.value
+                                        ? 'bg-white text-gray-900 shadow-sm'
+                                        : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
@@ -158,30 +237,8 @@ export function HistoryPageContent({
 
                 {/* 그래프 영역 */}
                 <div className="px-6 pb-6 pt-4">
-                    {currentTabHasData ? (
-                        <>
-                            {activeGraphTab === 'rank' && (
-                                <RankTrendChart
-                                    trendData={currentTrend}
-                                    keywords={currentKeywords}
-                                />
-                            )}
-                            {activeGraphTab === 'exposure' && (
-                                <RankTrendChart
-                                    trendData={currentExposureTrend}
-                                    keywords={currentKeywords}
-                                    yAxisMode="count"
-                                />
-                            )}
-                            {activeGraphTab === 'topRate' && (
-                                <RankTrendChart
-                                    trendData={currentTopRateTrend}
-                                    keywords={currentKeywords}
-                                    yAxisMode="percent"
-                                />
-                            )}
-                        </>
-                    ) : (
+                    {!hasAnyData ? (
+                        // 케이스 1: 데이터 자체가 없음 — 기존 "분석 기록이 쌓이면..." 메시지
                         <div className="flex flex-col items-center justify-center py-16 text-center">
                             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
                                 <BarChart3 className="w-8 h-8 text-gray-300" />
@@ -189,6 +246,39 @@ export function HistoryPageContent({
                             <p className="text-gray-500 font-medium">분석 기록이 쌓이면</p>
                             <p className="text-gray-500">{emptyMessages[activeGraphTab]}</p>
                         </div>
+                    ) : !currentTabHasData ? (
+                        // 케이스 2: 데이터 있지만 선택 기간 내 없음 — 기간 변경 유도 메시지
+                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                <BarChart3 className="w-8 h-8 text-gray-300" />
+                            </div>
+                            <p className="text-gray-500 font-medium">선택한 기간에 데이터가 없습니다.</p>
+                            <p className="text-gray-500 text-sm">기간을 넓혀보세요.</p>
+                        </div>
+                    ) : (
+                        // 케이스 3: 데이터 있음 — 그래프 표시
+                        <>
+                            {activeGraphTab === 'rank' && (
+                                <RankTrendChart
+                                    trendData={filteredTrend}
+                                    keywords={currentKeywords}
+                                />
+                            )}
+                            {activeGraphTab === 'exposure' && (
+                                <RankTrendChart
+                                    trendData={filteredExposureTrend}
+                                    keywords={currentKeywords}
+                                    yAxisMode="count"
+                                />
+                            )}
+                            {activeGraphTab === 'topRate' && (
+                                <RankTrendChart
+                                    trendData={filteredTopRateTrend}
+                                    keywords={currentKeywords}
+                                    yAxisMode="percent"
+                                />
+                            )}
+                        </>
                     )}
                 </div>
             </div>
@@ -208,11 +298,41 @@ export function HistoryPageContent({
                             네이버 전용
                         </span>
                     </div>
+
+                    {/* 기간 필터 — Card 2 독립 */}
+                    <div className="flex justify-end px-6 pb-2">
+                        <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-lg text-xs">
+                            {PERIOD_OPTIONS.map(opt => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => handleLocalPeriodChange(opt.value)}
+                                    className={`px-2.5 py-1.5 rounded-md font-semibold transition-all ${
+                                        selectedLocalPeriod === opt.value
+                                            ? 'bg-white text-gray-900 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="px-6 pb-6">
-                        <RankTrendChart
-                            trendData={naverLocalTrend}
-                            keywords={naverLocalKeywords}
-                        />
+                        {filteredLocalTrend.length >= 1 ? (
+                            <RankTrendChart
+                                trendData={filteredLocalTrend}
+                                keywords={naverLocalKeywords}
+                            />
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-16 text-center">
+                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                                    <BarChart3 className="w-8 h-8 text-gray-300" />
+                                </div>
+                                <p className="text-gray-500 font-medium">선택한 기간에 데이터가 없습니다.</p>
+                                <p className="text-gray-500 text-sm">기간을 넓혀보세요.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
