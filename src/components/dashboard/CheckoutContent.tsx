@@ -169,7 +169,6 @@ export function CheckoutContent() {
                             </div>
                             <div>
                                 <p className="font-semibold text-gray-900 dark:text-gray-100">신용/체크카드</p>
-                                <p className="text-sm text-gray-500">한국 발행 모든 카드 지원</p>
                             </div>
                         </div>
                     </section>
