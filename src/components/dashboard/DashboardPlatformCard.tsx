@@ -96,7 +96,7 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                             잠금 해제하기 ({requiredPlan} 플랜 필요)
                         </span>
                     </div>
-                    <div className="w-full sm:w-32 aspect-square rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center">
+                    <div className="hidden sm:flex w-20 h-20 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 items-center justify-center">
                         <Lock className="text-slate-400 w-8 h-8" />
                     </div>
                     <div className="flex flex-col flex-1 justify-center gap-2 py-1 opacity-70">
@@ -120,7 +120,7 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-white/70 dark:bg-slate-900/60 z-10 transition-opacity rounded-xl backdrop-blur-[2px]">
                         <span className="bg-white dark:bg-slate-700 text-gray-900 dark:text-white px-4 py-2 rounded-lg shadow-sm font-bold text-sm border border-slate-200">연결하기 클릭</span>
                     </div>
-                    <div className="w-full sm:w-32 aspect-square rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 flex items-center justify-center">
+                    <div className="hidden sm:flex w-20 h-20 rounded-lg bg-slate-200 dark:bg-slate-700 flex-shrink-0 items-center justify-center">
                         <Store className="text-slate-400 w-10 h-10" />
                     </div>
                     <div className="flex flex-col flex-1 justify-center gap-2 py-1 opacity-70">
@@ -141,7 +141,7 @@ export function DashboardPlatformCard({ platform, data, competitorCount = 0, fir
                 return (
                     // Active State
                     <div className={`group relative flex flex-col sm:flex-row gap-4 p-5 rounded-xl bg-white dark:bg-slate-800 border-2 transition-all ${platform === 'naver' ? 'border-[#00C896] shadow-[0_4px_20px_rgba(0,199,149,0.15)]' : 'border-blue-500 shadow-[0_4px_20px_rgba(59,130,246,0.15)]'}`}>
-                        <div className="w-full sm:w-32 aspect-square rounded-lg bg-slate-100 flex-shrink-0 flex items-center justify-center overflow-hidden">
+                        <div className="hidden sm:flex w-20 h-20 rounded-lg bg-slate-100 flex-shrink-0 items-center justify-center overflow-hidden">
                             <Store className={`w-12 h-12 ${platform === 'naver' ? 'text-[#00C896]/50' : 'text-blue-500/50'}`} />
                         </div>
                         <div className="flex flex-col flex-1 justify-between py-1">

@@ -195,6 +195,7 @@ export function CompetitorManageModal({ isOpen, onClose, platform, maxCompetitor
                 onClose={() => setIsPlaceModalOpen(false)}
                 platform={platform}
                 onConfirm={handleRegisterCompetitor}
+                isCompetitor={true}
             />
         </>
     )

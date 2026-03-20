@@ -204,6 +204,7 @@ export function CompetitorManager({ planId, maxNaverCompetitors, maxGoogleCompet
                 onClose={() => setIsAddModalOpen(false)}
                 platform={selectedPlatform}
                 onConfirm={handleRegisterCompetitor}
+                isCompetitor={true}
             />
         </div>
     )

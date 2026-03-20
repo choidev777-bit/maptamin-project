@@ -29,6 +29,7 @@ export function PlaceSelectionModal({ isOpen, onClose, platform, onConfirm, isCo
         setIsSubmitting(true)
         try {
             await onConfirm(selectedPlace)
+            reset()
             onClose()
         } catch (error) {
             console.error('Failed to confirm place:', error)
@@ -95,7 +96,7 @@ export function PlaceSelectionModal({ isOpen, onClose, platform, onConfirm, isCo
                                 <p className="text-sm text-gray-600 mt-1">{selectedPlace?.address}</p>
                             </div>
 
-                            {!isPlaceLockExempt && (
+                            {!isCompetitor && !isPlaceLockExempt && (
                                 <div className="p-4 bg-red-50 rounded-lg flex items-start gap-3 border border-red-100">
                                     <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                                     <div>
