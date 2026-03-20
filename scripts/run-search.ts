@@ -441,6 +441,16 @@ async function processSearch(search: any) {
             if (search.report_type === 'realtime') {
                 const platform = search.platform || 'naver';
                 await refundTicket(search.user_id, platform);
+            } else if (search.report_type === 'free_trial') {
+                // 무료체험 최종 실패 → free_trial_used 롤백 (재시도 가능하게)
+                try {
+                    await supabase.from('user_subscriptions')
+                        .update({ free_trial_used: false })
+                        .eq('user_id', search.user_id);
+                    console.log(`[Worker] 🔄 free_trial_used 롤백 완료 (user: ${search.user_id})`);
+                } catch (rollbackErr: any) {
+                    console.error(`[Worker] ❌ free_trial_used 롤백 실패 (user: ${search.user_id}):`, rollbackErr.message);
+                }
             } else if (isScheduled) {
                 console.log(`[Worker] ❌ Search ${search.id} permanently failed after ${currentRetryCount} retries.`);
                 // 🚨 관리자 이메일 알림

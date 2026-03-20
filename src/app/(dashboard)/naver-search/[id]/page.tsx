@@ -86,14 +86,24 @@ export default async function NaverSearchResultsPage({ params }: PageProps) {
                     <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
                         <span className="text-2xl">⚠️</span>
                     </div>
-                    <h2 className="text-xl font-semibold text-amber-800 mb-2">검색 취소됨</h2>
-                    <p className="text-amber-700">현재 사용자가 많아 검색이 취소되었습니다.</p>
-                    <p className="text-amber-600 text-sm mt-2">
-                        사용된 포인트는 <strong>자동으로 환불</strong>되었습니다.
-                    </p>
+                    <h2 className="text-xl font-semibold text-amber-800 mb-2">분석 취소됨</h2>
+                    <p className="text-amber-700">현재 사용자가 많아 분석이 취소되었습니다.</p>
+                    {search.report_type !== 'free_trial' && (
+                        <p className="text-amber-600 text-sm mt-2">
+                            사용된 포인트는 <strong>자동으로 환불</strong>되었습니다.
+                        </p>
+                    )}
                     <p className="text-gray-500 text-xs mt-4">
                         잠시 후 다시 시도해 주세요.
                     </p>
+                    {search.report_type === 'free_trial' && (
+                        <a
+                            href="/free-trial"
+                            className="inline-block mt-4 px-6 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+                        >
+                            다시 시도하기
+                        </a>
+                    )}
                 </div>
             )}
 
