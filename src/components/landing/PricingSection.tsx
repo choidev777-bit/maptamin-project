@@ -98,6 +98,16 @@ export default function PricingSection() {
                 </div>
 
 
+                {/* 무료체험 안내 */}
+                <p className="mt-6 text-center text-sm text-gray-500">
+                    아직 망설여지시나요?{' '}
+                    <Link
+                        href="/login?redirectTo=/free-trial"
+                        className="font-bold text-[#00C896] underline underline-offset-2 hover:text-[#00B386] transition-colors"
+                    >
+                        먼저 무료로 체험해보세요 →
+                    </Link>
+                </p>
 
                 {/* 가격 카드 3개 */}
                 <div className="mt-12 grid items-stretch gap-6 lg:grid-cols-3">

@@ -40,10 +40,10 @@ export default function Navigation() {
                         로그인
                     </Link>
                     <Link
-                        href="/login"
+                        href="/login?redirectTo=/free-trial"
                         className="rounded-xl bg-[#00C896] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#00B386] hover:shadow-md"
                     >
-                        회원가입
+                        무료 체험하기
                     </Link>
                 </div>
 
@@ -84,11 +84,11 @@ export default function Navigation() {
                             로그인
                         </Link>
                         <Link
-                            href="/login"
+                            href="/login?redirectTo=/free-trial"
                             onClick={() => setIsOpen(false)}
                             className="rounded-xl bg-[#00C896] px-4 py-3 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-[#00B386]"
                         >
-                            회원가입
+                            무료 체험하기
                         </Link>
                     </div>
                 </div>

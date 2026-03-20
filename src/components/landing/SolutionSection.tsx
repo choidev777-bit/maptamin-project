@@ -1,5 +1,6 @@
-import { Search, Trophy } from 'lucide-react'
+import { Search, Trophy, ArrowRight } from 'lucide-react'
 import { PiArrowsOutBold } from 'react-icons/pi'
+import Link from 'next/link'
 
 const STEPS = [
     {
@@ -99,6 +100,13 @@ export default function SolutionSection() {
                             </strong>
                             부터 초록불로 만드세요.
                         </p>
+                        <Link
+                            href="/login?redirectTo=/free-trial"
+                            className="group mt-8 inline-flex items-center gap-2 rounded-full bg-[#00C896] px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-[#00C896]/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#00B386] hover:shadow-xl sm:text-base"
+                        >
+                            무료로 내 매장 진단 시작하기
+                            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </Link>
                     </div>
                 </div>
             </div>
