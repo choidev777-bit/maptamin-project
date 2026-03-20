@@ -257,7 +257,7 @@ export function MapGridConfigurator({
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-gray-600">
+            <div className="flex items-center gap-3 sm:gap-6 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
                         <MapPin className="w-3 h-3 text-white" />

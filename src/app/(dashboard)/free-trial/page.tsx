@@ -396,7 +396,7 @@ export default function FreeTrialPage() {
                                                 }
                                             }}
                                             placeholder="지역명 키워드를 입력하세요"
-                                            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                            className="flex-1 min-w-0 px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                                             maxLength={30}
                                         />
                                         <button
@@ -408,7 +408,7 @@ export default function FreeTrialPage() {
                                                 }
                                             }}
                                             disabled={!localKeywordDraft.trim()}
-                                            className="px-4 py-3 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                                            className="shrink-0 px-4 py-3 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                                         >
                                             <Plus className="w-4 h-4" />
                                             추가
@@ -455,7 +455,7 @@ export default function FreeTrialPage() {
                                                 }
                                             }}
                                             placeholder="업종 키워드를 입력하세요"
-                                            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                            className="flex-1 min-w-0 px-4 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                                             maxLength={30}
                                         />
                                         <button
@@ -467,7 +467,7 @@ export default function FreeTrialPage() {
                                                 }
                                             }}
                                             disabled={!industryKeywordDraft.trim()}
-                                            className="px-4 py-3 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                                            className="shrink-0 px-4 py-3 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                                         >
                                             <Plus className="w-4 h-4" />
                                             추가

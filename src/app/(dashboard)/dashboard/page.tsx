@@ -4,6 +4,7 @@ import { ChevronRight } from 'lucide-react'
 
 import { SubscriptionBanner } from '@/components/dashboard/SubscriptionBanner'
 import { OnboardingBanner } from '@/components/dashboard/OnboardingBanner'
+import { FreeTrialBanner } from '@/components/dashboard/FreeTrialBanner'
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader'
 import { DashboardMetricsToggle } from '@/components/dashboard/DashboardMetricsToggle'
 import { DashboardPlatformCard } from '@/components/dashboard/DashboardPlatformCard'
@@ -22,7 +23,7 @@ export default async function DashboardPage() {
     // Fetch user subscription (Tickets)
     const { data: subscription } = await supabase
         .from('user_subscriptions')
-        .select('plan_id, remaining_tickets_naver, remaining_tickets_google, onboarding_completed')
+        .select('plan_id, remaining_tickets_naver, remaining_tickets_google, onboarding_completed, free_trial_used')
         .eq('user_id', user?.id)
         .single()
 
@@ -125,8 +126,10 @@ export default async function DashboardPage() {
 
     return (
         <div className="max-w-7xl mx-auto pb-12">
-            {/* Subscription Banner (free 사용자) */}
             {!subscribed && <SubscriptionBanner />}
+
+            {/* Free Trial Banner (free 플랜 + 무료체험 미사용) */}
+            {planId === 'free' && !subscription?.free_trial_used && <FreeTrialBanner />}
 
             {/* Onboarding Banner (유료 + 온보딩 미완료) */}
             {subscribed && !subscription?.onboarding_completed && <OnboardingBanner />}

@@ -282,7 +282,7 @@ export function NaverMapGridConfigurator({
             </div>
 
             {/* Legend */}
-            <div className="mt-4 flex flex-wrap items-center gap-4 sm:gap-6 text-sm text-gray-600 px-1">
+            <div className="mt-4 flex items-center gap-3 sm:gap-6 text-sm text-gray-600 px-1">
                 <div className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded-full bg-[#00C896] flex items-center justify-center">
                         <MapPin className="w-3 h-3 text-white" />
