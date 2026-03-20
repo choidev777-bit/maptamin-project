@@ -100,6 +100,7 @@ async function sendKakaoAlimtalk(search: {
             case 'daily': return process.env.KAKAO_TEMPLATE_DAILY;
             case 'weekly': return process.env.KAKAO_TEMPLATE_WEEKLY;
             case 'welcome': return process.env.KAKAO_TEMPLATE_WELCOME;
+            case 'free_trial': return process.env.KAKAO_TEMPLATE_FREE_TRIAL;
             default: return undefined;
         }
     }
@@ -383,7 +384,7 @@ async function processSearch(search: any) {
                     console.log(`[Worker] Search ${search.id} Completed.`);
 
                     // 🔔 알림톡 발송 (daily/weekly/welcome)
-                    if (search.report_type === 'daily' || search.report_type === 'weekly' || search.report_type === 'welcome') {
+                    if (search.report_type === 'daily' || search.report_type === 'weekly' || search.report_type === 'welcome' || search.report_type === 'free_trial') {
                         try {
                             await sendKakaoAlimtalk(search);
                         } catch (alimtalkError: any) {
@@ -410,7 +411,7 @@ async function processSearch(search: any) {
         console.error(`[Worker] Search ${search.id} Failed:`, error);
 
         const currentRetryCount = search.retry_count ?? 0;
-        const isScheduled = search.report_type === 'daily' || search.report_type === 'weekly' || search.report_type === 'welcome';
+        const isScheduled = search.report_type === 'daily' || search.report_type === 'weekly' || search.report_type === 'welcome' || search.report_type === 'free_trial';
 
         if (isScheduled && currentRetryCount < MAX_SEARCH_RETRIES) {
             // 정기리포트: retry_count 증가 후 즉시 재실행
