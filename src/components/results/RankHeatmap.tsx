@@ -5,6 +5,7 @@ import { Map, AdvancedMarker } from '@vis.gl/react-google-maps'
 import { SearchResult } from '@/lib/types'
 import { getRankColor, getRankLabel } from '@/lib/utils/rank-colors'
 import { RankDetailModal } from './RankDetailModal'
+import { Grid } from 'lucide-react'
 
 interface Props {
     center: { lat: number; lng: number }
@@ -24,21 +25,17 @@ export function RankHeatmap({ center, results, selectedKeyword }: Props) {
     const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
-    // Filter results by keyword if provided
     const filteredResults = useMemo(() => {
         if (!selectedKeyword) return results
         return results.filter(r => r.keyword === selectedKeyword)
     }, [results, selectedKeyword])
 
-    // Group results by grid position
     const uniquePositions = useMemo((): PositionData[] => {
         const positionMap: Record<string, SearchResult[]> = {}
 
         filteredResults.forEach(result => {
             const key = `${result.grid_lat},${result.grid_lng}`
-            if (!positionMap[key]) {
-                positionMap[key] = []
-            }
+            if (!positionMap[key]) positionMap[key] = []
             positionMap[key].push(result)
         })
 
@@ -73,8 +70,37 @@ export function RankHeatmap({ center, results, selectedKeyword }: Props) {
     }, [])
 
     return (
-        <>
-            <div className="rounded-2xl overflow-hidden border-2 border-gray-200 shadow-lg" style={{ height: 'clamp(280px, 60vw, 500px)' }}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm mb-8 overflow-hidden">
+            {/* 헤더: 타이틀 + legend (네이버와 동일한 구조) */}
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <span className="text-blue-500">
+                        <Grid className="w-5 h-5" />
+                    </span>
+                    플레이스 순위 지도
+                </h3>
+                <div className="flex items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        1-3위
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        4-10위
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        11위~
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-gray-300 border-2 border-blue-600"></div>
+                        내 매장
+                    </div>
+                </div>
+            </div>
+
+            {/* 지도 */}
+            <div className="relative w-full bg-slate-100 dark:bg-slate-900">
                 <Map
                     defaultCenter={center}
                     defaultZoom={14}
@@ -85,8 +111,8 @@ export function RankHeatmap({ center, results, selectedKeyword }: Props) {
                     mapTypeControl={false}
                     streetViewControl={false}
                     fullscreenControl={true}
+                    style={{ width: '100%', height: 'clamp(280px, 60vw, 500px)' }}
                 >
-                    {/* Rank markers */}
                     {uniquePositions.map((pos) => {
                         const atCenter = Math.abs(pos.lat - center.lat) < 0.0001 && Math.abs(pos.lng - center.lng) < 0.0001
                         return (
@@ -107,28 +133,6 @@ export function RankHeatmap({ center, results, selectedKeyword }: Props) {
                 </Map>
             </div>
 
-            {/* Legend */}
-            <div className="mt-4 flex flex-wrap gap-3 justify-center">
-                {[
-                    { label: '1-3위', color: '#22c55e' },
-                    { label: '4-10위', color: '#eab308' },
-                    { label: '11위~', color: '#ef4444' },
-                    { label: '순위권 외', color: '#ef4444' },
-                ].map(({ label, color }) => (
-                    <div key={label} className="flex items-center gap-2">
-                        <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: color }}
-                        />
-                        <span className="text-sm text-gray-600">{label}</span>
-                    </div>
-                ))}
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-gray-300 border-2 border-blue-600" />
-                    <span className="text-sm text-gray-600">내 매장</span>
-                </div>
-            </div>
-
             {/* Detail Modal */}
             {selectedResult && (
                 <RankDetailModal
@@ -137,6 +141,6 @@ export function RankHeatmap({ center, results, selectedKeyword }: Props) {
                     result={selectedResult}
                 />
             )}
-        </>
+        </div>
     )
 }

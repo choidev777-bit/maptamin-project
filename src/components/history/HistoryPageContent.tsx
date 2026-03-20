@@ -166,7 +166,7 @@ export function HistoryPageContent({
                         <activeTab.icon className={`w-5 h-5 ${activeTab.color}`} />
                         <h2 className="text-lg font-bold text-gray-900">
                             {activeTab.label}
-                            <span className="block sm:inline text-sm font-normal text-gray-400 sm:ml-2">(자동 보고서 기준)</span>
+                            <span className="block sm:inline text-sm font-normal text-gray-400 sm:ml-2">(자동 리포트 기준)</span>
                         </h2>
                     </div>
 
@@ -260,12 +260,14 @@ export function HistoryPageContent({
                         <>
                             {activeGraphTab === 'rank' && (
                                 <RankTrendChart
+                                    key={currentKeywords.join(',')}
                                     trendData={filteredTrend}
                                     keywords={currentKeywords}
                                 />
                             )}
                             {activeGraphTab === 'exposure' && (
                                 <RankTrendChart
+                                    key={currentKeywords.join(',') + '-exposure'}
                                     trendData={filteredExposureTrend}
                                     keywords={currentKeywords}
                                     yAxisMode="count"
@@ -273,6 +275,7 @@ export function HistoryPageContent({
                             )}
                             {activeGraphTab === 'topRate' && (
                                 <RankTrendChart
+                                    key={currentKeywords.join(',') + '-topRate'}
                                     trendData={filteredTopRateTrend}
                                     keywords={currentKeywords}
                                     yAxisMode="percent"
@@ -288,13 +291,13 @@ export function HistoryPageContent({
                 <div className="bg-white rounded-xl shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-gray-100 overflow-hidden">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-6 pb-4 gap-4">
                         <div className="flex items-center gap-2">
-                            <MapPin className="w-5 h-5 text-amber-500" />
+                            <MapPin className="w-5 h-5 text-emerald-500" />
                             <h2 className="text-lg font-bold text-gray-900">
                                 지역명 키워드 순위 변화
-                                <span className="text-sm font-normal text-gray-400 ml-2">(자동 보고서 기준)</span>
+                                <span className="text-sm font-normal text-gray-400 ml-2">(자동 리포트 기준)</span>
                             </h2>
                         </div>
-                        <span className="px-3 py-1 bg-amber-50 text-amber-600 text-xs font-semibold rounded-full">
+                        <span className="px-3 py-1 bg-emerald-50 text-emerald-600 text-xs font-semibold rounded-full">
                             네이버 전용
                         </span>
                     </div>
@@ -321,6 +324,7 @@ export function HistoryPageContent({
                     <div className="px-6 pb-6">
                         {filteredLocalTrend.length >= 1 ? (
                             <RankTrendChart
+                                key={naverLocalKeywords.join(',')}
                                 trendData={filteredLocalTrend}
                                 keywords={naverLocalKeywords}
                             />

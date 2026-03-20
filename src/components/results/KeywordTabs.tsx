@@ -8,16 +8,15 @@ interface Props {
     keywords: string[]
     results: SearchResult[]
     onKeywordChange?: (keyword: string) => void
+    unrankedPenalty?: number
 }
 
-export function KeywordTabs({ keywords, results, onKeywordChange }: Props) {
+export function KeywordTabs({ keywords, results, onKeywordChange, unrankedPenalty = 71 }: Props) {
     const [activeKeyword, setActiveKeyword] = useState(keywords[0] || '')
 
     const filteredResults = useMemo(() => {
         return results.filter(r => r.keyword === activeKeyword)
     }, [results, activeKeyword])
-
-    const UNRANKED_PENALTY = 71
 
     const keywordStats = useMemo(() => {
         return keywords.map(keyword => {
@@ -31,7 +30,7 @@ export function KeywordTabs({ keywords, results, onKeywordChange }: Props) {
 
             const rankedSum = rankedResults.reduce((a, b) => a + (b.rank as number), 0)
             const unrankedCount = totalPoints - rankedResults.length
-            const totalSum = rankedSum + UNRANKED_PENALTY * unrankedCount
+            const totalSum = rankedSum + unrankedPenalty * unrankedCount
             const avg = totalSum / totalPoints
 
             return {
@@ -40,7 +39,7 @@ export function KeywordTabs({ keywords, results, onKeywordChange }: Props) {
                 count: rankedResults.length,
             }
         })
-    }, [keywords, results])
+    }, [keywords, results, unrankedPenalty])
 
     const handleTabClick = (keyword: string) => {
         setActiveKeyword(keyword)

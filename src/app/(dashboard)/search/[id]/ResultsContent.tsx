@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { AverageRankCard } from '@/components/results/AverageRankCard'
+import { SearchResultsOverview } from '@/components/results/SearchResultsOverview'
 import { KeywordTabs } from '@/components/results/KeywordTabs'
 import { RankHeatmap } from '@/components/results/RankHeatmap'
 import { CompetitorSelector } from '@/components/results/CompetitorSelector'
@@ -33,14 +33,20 @@ export function ResultsContent({ search, results, competitors, planId }: Props) 
 
     return (
         <div className="space-y-6">
-            {/* Average Rank Card */}
-            <AverageRankCard results={filteredResults} />
+            <SearchResultsOverview
+                results={filteredResults}
+                topRankThreshold={3}
+                gridDistance={search.grid_distance}
+                unrankedPenalty={21}
+                variant="blue"
+            />
 
             {/* Keyword Tabs */}
             <KeywordTabs
                 keywords={search.keywords}
                 results={results}
                 onKeywordChange={setSelectedKeyword}
+                unrankedPenalty={21}
             />
 
             {/* Rank Heatmap (Platform Specific) */}
