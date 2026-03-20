@@ -89,8 +89,8 @@ export function NaverResultsContent({ search, results, competitors, planId }: Pr
                 selectedKeyword={selectedKeyword}
             />
 
-            {/* Competitor Comparison Section (hidden for Starter plan) */}
-            {!isStarter && (
+            {/* Competitor Comparison Section (hidden for Starter plan and free trial) */}
+            {!isStarter && search.report_type !== 'free_trial' && (
                 <div className="mt-8">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         {/* Left Panel: Controls & List */}
