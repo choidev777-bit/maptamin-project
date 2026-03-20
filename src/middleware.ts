@@ -49,10 +49,17 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(url)
     }
 
-    // If logged in and accessing auth pages (like login), redirect to dashboard
+    // If logged in and accessing auth pages (like login), redirect appropriately
     if (user && request.nextUrl.pathname.startsWith('/login')) {
         const url = request.nextUrl.clone()
-        url.pathname = '/dashboard'
+        const redirectTo = request.nextUrl.searchParams.get('redirectTo')
+        // 보안: 상대경로만 허용 (슬래시 하나로 시작, 두 개는 거부)
+        if (redirectTo && redirectTo.startsWith('/') && !redirectTo.startsWith('//')) {
+            url.pathname = redirectTo
+        } else {
+            url.pathname = '/dashboard'
+        }
+        url.search = ''
         return NextResponse.redirect(url)
     }
 
