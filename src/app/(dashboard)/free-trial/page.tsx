@@ -156,7 +156,7 @@ export default function FreeTrialPage() {
             case 1: return !!selectedPlace
             case 2: return localKeyword.trim().length > 0 && industryKeyword.trim().length > 0
             case 3: return enabledGridCount > 0
-            case 4: return /^01[016789]\d{7,8}$/.test(phone.replace(/[^0-9]/g, ''))
+            case 4: return /^(010\d{8}|01[16789]\d{7})$/.test(phone.replace(/[^0-9]/g, ''))
             default: return false
         }
     }, [step, selectedPlace, localKeyword, industryKeyword, enabledGridCount, phone])

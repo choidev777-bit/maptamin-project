@@ -78,7 +78,7 @@ export async function POST(request: Request) {
 
     // 전화번호 형식 검증 (한국 휴대폰: 010XXXXXXXX)
     const phoneClean = phone.replace(/[^0-9]/g, '')
-    if (!/^01[016789]\d{7,8}$/.test(phoneClean)) {
+    if (!/^(010\d{8}|01[16789]\d{7})$/.test(phoneClean)) {
         return NextResponse.json(
             { error: 'INVALID_PHONE', message: '올바른 휴대폰 번호를 입력해주세요.' },
             { status: 400 }
