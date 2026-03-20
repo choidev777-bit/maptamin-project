@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     // (dashboard) 라우트 그룹의 모든 보호 경로
-    const protectedPrefixes = ['/dashboard', '/naver-search', '/search', '/settings', '/history', '/onboarding', '/report-settings']
+    const protectedPrefixes = ['/dashboard', '/naver-search', '/search', '/settings', '/history', '/onboarding', '/report-settings', '/free-trial']
     const isProtected = protectedPrefixes.some(prefix => request.nextUrl.pathname.startsWith(prefix))
 
     if (isProtected && !user) {

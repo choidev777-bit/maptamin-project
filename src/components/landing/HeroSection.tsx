@@ -53,10 +53,10 @@ export default function HeroSection() {
                         {/* CTA 버튼 */}
                         <div className="flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
                             <Link
-                                href="/login"
+                                href="/login?redirectTo=/free-trial"
                                 className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#00C896] px-8 py-4 text-base font-bold text-white shadow-[0_20px_40px_-10px_rgba(0,199,149,0.3)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#00B386] hover:shadow-[0_25px_50px_-10px_rgba(0,199,149,0.4)] sm:w-auto sm:text-lg"
                             >
-                                우리 매장 &lsquo;진짜 순위&rsquo; 확인하기
+                                무료로 1분만에 우리 매장 &lsquo;진짜 순위&rsquo; 확인하기
                                 <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
                             </Link>
                         </div>
