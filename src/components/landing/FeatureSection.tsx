@@ -63,8 +63,7 @@ export default function FeatureSection() {
                                         <span className="text-sm font-normal text-slate-400">6~10위</span>
                                     </h3>
                                     <p className="break-keep text-sm leading-relaxed text-slate-500 sm:text-base">
-                                        조금만 밀어붙이면 &lsquo;내 구역&rsquo; 이 됩니다.<br />
-                                        가성비 좋게 순위를 올릴 수 있는 기회의 좌표입니다.
+                                        마케팅을 집중하면 상위권 진입이 가능한 기회 구역입니다.
                                     </p>
                                 </div>
                             </div>
@@ -91,7 +90,7 @@ export default function FeatureSection() {
                         <div className="absolute -inset-4 rounded-[2.5rem] bg-gradient-to-tr from-[#00C896]/10 to-transparent blur-xl opacity-30 transition-opacity group-hover:opacity-60" />
                         <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-lg">
                             <Image
-                                src="/images/main-feature-hq.png"
+                                src="/images/feature-analysis-hq.png"
                                 alt="맵타민 플레이스 순위 지도 분석 결과 화면"
                                 width={2560}
                                 height={1800}
@@ -138,7 +137,7 @@ export default function FeatureSection() {
                             <div className="absolute -inset-2 rounded-3xl bg-gradient-to-r from-slate-200 to-slate-100 blur-xl opacity-70" />
                             <div className="relative overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xl">
                                 <Image
-                                    src="/images/competitive-hq.png"
+                                    src="/images/new_competitor_feature_waifu2x.png"
                                     alt="맵타민 경쟁사 비교 분석 지도 화면"
                                     width={2200}
                                     height={1060}
