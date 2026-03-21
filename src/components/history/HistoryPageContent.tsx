@@ -80,12 +80,21 @@ export function HistoryPageContent({
     const currentExposureTrend = activePlatform === 'naver' ? naverExposureTrend : googleExposureTrend
     const currentTopRateTrend = activePlatform === 'naver' ? naverTopRateTrend : googleTopRateTrend
 
-    // 기간 필터 cutoff 날짜 계산 (rerender-memo: selectedPeriod가 바뀔 때만 재계산)
+    // 기간 필터 cutoff 날짜 계산 — 데이터 마지막 날짜 기준 (오늘 기준 아님)
+    // 더미데이터처럼 마지막 날짜가 오늘보다 이전인 경우에도 정상 작동
+    const lastDataDate = useMemo(() => {
+        const allDates = [
+            ...naverTrend.map(p => p.fullDate),
+            ...googleTrend.map(p => p.fullDate),
+        ]
+        return allDates.length > 0 ? allDates.sort().at(-1)! : new Date().toISOString().split('T')[0]
+    }, [naverTrend, googleTrend])
+
     const cutoffDateStr = useMemo(() => {
-        const d = new Date()
+        const d = new Date(lastDataDate)
         d.setDate(d.getDate() - parseInt(selectedPeriod))
         return d.toISOString().split('T')[0]  // 'YYYY-MM-DD'
-    }, [selectedPeriod])
+    }, [selectedPeriod, lastDataDate])
 
     // trend 배열 필터링 — fullDate(YYYY-MM-DD) 문자열 비교로 날짜 범위 적용 (rerender-memo)
     const filteredTrend = useMemo(
@@ -102,11 +111,16 @@ export function HistoryPageContent({
     )
 
     // 지역명 키워드 trend 필터링 (Card 2 전용 — 독립 기간)
+    const lastLocalDataDate = useMemo(() => {
+        const allDates = naverLocalTrend.map(p => p.fullDate)
+        return allDates.length > 0 ? allDates.sort().at(-1)! : new Date().toISOString().split('T')[0]
+    }, [naverLocalTrend])
+
     const cutoffLocalDateStr = useMemo(() => {
-        const d = new Date()
+        const d = new Date(lastLocalDataDate)
         d.setDate(d.getDate() - parseInt(selectedLocalPeriod))
         return d.toISOString().split('T')[0]
-    }, [selectedLocalPeriod])
+    }, [selectedLocalPeriod, lastLocalDataDate])
 
     const filteredLocalTrend = useMemo(
         () => naverLocalTrend.filter(p => p.fullDate >= cutoffLocalDateStr),

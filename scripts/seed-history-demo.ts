@@ -89,7 +89,7 @@ const GOOGLE_EXPOSURE_CFG: Record<string, { expStart: number; expEnd: number; to
 
 // ── 날짜 설정 ───────────────────────────────────────────
 const START_DATE = '2025-12-21'
-const END_DATE   = '2026-03-21'
+const END_DATE   = '2026-03-14'
 
 // ===================================================================
 // 헬퍼 함수
