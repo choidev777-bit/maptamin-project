@@ -17,7 +17,7 @@ config({ path: resolve(process.cwd(), '.env.local') })
 // ⚠️  여기를 먼저 수정하세요
 // ===================================================================
 const USER_ID         = 'c9441bda-c9b0-44fa-ac95-d7449d928c87'
-const NAVER_PLACE_ID  = '7Zek7J207Y+s7JejLeyEnOyauO2KueuzhOyLnCDsooXroZzqtawg64+I7ZmU66y466GcOeqwgOq4uCAxMC0yIOydtOuwnOyGjCDsmIYg7Lm07Y6YIO2XpOydtO2PrOyXow=='
+const NAVER_PLACE_ID  = '7Zek7J207Y+s7JejLeyEnOyauO2KueuzhOyLnCAxMOqwgOq4uCAxMC0y'
 const GOOGLE_PLACE_ID = 'ChIJlXAY_IejfDURxEXnnXsatGk'
 // ===================================================================
 
@@ -36,16 +36,16 @@ const PLACE_LNG     = 127.0491
 const KEYWORDS: string[]       = ['이자카야', '술집', '룸술집', '회식', '하이볼']
 const LOCAL_KEYWORDS: string[] = ['선릉역 이자카야', '선릉역 술집', '선릉역 룸술집', '선릉역 회식', '선릉역 하이볼']
 
-// ── 순위 목표값 — 네이버 업종 키워드 (시작 → 끝) ─────────
+// ── 순위 목표값 — 네이버 업종 키워드 (시작점 분산) ─────────
 const RANK_CFG: Record<string, { start: number; end: number }> = {
-    '이자카야': { start: 21.5, end: 4.2 },
-    '술집':     { start: 19.8, end: 5.1 },
-    '룸술집':   { start: 23.2, end: 6.3 },
-    '회식':     { start: 20.3, end: 7.0 },
-    '하이볼':   { start: 21.0, end: 3.4 },
+    '이자카야': { start: 9, end: 5 },       // ~8위 시작 (메인 업종)
+    '술집':     { start: 17, end: 7 },      // ~13위 시작 (경쟁 치열)
+    '룸술집':   { start: 20, end: 5 },      // ~16위 시작 (후발주자)
+    '회식':     { start: 11, end: 13 },     // ~9위 시작 (중간)
+    '하이볼':   { start: 6, end: 4 },       // ~4위 시작 (틈새)
 }
 
-// ── 구글 키워드 (네이버 지역명 키워드와 동일) ──────────────
+// ── 구글 키워드 ──────────────────────────────────────────
 const GOOGLE_KEYWORDS: string[] = [
     '선릉역 이자카야', '선릉역 술집', '선릉역 룸술집', '선릉역 회식', '선릉역 하이볼',
 ]
@@ -58,20 +58,27 @@ const GOOGLE_RANK_CFG: Record<string, { start: number; end: number }> = {
     '선릉역 하이볼':   { start: 20.0, end: 6.5 },
 }
 
-// ── 그리드 & 노출 설정 (키워드별 차별화) ─────────────────
+// ── 네이버 지역명 키워드 순위 목표값 ──────────────────────
+const LOCAL_RANK_CFG: Record<string, { start: number; end: number }> = {
+    '선릉역 이자카야': { start: 7, end: 3 },       // 상승→꺾임→횡보
+    '선릉역 술집':     { start: 10, end: 5 },      // 하락→횡보→반등
+    '선릉역 룸술집':   { start: 12, end: 4 },      // 후발주자 → 4위
+    '선릉역 회식':     { start: 7, end: 11 },      // 서서히 밀림
+    '선릉역 하이볼':   { start: 4, end: 3 },       // 안정
+}
+
+// ── 그리드 & 노출 설정 ─────────────────────────────────
 const GRID_SIZE      = 7
 const GRID_TOTAL     = GRID_SIZE * GRID_SIZE  // 49
 
-// 네이버 업종 키워드별 노출좌표수/상위노출수 (시작 → 끝)
 const EXPOSURE_CFG: Record<string, { expStart: number; expEnd: number; topStart: number; topEnd: number }> = {
-    '이자카야': { expStart: 20, expEnd: 42, topStart: 5, topEnd: 24 },
-    '술집':     { expStart: 16, expEnd: 38, topStart: 3, topEnd: 20 },
-    '룸술집':   { expStart: 12, expEnd: 34, topStart: 2, topEnd: 16 },
-    '회식':     { expStart: 22, expEnd: 40, topStart: 6, topEnd: 22 },
-    '하이볼':   { expStart: 14, expEnd: 36, topStart: 4, topEnd: 18 },
+    '이자카야': { expStart: 24, expEnd: 40, topStart: 4, topEnd: 22 },
+    '술집':     { expStart: 22, expEnd: 38, topStart: 4, topEnd: 20 },
+    '룸술집':   { expStart: 8,  expEnd: 42, topStart: 1, topEnd: 26 },
+    '회식':     { expStart: 26, expEnd: 24, topStart: 8, topEnd: 7 },
+    '하이볼':   { expStart: 38, expEnd: 40, topStart: 20, topEnd: 22 },
 }
 
-// 구글 키워드별 노출좌표수/상위노출수
 const GOOGLE_EXPOSURE_CFG: Record<string, { expStart: number; expEnd: number; topStart: number; topEnd: number }> = {
     '선릉역 이자카야': { expStart: 15, expEnd: 38, topStart: 3, topEnd: 20 },
     '선릉역 술집':     { expStart: 10, expEnd: 32, topStart: 2, topEnd: 14 },
@@ -81,8 +88,8 @@ const GOOGLE_EXPOSURE_CFG: Record<string, { expStart: number; expEnd: number; to
 }
 
 // ── 날짜 설정 ───────────────────────────────────────────
-const START_DATE = '2026-01-18'
-const END_DATE   = '2026-03-18'
+const START_DATE = '2025-12-21'
+const END_DATE   = '2026-03-21'
 
 // ===================================================================
 // 헬퍼 함수
@@ -124,38 +131,124 @@ function generateGridPoints() {
 
 const GRID_PTS = generateGridPoints()
 
-/**
- * 키워드별 고유 곡선 — t(0→1)를 받아 0→1 범위의 진행도를 반환
- * 이 진행도가 클수록 순위가 더 많이 개선됨
- */
-function kwCurve(kw: string, t: number, dIdx: number): number {
-    switch (kw) {
-        case '이자카야':
-            // 꾸준한 상승 (약간 S자)
-            return t * t * (3 - 2 * t)  // smoothstep
+// ===================================================================
+// 웨이포인트 기반 순위 곡선 시스템
+// ===================================================================
+type WP = [number, number] // [시간(0~1), 진행도]
 
-        case '술집':
-            // 중반 하락 후 회복 (V자) — 0.4 지점에서 -0.15 딥
-            if (t < 0.4) return t * 0.5 - Math.sin(t * Math.PI * 2.5) * 0.15
-            return 0.2 + (t - 0.4) * 1.33  // 0.4→1.0 을 0.2→1.0 으로
-
-        case '룸술집':
-            // 초반 정체 → 후반 급상승 (지수 곡선)
-            return Math.pow(t, 2.5)
-
-        case '회식':
-            // 등락이 심한 변동 + 전체적 상승
-            return t * 0.7 + Math.sin(t * Math.PI * 4 + dIdx * 0.3) * 0.15
-
-        case '하이볼':
-            // 초반 급상승 → 후반 정체 (로그 곡선)
-            return Math.min(1, Math.sqrt(t) * 1.1)
-
-        default:
-            return t
+function interpolateWP(wps: WP[], t: number): number {
+    if (t <= wps[0][0]) return wps[0][1]
+    for (let i = 0; i < wps.length - 1; i++) {
+        if (t >= wps[i][0] && t < wps[i + 1][0]) {
+            const segT = (t - wps[i][0]) / (wps[i + 1][0] - wps[i][0])
+            return lerp(wps[i][1], wps[i + 1][1], segT)
+        }
     }
+    return wps[wps.length - 1][1]
 }
 
+/** 일간 변동: 지그재그 + 간헐적 점프 (평균 순위에 현실감 부여) */
+function dayVar(seed: number, dIdx: number): number {
+    const s = dIdx * 31 + seed * 127
+    const zigzag = (dNoise(s) - 0.5) * 0.10
+    const jumpSeed = dNoise(s + 7777)
+    const jump = jumpSeed > 0.88 ? 0.10 : jumpSeed < 0.12 ? -0.08 : 0
+    return zigzag + jump
+}
+
+// ── 업종 키워드 웨이포인트 ──────────────────────────────
+const KW_WP: Record<string, WP[]> = {
+    // 이자카야: 지그재그 상승 → 피크 횡보(~18일) → 빠른 하락 → 횡보
+    '이자카야': [
+        [0, 0], [.05, .10], [.08, .05], [.12, .22], [.16, .18],
+        [.20, .38], [.23, .35], [.27, .55], [.32, .72], [.37, .88],
+        [.40, .93], [.44, .90], [.48, .95], [.52, .92], [.56, .94],
+        [.60, .90], [.64, .88],
+        [.68, .72], [.72, .48], [.76, .28],
+        [.80, .15], [.86, .10], [.93, .08], [1, .08],
+    ],
+    // 술집: 하락 → 횡보 → 반등 (시작보다 높게, 룸술집보다 낮게)
+    '술집': [
+        [0, 0], [.08, -.08], [.15, -.18], [.22, -.28], [.28, -.30],
+        [.35, -.28], [.40, -.32], [.45, -.28], [.50, -.20],
+        [.55, -.08], [.60, .10], [.68, .30], [.75, .42],
+        [.82, .50], [.90, .55], [1, .58],
+    ],
+    // 룸술집: 후발주자 — 초반 정체 후 급상승
+    '룸술집': [
+        [0, 0], [.10, .01], [.20, .03], [.28, .05], [.35, .10],
+        [.42, .20], [.50, .35], [.58, .52], [.65, .68],
+        [.72, .80], [.80, .88], [.88, .94], [.95, .98], [1, 1.0],
+    ],
+    // 회식: 정체 — 올라가는 듯 내려가는 반복
+    '회식': [
+        [0, 0], [.08, .18], [.15, .05], [.22, .22], [.30, .08],
+        [.38, .25], [.45, .12], [.52, .28], [.60, .18],
+        [.68, .35], [.75, .42], [.82, .48], [.90, .45], [1, .50],
+    ],
+    // 하이볼: 안정 — 등락 반복, 트렌드 없음
+    '하이볼': [
+        [0, .50], [.07, .68], [.14, .35], [.21, .72], [.28, .40],
+        [.35, .62], [.42, .32], [.49, .58], [.56, .42],
+        [.63, .68], [.70, .38], [.77, .62], [.84, .45],
+        [.91, .60], [1, .52],
+    ],
+}
+
+// ── 지역명 키워드 웨이포인트 (업종과 시차 + 독립 변동) ────
+const LOCAL_KW_WP: Record<string, WP[]> = {
+    // 이자카야: 업종과 유사하지만 ~5일 지연, 피크 횡보 후 하락
+    '선릉역 이자카야': [
+        [0, 0], [.08, .06], [.14, .15], [.20, .12], [.26, .35],
+        [.32, .52], [.38, .78], [.43, .90],
+        [.48, .88], [.52, .93], [.56, .90], [.60, .92], [.65, .88],
+        [.70, .68], [.75, .42], [.80, .25],
+        [.86, .16], [.93, .12], [1, .12],
+    ],
+    // 술집: 업종보다 ~7일 늦게 반응, 반등도 늦게 시작
+    '선릉역 술집': [
+        [0, 0], [.12, -.05], [.20, -.15], [.28, -.28],
+        [.38, -.30], [.45, -.28], [.52, -.22], [.58, -.10],
+        [.65, .10], [.72, .32], [.80, .52], [.90, .65], [1, .72],
+    ],
+    // 룸술집: 업종과 동일하게 급상승 (큰 변화 = 즉시 반영)
+    '선릉역 룸술집': [
+        [0, 0], [.15, .01], [.25, .03], [.35, .08],
+        [.45, .20], [.55, .38], [.62, .55], [.70, .72],
+        [.78, .85], [.85, .92], [.92, .97], [1, 1.0],
+    ],
+    // 회식: 업종과 독립적으로 서서히 하락
+    '선릉역 회식': [
+        [0, 0], [.10, .08], [.20, .15], [.30, .22], [.42, .32],
+        [.55, .48], [.65, .60], [.75, .72], [.85, .82], [.95, .92], [1, .95],
+    ],
+    // 하이볼: 업종과 다른 위상으로 독립 진동
+    '선릉역 하이볼': [
+        [0, .50], [.10, .62], [.18, .38], [.26, .65], [.34, .42],
+        [.42, .55], [.50, .35], [.58, .60], [.66, .45],
+        [.74, .58], [.82, .40], [.90, .55], [1, .48],
+    ],
+}
+
+/** 업종 키워드 곡선 (웨이포인트 보간 + 일간 변동) */
+function kwCurve(kw: string, t: number, dIdx: number): number {
+    const wp = KW_WP[kw]
+    if (!wp) return t
+    const kwI = KEYWORDS.indexOf(kw)
+    return interpolateWP(wp, t) + dayVar(kwI, dIdx)
+}
+
+/** 지역명 키워드 곡선 (업종과 독립적 웨이포인트 + 별도 변동) */
+function localKwCurve(kw: string, t: number, dIdx: number): number {
+    const wp = LOCAL_KW_WP[kw]
+    if (!wp) return t
+    const kwI = LOCAL_KEYWORDS.indexOf(kw)
+    return interpolateWP(wp, t) + dayVar(kwI + 10, dIdx)
+}
+
+// ===================================================================
+// 순위 계산 함수
+// ===================================================================
 function calcRank(
     kw: string, gIdx: number, dIdx: number,
     totalDays: number, expCount: number, topCount: number
@@ -163,51 +256,46 @@ function calcRank(
     if (gIdx >= expCount) return null
     const t    = dIdx / (totalDays - 1)
     const kwI  = KEYWORDS.indexOf(kw)
-    const n    = (dNoise(gIdx * 100 + dIdx * 10 + kwI * 1000) - 0.5) * 3
+    const n    = (dNoise(gIdx * 100 + dIdx * 10 + kwI * 1000) - 0.5) * 5
 
-    // 키워드별 곡선으로 진행도 계산
-    const progress = Math.max(0, Math.min(1, kwCurve(kw, t, dIdx)))
+    const progress = kwCurve(kw, t, dIdx)
+    const clampedP = Math.max(0, Math.min(1, progress))
 
     if (gIdx < topCount) {
-        return Math.max(1, Math.min(5, Math.round(lerp(4.5, 2.0, progress) + n * 0.4)))
+        return Math.max(1, Math.min(5, Math.round(lerp(4.5, 2.0, clampedP) + n * 0.4)))
     } else {
         const { start, end } = RANK_CFG[kw]
-        const base = lerp(start, Math.max(8, end * 1.6), progress)
-        return Math.max(6, Math.min(35, Math.round(base + n)))
+        const base = lerp(start, end, progress)
+        return Math.max(1, Math.min(35, Math.round(base + n)))
     }
 }
 
 function calcLocalRank(kwIdx: number, dIdx: number, totalDays: number): number {
+    const lkw = LOCAL_KEYWORDS[kwIdx]
     const t = dIdx / (totalDays - 1)
-    const n = (dNoise(dIdx * 7 + kwIdx * 300) - 0.5) * 2
-    // 대응하는 업종 키워드와 같은 커브 적용
-    const baseKw = KEYWORDS[kwIdx]
-    const progress = Math.max(0, Math.min(1, kwCurve(baseKw, t, dIdx)))
-    return Math.max(1, Math.round(lerp(14 - kwIdx * 0.5, 4 - kwIdx * 0.3, progress) + n))
+    const n = (dNoise(dIdx * 7 + kwIdx * 300) - 0.5) * 3
+    const progress = localKwCurve(lkw, t, dIdx)
+    const { start, end } = LOCAL_RANK_CFG[lkw]
+    return Math.max(1, Math.round(lerp(start, end, progress) + n))
 }
 
 /** 구글 키워드별 고유 커브 — 5개 모두 다른 패턴 */
 function googleKwCurve(kw: string, t: number, dIdx: number): number {
     switch (kw) {
         case '선릉역 이자카야':
-            // 초반 급상승 후 완만 (지수 반전)
             return 1 - Math.pow(1 - t, 2.2)
         case '선릉역 술집':
-            // 계단식 (두 번의 점프)
             if (t < 0.3)  return t * 0.8
             if (t < 0.35) return 0.24 + (t - 0.3) * 6
             if (t < 0.6)  return 0.54 + (t - 0.35) * 0.4
             if (t < 0.65) return 0.64 + (t - 0.6) * 6
             return Math.min(1, 0.94 + (t - 0.65) * 1.2)
         case '선릉역 룸술집':
-            // 초반 하락 후 반등 (U자)
             if (t < 0.25) return t * 0.3 - Math.sin(t * Math.PI * 2) * 0.1
             return 0.075 + Math.pow((t - 0.25) / 0.75, 0.7) * 0.925
         case '선릉역 회식':
-            // 중반까지 정체 → 후반 폭발적 상승
             return Math.pow(t, 3)
         case '선릉역 하이볼':
-            // 진동하며 상승 (파동)
             return Math.min(1, t * 0.75 + Math.sin(t * Math.PI * 5) * 0.12 + t * 0.25)
         default:
             return t
@@ -252,10 +340,6 @@ async function main() {
         console.error('❌ .env.local 에서 SUPABASE_SERVICE_ROLE_KEY 를 찾을 수 없습니다.')
         process.exit(1)
     }
-    if (USER_ID === 'YOUR_USER_ID_HERE') {
-        console.error('❌ USER_ID 를 실제 값으로 교체하세요.')
-        process.exit(1)
-    }
 
     console.log('🌱 데모 데이터 삽입 시작\n')
 
@@ -266,7 +350,6 @@ async function main() {
     // ── 1. searches ────────────────────────────────────────────────
     console.log('📅 1/3  searches 삽입 중...')
 
-    // UUID 맵 생성 (search_results에서 search_id로 참조)
     const naverIdMap: Record<string, string>  = {}
     const googleIdMap: Record<string, string> = {}
     allDates.forEach(d => { naverIdMap[d]  = randomUUID() })
@@ -324,8 +407,9 @@ async function main() {
 
         KEYWORDS.forEach(kw => {
             const cfg = EXPOSURE_CFG[kw]
-            const expCount = Math.round(lerp(cfg.expStart, cfg.expEnd, t))
-            const topCount = Math.round(lerp(cfg.topStart, cfg.topEnd, t))
+            const expProgress = Math.max(0, Math.min(1, kwCurve(kw, t, dIdx)))
+            const expCount = Math.round(lerp(cfg.expStart, cfg.expEnd, expProgress))
+            const topCount = Math.round(lerp(cfg.topStart, cfg.topEnd, expProgress))
             for (let gIdx = 0; gIdx < GRID_TOTAL; gIdx++) {
                 results.push({
                     id:         randomUUID(),

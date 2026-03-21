@@ -18,13 +18,12 @@ const RankTrendChart = dynamic(() => import('./RankTrendChart'), {
 })
 
 // 기간 필터 옵션 — 컴포넌트 외부에 선언 (매 렌더마다 재생성 방지, rerender-hoist)
-type PeriodOption = '7' | '30' | '90' | 'all'
+type PeriodOption = '7' | '30' | '90'
 
 const PERIOD_OPTIONS: { value: PeriodOption; label: string }[] = [
     { value: '7',   label: '7일' },
     { value: '30',  label: '30일' },
     { value: '90',  label: '90일' },
-    { value: 'all', label: '전체' },
 ]
 
 interface Props {
@@ -83,7 +82,6 @@ export function HistoryPageContent({
 
     // 기간 필터 cutoff 날짜 계산 (rerender-memo: selectedPeriod가 바뀔 때만 재계산)
     const cutoffDateStr = useMemo(() => {
-        if (selectedPeriod === 'all') return null
         const d = new Date()
         d.setDate(d.getDate() - parseInt(selectedPeriod))
         return d.toISOString().split('T')[0]  // 'YYYY-MM-DD'
@@ -91,28 +89,27 @@ export function HistoryPageContent({
 
     // trend 배열 필터링 — fullDate(YYYY-MM-DD) 문자열 비교로 날짜 범위 적용 (rerender-memo)
     const filteredTrend = useMemo(
-        () => cutoffDateStr ? currentTrend.filter(p => p.fullDate >= cutoffDateStr) : currentTrend,
+        () => currentTrend.filter(p => p.fullDate >= cutoffDateStr),
         [currentTrend, cutoffDateStr]
     )
     const filteredExposureTrend = useMemo(
-        () => cutoffDateStr ? currentExposureTrend.filter(p => p.fullDate >= cutoffDateStr) : currentExposureTrend,
+        () => currentExposureTrend.filter(p => p.fullDate >= cutoffDateStr),
         [currentExposureTrend, cutoffDateStr]
     )
     const filteredTopRateTrend = useMemo(
-        () => cutoffDateStr ? currentTopRateTrend.filter(p => p.fullDate >= cutoffDateStr) : currentTopRateTrend,
+        () => currentTopRateTrend.filter(p => p.fullDate >= cutoffDateStr),
         [currentTopRateTrend, cutoffDateStr]
     )
 
     // 지역명 키워드 trend 필터링 (Card 2 전용 — 독립 기간)
     const cutoffLocalDateStr = useMemo(() => {
-        if (selectedLocalPeriod === 'all') return null
         const d = new Date()
         d.setDate(d.getDate() - parseInt(selectedLocalPeriod))
         return d.toISOString().split('T')[0]
     }, [selectedLocalPeriod])
 
     const filteredLocalTrend = useMemo(
-        () => cutoffLocalDateStr ? naverLocalTrend.filter(p => p.fullDate >= cutoffLocalDateStr) : naverLocalTrend,
+        () => naverLocalTrend.filter(p => p.fullDate >= cutoffLocalDateStr),
         [naverLocalTrend, cutoffLocalDateStr]
     )
 

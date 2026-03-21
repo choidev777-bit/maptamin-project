@@ -35,6 +35,8 @@ interface Props {
 }
 
 export function RankTrendChart({ trendData, keywords, yAxisMode = 'rank' }: Props) {
+    // 데이터 포인트 30개 초과 시 마커 숨기고 선만 표시
+    const showDots = trendData.length <= 30
     // 기본값: 모든 키워드 활성
     const [activeKeywords, setActiveKeywords] = useState<Set<string>>(
         () => new Set(keywords)
@@ -154,8 +156,8 @@ export function RankTrendChart({ trendData, keywords, yAxisMode = 'rank' }: Prop
                                     type="monotone"
                                     dataKey={keyword}
                                     stroke={keywordColorMap.get(keyword) || '#00C896'}
-                                    strokeWidth={2.5}
-                                    dot={{ r: 4, strokeWidth: 2 }}
+                                    strokeWidth={showDots ? 2.5 : 2}
+                                    dot={showDots ? { r: 4, strokeWidth: 2 } : false}
                                     activeDot={{ r: 6 }}
                                     connectNulls={false}
                                 />

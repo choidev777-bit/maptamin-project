@@ -18,7 +18,7 @@ export function FreeTrialBanner() {
                 <Gift className="w-5 h-5 text-white/90 shrink-0" />
                 <p className="text-sm font-medium text-white">
                     <span className="opacity-90">무료 체험 가능!</span>{' '}
-                    5분만에 우리 매장 &lsquo;진짜 순위&rsquo;를 확인해보세요.{' '}
+                    5분 만에 우리 매장 &lsquo;진짜 순위&rsquo;를 확인해보세요.{' '}
                     <span className="underline underline-offset-2 font-bold group-hover:opacity-80 transition-opacity">
                         무료 체험 시작하기 →
                     </span>
