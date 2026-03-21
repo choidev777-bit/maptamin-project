@@ -34,7 +34,7 @@ export function RankDetailModal({ isOpen, onClose, result }: Props) {
             {/* Modal */}
             <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
+                <div className="bg-gray-900 px-6 py-4 text-white">
                     <div className="flex justify-between items-start">
                         <div>
                             <h3 className="font-bold text-lg">{result.keyword}</h3>

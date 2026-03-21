@@ -283,7 +283,7 @@ export default function FreeTrialPage() {
             {/* Header */}
             <div className="mb-8">
                 <h1 className="text-2xl font-bold text-gray-900">맵타민 무료체험</h1>
-                <p className="text-gray-500 mt-1">1분만에 사장님 매장을 진단하세요! 결과는 카카오톡으로 발송됩니다.</p>
+                <p className="text-gray-500 mt-1">5분만에 사장님 매장을 진단하세요! 결과는 카카오톡으로 발송됩니다.</p>
             </div>
 
             {/* Step Indicator */}
