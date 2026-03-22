@@ -85,7 +85,7 @@ export default function SolutionSection() {
                     {/* 오른쪽: 타이틀 + 서브 카피 */}
                     <div className="order-1 lg:order-2">
                         <h2 className="break-keep text-2xl font-extrabold leading-tight text-gray-900 sm:text-3xl lg:text-4xl">
-                            지역명 키워드 상위노출은 결과일 뿐,
+                            네이버 플레이스 상위노출은 결과일 뿐,
                             <br />
                             시작은{' '}
                             <span className="text-[#00C896]">

@@ -8,7 +8,7 @@ export default function BridgeSection2() {
                     {/* 태그 */}
                     <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-[#00C896]/10 px-4 py-2 text-sm font-bold tracking-wide text-[#00C896]">
                         <Grid3X3 className="h-4 w-4" />
-                        플레이스 순위 지도
+                        네이버 플레이스 순위 지도
                     </div>
 
                     {/* 타이틀 */}
@@ -38,7 +38,7 @@ export default function BridgeSection2() {
                         검색했을 때의
                         <br />
                         <strong className="text-gray-800">
-                            &lsquo;진짜 순위&rsquo;
+                            위치별 순위
                         </strong>
                         를 지도 위에 색깔로 한눈에 보여드립니다.
                     </p>

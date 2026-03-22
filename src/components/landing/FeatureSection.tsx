@@ -126,7 +126,7 @@ export default function FeatureSection() {
                             </ul>
                             <div className="mt-10">
                                 <Link href="/login" className="group flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-gray-900 transition-all hover:border-[#00C896]/50 hover:bg-[#00C896]/5">
-                                    경쟁사 분석 시작하기
+                                    경쟁사 플레이스 분석 시작하기
                                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                                 </Link>
                             </div>
@@ -212,7 +212,7 @@ export default function FeatureSection() {
                                 <p className="break-keep text-xs leading-relaxed text-slate-500 sm:text-sm">
                                     사장님이 가장 한가한 시간을 알려주세요. 맵타민이 알아서
                                     <br className="hidden lg:block" />
-                                    매일 카톡으로 &lsquo;플레이스 순위 지도&rsquo;를 보내드립니다.
+                                    매일 카톡으로 &lsquo;네이버 플레이스 분석 리포트&rsquo;를 보내드립니다.
                                 </p>
                             </div>
                         </div>

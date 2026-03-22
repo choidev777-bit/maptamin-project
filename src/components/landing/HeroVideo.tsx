@@ -362,16 +362,16 @@ export const NewVideoSequence: React.FC = () => {
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                             <Img src={staticFile("images/house-icon.svg")} style={{ width: 24, height: 24 }} />
-                            <span style={{ fontSize: 22, fontWeight: "bold", fontFamily: "Arial, sans-serif" }}>
-                                <span style={{ color: "#00c986" }}>내 매장</span>
-                                <span style={{ color: "#001011" }}>: 맵타민네 카페</span>
+                            <span style={{ fontSize: 19, fontWeight: "bold", fontFamily: "Arial, sans-serif" }}>
+                                <span style={{ color: "#00c986" }}>내 매장:</span>
+                                <span style={{ color: "#001011" }}> 맵타민 카페 홍대점</span>
                             </span>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                             <Img src={staticFile("images/search-icon.svg")} style={{ width: 24, height: 24 }} />
                             <span style={{ fontSize: 22, fontWeight: "bold", fontFamily: "Arial, sans-serif" }}>
-                                <span style={{ color: "#00c986" }}>분석 키워드</span>
-                                <span style={{ color: "#001011" }}>: 근처 카페</span>
+                                <span style={{ color: "#00c986" }}>분석 키워드:</span>
+                                <span style={{ color: "#001011" }}> 카페</span>
                             </span>
                         </div>
                     </div>
@@ -383,7 +383,7 @@ export const NewVideoSequence: React.FC = () => {
                         </span>
                         <div
                             style={{
-                                fontSize: 32,
+                                fontSize: 26,
                                 fontWeight: "bold",
                                 fontFamily: "Arial, sans-serif",
                                 color: "#001011",
@@ -391,7 +391,7 @@ export const NewVideoSequence: React.FC = () => {
                                 alignItems: "center",
                             }}
                         >
-                            맵타민네 카페 :
+                            맵타민 카페 홍대점 :
                             <div
                                 style={{
                                     display: "flex",
