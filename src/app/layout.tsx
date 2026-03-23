@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://www.maptamin.com'),
   title: "맵타민 | 플레이스 상위노출의 시작",
   description: "네이버 플레이스 상위노출의 시작, 우리 매장 지도 건강검진 맵타민! 키워드별 네이버 스마트플레이스와 구글 지도 순위를 가장 쉽고 빠르게 진단하세요.",
+  verification: {
+    google: 'u4jfLIMf7V78CqNPpawdBOC_v3oJ2vkViGiWvtLvP0g',
+  },
 };
 
 export default function RootLayout({
