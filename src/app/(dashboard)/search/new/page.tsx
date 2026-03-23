@@ -659,12 +659,12 @@ export default function NewSearchPage() {
                                         {isSubmitting ? (
                                             <>
                                                 <Loader2 className="w-5 h-5 animate-spin" />
-                                                검색 시작 중...
+                                                분석 중...
                                             </>
                                         ) : (
                                             <>
                                                 <Check className="w-5 h-5" />
-                                                {hasTicket ? '진단 시작 (티켓 1장)' : '티켓 부족'}
+                                                {hasTicket ? '분석 시작 (티켓 1장)' : '티켓 부족'}
                                             </>
                                         )}
                                     </button>

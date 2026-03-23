@@ -115,31 +115,28 @@ export function CompetitorComparisonMap({
     if (comparisonPoints.length === 0) return null
 
     return (
-        <>
-            {/* Summary Bar */}
-            <div className="flex flex-wrap items-center gap-3 p-3 sm:p-4 bg-white border border-gray-200 rounded-xl">
-                <div className="flex-1 min-w-0 grid grid-cols-3 gap-2 text-center">
-                    <div className="bg-green-50 rounded-lg py-2">
-                        <p className="text-lg font-bold text-green-700">{summary.wins}</p>
-                        <p className="text-xs text-green-600">승리</p>
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col h-full">
+            {/* Header: 제목 + 범례 (네이버와 동일한 구조) */}
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-wrap justify-between items-center gap-2 bg-gray-50 dark:bg-gray-800">
+                <h4 className="font-bold text-sm text-gray-900 dark:text-white">경쟁사 분석 지도</h4>
+                <div className="flex flex-wrap gap-3 text-xs">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                        <span>내 매장 승리 ({summary.wins})</span>
                     </div>
-                    <div className="bg-red-50 rounded-lg py-2">
-                        <p className="text-lg font-bold text-red-700">{summary.losses}</p>
-                        <p className="text-xs text-red-600">패배</p>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        <span>경쟁사 승리 ({summary.losses})</span>
                     </div>
-                    <div className="bg-gray-50 rounded-lg py-2">
-                        <p className="text-lg font-bold text-gray-700">{summary.draws}</p>
-                        <p className="text-xs text-gray-600">무승부</p>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                        <span>무승부 ({summary.draws})</span>
                     </div>
-                </div>
-                <div className="text-center pl-3 sm:pl-4 border-l border-gray-200">
-                    <p className="text-2xl font-bold text-emerald-600">{summary.winRate}%</p>
-                    <p className="text-xs text-gray-500">승률</p>
                 </div>
             </div>
 
             {/* Map */}
-            <div className="rounded-2xl overflow-hidden border-2 border-gray-200 shadow-lg" style={{ height: 'clamp(280px, 60vw, 500px)' }}>
+            <div className="relative w-full bg-slate-100 dark:bg-slate-900 flex-grow">
                 <Map
                     defaultCenter={center}
                     defaultZoom={14}
@@ -150,6 +147,7 @@ export function CompetitorComparisonMap({
                     mapTypeControl={false}
                     streetViewControl={false}
                     fullscreenControl={true}
+                    style={{ width: '100%', height: 'clamp(280px, 60vw, 500px)' }}
                 >
                     {/* Win/Lose markers */}
                     {comparisonPoints.map((point) => {
@@ -173,23 +171,6 @@ export function CompetitorComparisonMap({
                 </Map>
             </div>
 
-            {/* Legend */}
-            <div className="mt-4 flex flex-wrap gap-4 justify-center">
-                {[
-                    { label: '승리 (내 순위가 높음)', color: '#22c55e' },
-                    { label: '패배 (경쟁사 순위가 높음)', color: '#ef4444' },
-                    { label: '무승부', color: '#9ca3af' },
-                ].map(({ label, color }) => (
-                    <div key={label} className="flex items-center gap-2">
-                        <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: color }}
-                        />
-                        <span className="text-sm text-gray-600">{label}</span>
-                    </div>
-                ))}
-            </div>
-
             {/* Detail Modal */}
             {selectedPoint && (
                 <CompetitorDetailModal
@@ -204,6 +185,6 @@ export function CompetitorComparisonMap({
                     verdict={selectedPoint.verdict}
                 />
             )}
-        </>
+        </div>
     )
 }

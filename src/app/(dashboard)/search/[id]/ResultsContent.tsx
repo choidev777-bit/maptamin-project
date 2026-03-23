@@ -4,12 +4,11 @@ import { useState } from 'react'
 import { SearchResultsOverview } from '@/components/results/SearchResultsOverview'
 import { KeywordTabs } from '@/components/results/KeywordTabs'
 import { RankHeatmap } from '@/components/results/RankHeatmap'
-import { CompetitorSelector } from '@/components/results/CompetitorSelector'
 import { CompetitorComparisonMap } from '@/components/results/CompetitorComparisonMap'
+import { CompetitorComparisonPanel } from '@/components/results/CompetitorComparisonPanel'
 import { Search, SearchResult, ManagedCompetitor } from '@/lib/types'
 import { GoogleMapsProvider } from '@/components/maps/GoogleMapsProvider'
 import { NaverRankHeatmap } from '@/components/naver/NaverRankHeatmap'
-import { NaverCompetitorComparisonMap } from '@/components/naver/NaverCompetitorComparisonMap'
 
 interface Props {
     search: Search
@@ -68,37 +67,39 @@ export function ResultsContent({ search, results, competitors, planId }: Props) 
 
             {/* Competitor Comparison Section (hidden for Starter plan) */}
             {!isStarter && (
-                <div className="space-y-4 mt-8">
-                    <h2 className="text-lg font-bold text-gray-900">⚔️ 경쟁사 비교 분석</h2>
-
-                    <CompetitorSelector
-                        competitors={competitors}
-                        selectedId={selectedCompetitorId}
-                        onSelect={setSelectedCompetitorId}
-                        maxCompetitors={maxCompetitors}
-                    />
-
-                    {selectedCompetitor && (
-                        search.platform === 'naver' ? (
-                            <NaverCompetitorComparisonMap
-                                center={{ lat: search.place_lat, lng: search.place_lng }}
-                                results={results}
-                                selectedKeyword={selectedKeyword}
-                                competitorPlaceId={selectedCompetitor.place_id}
-                                competitorName={selectedCompetitor.place_name}
+                <div className="mt-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Left Panel: Controls & Stats */}
+                        <div className="lg:col-span-1">
+                            <CompetitorComparisonPanel
+                                competitors={competitors}
+                                selectedId={selectedCompetitorId}
+                                onSelect={setSelectedCompetitorId}
+                                myResults={filteredResults}
+                                maxCompetitors={maxCompetitors}
+                                topRankThreshold={3}
                             />
-                        ) : (
-                            <GoogleMapsProvider>
-                                <CompetitorComparisonMap
-                                    center={{ lat: search.place_lat, lng: search.place_lng }}
-                                    results={results}
-                                    selectedKeyword={selectedKeyword}
-                                    competitorPlaceId={selectedCompetitor.place_id}
-                                    competitorName={selectedCompetitor.place_name}
-                                />
-                            </GoogleMapsProvider>
-                        )
-                    )}
+                        </div>
+
+                        {/* Right Panel: Comparison Map */}
+                        <div className="lg:col-span-2">
+                            {selectedCompetitor ? (
+                                <GoogleMapsProvider>
+                                    <CompetitorComparisonMap
+                                        center={{ lat: search.place_lat, lng: search.place_lng }}
+                                        results={results}
+                                        selectedKeyword={selectedKeyword}
+                                        competitorPlaceId={selectedCompetitor.place_id}
+                                        competitorName={selectedCompetitor.place_name}
+                                    />
+                                </GoogleMapsProvider>
+                            ) : (
+                                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col h-[500px] items-center justify-center">
+                                    <p className="text-gray-500 dark:text-gray-400">비교할 경쟁사를 선택해주세요.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
