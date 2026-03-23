@@ -29,6 +29,12 @@ export default function Navigation() {
                     >
                         가격 안내
                     </Link>
+                    <Link
+                        href="/faq"
+                        className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+                    >
+                        자주 묻는 질문
+                    </Link>
                 </div>
 
                 {/* 데스크탑: 오른쪽 버튼 */}
@@ -74,6 +80,13 @@ export default function Navigation() {
                             className="rounded-xl px-4 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
                         >
                             가격 안내
+                        </Link>
+                        <Link
+                            href="/faq"
+                            onClick={() => setIsOpen(false)}
+                            className="rounded-xl px-4 py-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+                        >
+                            자주 묻는 질문
                         </Link>
                         <hr className="border-gray-100" />
                         <Link
