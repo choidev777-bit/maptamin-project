@@ -1,22 +1,22 @@
 import { TICKET_PRICE, calculateTicketPrice, formatPrice } from './ticket-price';
 
 describe('TICKET_PRICE', () => {
-    it('should be 1500', () => {
-        expect(TICKET_PRICE).toBe(1500);
+    it('should be 1000', () => {
+        expect(TICKET_PRICE).toBe(1000);
     });
 });
 
 describe('calculateTicketPrice', () => {
     it('should calculate price for 1 ticket', () => {
-        expect(calculateTicketPrice(1)).toBe(1500);
+        expect(calculateTicketPrice(1)).toBe(1000);
     });
 
     it('should calculate price for 5 tickets', () => {
-        expect(calculateTicketPrice(5)).toBe(7500);
+        expect(calculateTicketPrice(5)).toBe(5000);
     });
 
     it('should calculate price for 100 tickets', () => {
-        expect(calculateTicketPrice(100)).toBe(150000);
+        expect(calculateTicketPrice(100)).toBe(100000);
     });
 
     it('should return 0 for 0 tickets', () => {
@@ -34,7 +34,7 @@ describe('calculateTicketPrice', () => {
 
 describe('formatPrice', () => {
     it('should format price with comma separator', () => {
-        expect(formatPrice(1500)).toBe('1,500');
+        expect(formatPrice(1000)).toBe('1,000');
     });
 
     it('should format large price', () => {

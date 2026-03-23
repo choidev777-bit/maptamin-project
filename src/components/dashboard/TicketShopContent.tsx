@@ -170,7 +170,7 @@ export function TicketShopContent({
             <div className="bg-gray-50 rounded-xl border border-gray-200 p-5 mb-6">
                 <h2 className="text-sm font-semibold text-gray-700 mb-2">실시간 분석 티켓이란?</h2>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                    자동 리포트 외에, 지금 당장 내 매장 순위가 궁금할 때 사용하는 실시간 분석 기능입니다. 소진 시 추가 구매가 가능합니다. (1,500원/장)
+                    자동 리포트 외에, 지금 당장 내 매장 순위가 궁금할 때 사용하는 실시간 분석 기능입니다. 소진 시 추가 구매가 가능합니다. (1,000원/장)
                 </p>
             </div>
 

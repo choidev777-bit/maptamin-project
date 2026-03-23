@@ -5,6 +5,9 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
     title: '개인정보처리방침 | 맵타민',
     description: '맵타민 개인정보처리방침입니다. 개인정보 수집·이용·보관·파기에 관한 정책을 안내합니다.',
+    alternates: {
+        canonical: 'https://www.maptamin.com/privacy',
+    },
 }
 
 export default function PrivacyPage() {

@@ -64,7 +64,7 @@ describe('requestTicketPayment - 결제 수단 분기', () => {
         await requestTicketPayment({
             platform: 'naver',
             quantity: 1,
-            totalAmount: 1500,
+            totalAmount: 1000,
         })
 
         const callArg = mockRequestPayment.mock.calls[0][0]

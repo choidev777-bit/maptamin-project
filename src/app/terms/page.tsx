@@ -5,6 +5,9 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
     title: '이용약관 | 맵타민',
     description: '맵타민 서비스 이용약관입니다. 서비스 이용 전 반드시 확인해주세요.',
+    alternates: {
+        canonical: 'https://www.maptamin.com/terms',
+    },
 }
 
 export default function TermsPage() {

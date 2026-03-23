@@ -6,7 +6,7 @@
  */
 
 /** 티켓 1장당 가격 (원, VAT 포함) */
-export const TICKET_PRICE = 1500;
+export const TICKET_PRICE = 1000;
 
 /**
  * 티켓 구매 총 금액 계산
@@ -27,7 +27,7 @@ export function calculateTicketPrice(quantity: number): number {
 /**
  * 가격을 천 단위 콤마 형식으로 포맷
  * @param price 숫자 금액
- * @returns 포맷된 문자열 (예: "1,500")
+ * @returns 포맷된 문자열 (예: "1,000")
  */
 export function formatPrice(price: number): string {
     return price.toLocaleString('ko-KR');

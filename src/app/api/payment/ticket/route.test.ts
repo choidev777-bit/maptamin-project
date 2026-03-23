@@ -19,8 +19,8 @@ jest.mock('@/lib/portone/server', () => ({
 
 // Mock ticket-price (실제 값 사용)
 jest.mock('@/lib/pricing/ticket-price', () => ({
-    TICKET_PRICE: 1500,
-    calculateTicketPrice: jest.fn((qty: number) => qty * 1500),
+    TICKET_PRICE: 1000,
+    calculateTicketPrice: jest.fn((qty: number) => qty * 1000),
 }))
 
 describe('POST /api/payment/ticket', () => {
@@ -165,7 +165,7 @@ describe('POST /api/payment/ticket', () => {
             ; (verifyPayment as jest.Mock).mockResolvedValue({
                 status: 'PAID',
                 id: validPayload.paymentId,
-                amount: { total: 6000 },
+                amount: { total: 4000 },
                 currency: 'KRW',
                 orderName: '네이버 실시간 진단 티켓 4장',
             })
@@ -191,10 +191,10 @@ describe('POST /api/payment/ticket', () => {
         // PortOne 검증이 호출되었는지
         expect(verifyPayment).toHaveBeenCalledWith(validPayload.paymentId)
 
-        // 금액 검증이 호출되었는지 (4장 * 1500 = 6000)
+        // 금액 검증이 호출되었는지 (4장 * 1000 = 4000)
         expect(validatePaymentAmount).toHaveBeenCalledWith(
-            expect.objectContaining({ status: 'PAID', amount: { total: 6000 } }),
-            6000
+            expect.objectContaining({ status: 'PAID', amount: { total: 4000 } }),
+            4000
         )
     })
 
@@ -229,7 +229,7 @@ describe('POST /api/payment/ticket', () => {
             // PortOne 결제 검증 성공
             ; (verifyPayment as jest.Mock).mockResolvedValue({
                 status: 'PAID',
-                amount: { total: 6000 },
+                amount: { total: 4000 },
                 currency: 'KRW',
             })
             ; (validatePaymentAmount as jest.Mock).mockReturnValue(true)
