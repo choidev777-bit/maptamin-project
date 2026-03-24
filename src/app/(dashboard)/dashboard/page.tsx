@@ -118,15 +118,37 @@ export default async function DashboardPage() {
     const googleKeywords = managedKeywords?.filter(k => k.platform === 'google').map(k => k.keyword) || []
 
     // Insights 계산 (keyword 분리 후)
-    const naverIndustryInsights = calculateWeeklyInsights(
+    const naverIndustryInsightsRaw = calculateWeeklyInsights(
         naverSearches, searchResults,
         naverIndustryKeywords.length > 0 ? naverIndustryKeywords : undefined
     )
-    const naverLocalInsights = calculateWeeklyInsights(
+    const naverLocalInsightsRaw = calculateWeeklyInsights(
         naverSearches, searchResults,
         naverLocalKeywords.length > 0 ? naverLocalKeywords : undefined
     )
-    const googleInsights = calculateWeeklyInsights(googleSearches, searchResults)
+    const googleInsightsRaw = calculateWeeklyInsights(googleSearches, searchResults)
+
+    // 데모 계정 전용 인사이트 오버라이드 (지정 키워드·수치 고정 표시)
+    const DEMO_USER_ID = 'c9441bda-c9b0-44fa-ac95-d7449d928c87'
+    const isDemo = user?.id === DEMO_USER_ID
+
+    const naverIndustryInsights = isDemo ? {
+        rising:   { keyword: '룸술집', rankChange: 3.5,  currentRank: 5,  previousRank: 8.5 },
+        dropping: { keyword: '회식',   rankChange: -4.7, currentRank: 13, previousRank: 8.3 },
+        hasData: true,
+    } : naverIndustryInsightsRaw
+
+    const naverLocalInsights = isDemo ? {
+        rising:   { keyword: '선릉역 룸술집', rankChange: 2,  currentRank: 4, previousRank: 6 },
+        dropping: { keyword: '선릉역 하이볼', rankChange: -3, currentRank: 7, previousRank: 4 },
+        hasData: true,
+    } : naverLocalInsightsRaw
+
+    const googleInsights = isDemo ? {
+        rising:   { keyword: '선릉역 룸술집', rankChange: 4,  currentRank: 8,  previousRank: 12 },
+        dropping: { keyword: '선릉역 하이볼', rankChange: -2, currentRank: 15, previousRank: 13 },
+        hasData: true,
+    } : googleInsightsRaw
 
     const naverData = {
         industryInsights: naverIndustryInsights,
