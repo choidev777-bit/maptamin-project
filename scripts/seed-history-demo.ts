@@ -17,8 +17,8 @@ config({ path: resolve(process.cwd(), '.env.local') })
 // ⚠️  여기를 먼저 수정하세요
 // ===================================================================
 const USER_ID         = 'c9441bda-c9b0-44fa-ac95-d7449d928c87'
-const NAVER_PLACE_ID  = '7Zek7J207Y+s7JejLeyEnOyauO2KueuzhOyLnCAxMOqwgOq4uCAxMC0y'
-const GOOGLE_PLACE_ID = 'ChIJlXAY_IejfDURxEXnnXsatGk'
+const NAVER_PLACE_ID  = '7Jik7ZuELeyEnOyauO2KueuzhOyLnCDsooXroZzqtawg7J6Q7ZWY66y466GcOeq4uCAzMw=='
+const GOOGLE_PLACE_ID = 'ChIJSXJQb-eifDURaPFz9gLWfv0'
 // ===================================================================
 
 const supabase = createClient(

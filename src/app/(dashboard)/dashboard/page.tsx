@@ -52,13 +52,27 @@ export default async function DashboardPage() {
 
     let searchResults: SearchResult[] = []
     if (scheduledSearchIds.length > 0) {
-        // Safe check since Supabase `.in` might fail on empty array
-        const { data: resultsData } = await supabase
-            .from('search_results')
-            .select('*')
-            .in('search_id', scheduledSearchIds)
+        // Supabase PostgREST max_rows=1000 서버 제한 우회: 페이지네이션
+        const PAGE_SIZE = 1000
+        let page = 0
+        let hasMore = true
+        while (hasMore) {
+            const from = page * PAGE_SIZE
+            const to = from + PAGE_SIZE - 1
+            const { data: chunk } = await supabase
+                .from('search_results')
+                .select('*')
+                .in('search_id', scheduledSearchIds)
+                .range(from, to)
 
-        searchResults = (resultsData as SearchResult[]) || []
+            if (chunk && chunk.length > 0) {
+                searchResults.push(...(chunk as SearchResult[]))
+                hasMore = chunk.length === PAGE_SIZE
+                page++
+            } else {
+                hasMore = false
+            }
+        }
     }
 
     const naverSearches = searches.filter(s => s.platform === 'naver')
