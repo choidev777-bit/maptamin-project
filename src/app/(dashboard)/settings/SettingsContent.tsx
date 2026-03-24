@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User, Mail, Calendar, LogOut, Settings, Zap, Lock, Key, Loader2, Pencil, X, Check } from 'lucide-react'
-import Image from 'next/image'
 import * as Dialog from '@radix-ui/react-dialog'
 import { MyShopManager } from '@/components/settings/MyShopManager'
 import { CompetitorManager } from '@/components/settings/CompetitorManager'
@@ -153,19 +152,9 @@ export function SettingsContent({ user, planStats }: Props) {
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">프로필</h2>
 
                 <div className="flex items-center gap-4">
-                    {user.avatarUrl ? (
-                        <Image
-                            src={user.avatarUrl}
-                            alt="Profile"
-                            width={64}
-                            height={64}
-                            className="rounded-full"
-                        />
-                    ) : (
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                            <User className="w-8 h-8 text-white" />
-                        </div>
-                    )}
+                    <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
+                        <User className="w-8 h-8 text-gray-500" />
+                    </div>
 
                     <div className="flex-1">
                         <h3 className="font-semibold text-gray-900">{user.name}</h3>

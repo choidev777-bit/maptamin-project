@@ -2,10 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Home, Search, History, Settings, LogOut, CreditCard, Lock } from 'lucide-react'
+import { Menu, X, Home, Search, History, Settings, LogOut, CreditCard, Lock, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { WalletLabel, SubscriptionInfo } from './WalletLabel'
 
 interface Props {
@@ -83,21 +82,9 @@ export function MobileNav({ user, subscription, isOnboarding = false }: Props) {
                 {/* User Info */}
                 <div className="p-4 border-b">
                     <div className="flex items-center gap-3">
-                        {user.avatarUrl ? (
-                            <Image
-                                src={user.avatarUrl}
-                                alt="Profile"
-                                width={40}
-                                height={40}
-                                className="rounded-full"
-                            />
-                        ) : (
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                                <span className="text-white font-medium text-sm">
-                                    {user.name.charAt(0)}
-                                </span>
-                            </div>
-                        )}
+                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                            <User className="w-5 h-5 text-gray-500" />
+                        </div>
                         <div className="flex-1 min-w-0">
                             <p className="font-medium text-gray-900 truncate">{user.name}</p>
                             <p className="text-sm text-gray-500 truncate">{user.email}</p>

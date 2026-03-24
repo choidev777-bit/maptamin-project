@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import {
@@ -22,6 +21,7 @@ import {
     Ticket,
     Map,
     CalendarClock,
+    User,
 } from 'lucide-react'
 import { isSubscribed, getPlanDisplayName, canAccessPlatform } from '@/lib/utils/subscription'
 import { WalletLabel, SubscriptionInfo } from './WalletLabel'
@@ -299,21 +299,9 @@ export function Sidebar({
             <div className="px-2 py-3 border-t border-gray-100 flex-shrink-0">
                 <div className={`flex items-center ${isExpanded ? 'gap-3 px-3' : 'justify-center'}`}>
                     {/* Avatar */}
-                    {user.avatarUrl ? (
-                        <Image
-                            src={user.avatarUrl}
-                            alt="Profile"
-                            width={32}
-                            height={32}
-                            className="rounded-full flex-shrink-0"
-                        />
-                    ) : (
-                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-white font-medium text-xs">
-                                {user.name.charAt(0)}
-                            </span>
-                        </div>
-                    )}
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="w-4 h-4 text-gray-500" />
+                    </div>
 
                     {isExpanded && (
                         <div className="flex-1 min-w-0">

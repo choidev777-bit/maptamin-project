@@ -32,7 +32,7 @@ export default function BridgeSection2() {
                             &lsquo;업종 키워드
                         </strong>
                         <span className="text-gray-400">
-                            (예: 근처삼겹살, 필라테스, 조용한카페)
+                            (예: 삼겹살, 필라테스, 조용한카페)
                         </span>
                         <strong className="text-gray-800">&rsquo;</strong>를
                         검색했을 때의

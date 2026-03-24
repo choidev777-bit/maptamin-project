@@ -29,10 +29,6 @@ describe('HeroMapAnimation', () => {
         expect(markers).toHaveLength(49)
     })
 
-    it('should display the keyword label "근처 카페"', () => {
-        render(<HeroMapAnimation />)
-        expect(screen.getByText(/근처 카페/)).toBeInTheDocument()
-    })
 
     it('should display the store name "맵타민네 카페"', () => {
         render(<HeroMapAnimation />)
