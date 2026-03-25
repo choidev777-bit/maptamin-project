@@ -35,20 +35,18 @@ export default function HeroSection() {
 
                         {/* 타이틀 — SVG 밑줄 장식 */}
                         <h1 className="break-keep text-2xl font-extrabold leading-[1.25] tracking-tight text-gray-900 sm:text-3xl lg:text-4xl xl:text-[2.75rem]">
-                            데이터 분석, 몰라도 됩니다.
+                            네이버 플레이스 상위노출,
                             <br />
-                            <span className="text-red-500">빨간색</span>만{' '}
-                            <span className="text-[#00C896]">초록색</span>으로 바꾸세요.
+                            <span className="text-[#00C896]">&lsquo;내 매장 근처&rsquo;</span>부터 장악해야 합니다
                         </h1>
 
                         {/* 서브 텍스트 */}
-                        <p className="mx-auto max-w-xl break-keep text-base leading-relaxed text-gray-500 sm:text-lg lg:mx-0 lg:text-xl">
-                            초록색은 내 구역, 빨간색은 놓친 구역.
-                            <br />
-                            매일 카톡으로 배달되는 [네이버 플레이스 순위 지도]로
-                            <br />
-                            사장님의 <strong className="text-gray-700">진짜 상권 순위</strong>를 팩트 체크하세요.
-                        </p>
+                        <div className="mx-auto max-w-xl space-y-2 break-keep text-base leading-relaxed text-gray-500 sm:text-lg lg:mx-0 lg:text-xl">
+                            <p>네이버는 상권 전체 순위가 높은 매장을 &lsquo;지역 대표&rsquo;로 인식합니다.</p>
+                            <p>맵타민 지도로{' '}
+                            <strong className="text-red-500">빨간 구역</strong>을 찾아{' '}
+                            <strong className="text-[#00C896]">초록색</strong>으로 바꾸세요.</p>
+                        </div>
 
                         {/* CTA 버튼 */}
                         <div className="flex flex-col items-center gap-4 sm:flex-row lg:justify-start">
@@ -58,7 +56,7 @@ export default function HeroSection() {
                             >
                                 <span className="flex flex-col items-center leading-tight sm:items-start">
                                     <span className="text-sm font-medium opacity-90 sm:text-base">무료로 5분 만에</span>
-                                    <span>우리 매장 &lsquo;진짜 순위&rsquo; 확인하기</span>
+                                    <span>우리 매장 &lsquo;빨간 구역&rsquo; 찾아보기</span>
                                 </span>
                                 <ArrowRight className="h-5 w-5 ml-3 transition-transform duration-300 group-hover:translate-x-1" />
                             </Link>
