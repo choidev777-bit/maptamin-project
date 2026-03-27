@@ -18,6 +18,12 @@ export const metadata: Metadata = {
     alternates: {
         canonical: 'https://www.maptamin.com',
     },
+    robots: {
+        index: true,
+        follow: true,
+        noimageindex: true,
+        'max-image-preview': 'none' as const,
+    },
 }
 
 const softwareAppJsonLd = {
