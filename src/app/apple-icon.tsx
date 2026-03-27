@@ -22,12 +22,12 @@ export default function AppleIcon() {
     return new ImageResponse(
         (
             <div style={{
+                display: 'flex',
                 position: 'relative',
                 width: 180,
                 height: 180,
                 background: 'white',
                 borderRadius: 36,
-                display: 'flex',
             }}>
                 {positions.map((pos, i) => (
                     <div

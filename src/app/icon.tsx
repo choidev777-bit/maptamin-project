@@ -20,7 +20,7 @@ export default function Icon() {
 
     return new ImageResponse(
         (
-            <div style={{ position: 'relative', width: 48, height: 48, background: 'transparent' }}>
+            <div style={{ display: 'flex', position: 'relative', width: 48, height: 48, background: 'transparent' }}>
                 {positions.map((pos, i) => (
                     <div
                         key={i}
