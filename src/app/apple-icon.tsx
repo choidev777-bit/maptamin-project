@@ -1,14 +1,15 @@
 import { ImageResponse } from 'next/og'
 
-export const size = { width: 48, height: 48 }
+export const size = { width: 180, height: 180 }
 export const contentType = 'image/png'
 
-export default function Icon() {
+export default function AppleIcon() {
     const tealGreen = '#00C896'
     const deepNavy = '#002959'
-    const sq = 13
-    const gap = 3
-    const offset = 1.5
+    const sq = 48
+    const gap = 10
+    const totalGrid = sq * 3 + gap * 2 // 164
+    const offset = (180 - totalGrid) / 2 // 8
 
     const positions = [0, 1, 2].flatMap(row =>
         [0, 1, 2].map(col => ({
@@ -20,7 +21,14 @@ export default function Icon() {
 
     return new ImageResponse(
         (
-            <div style={{ position: 'relative', width: 48, height: 48, background: 'transparent' }}>
+            <div style={{
+                position: 'relative',
+                width: 180,
+                height: 180,
+                background: 'white',
+                borderRadius: 36,
+                display: 'flex',
+            }}>
                 {positions.map((pos, i) => (
                     <div
                         key={i}
@@ -31,12 +39,12 @@ export default function Icon() {
                             width: sq,
                             height: sq,
                             backgroundColor: pos.color,
-                            borderRadius: 2,
+                            borderRadius: 7,
                         }}
                     />
                 ))}
             </div>
         ),
-        { width: 48, height: 48 }
+        { width: 180, height: 180 }
     )
 }
