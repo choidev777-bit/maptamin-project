@@ -1,9 +1,13 @@
 import type { NextConfig } from "next";
 
+const isDev = process.env.NODE_ENV === "development";
+
 const nextConfig: NextConfig = {
-  turbopack: {
-    root: ".",
-  },
+  ...(isDev && {
+    turbopack: {
+      root: ".",
+    },
+  }),
 };
 
 export default nextConfig;
