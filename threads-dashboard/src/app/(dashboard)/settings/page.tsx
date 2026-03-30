@@ -97,16 +97,6 @@ export default function SettingsPage() {
           <div><label className="block text-xs text-muted-foreground mb-1">관련 토픽 (Enter로 추가)</label><Tags tags={prod.related_topics || []} onChange={t => setProd({ ...prod, related_topics: t })} ph="토픽 입력..." /></div>
           <div><label className="block text-xs text-muted-foreground mb-1">댓글 문구 템플릿 (Enter로 추가)</label><Tags tags={prod.link_comment_templates || []} onChange={t => setProd({ ...prod, link_comment_templates: t })} ph="댓글 문구 입력..." /></div>
 
-          <div className="border-t pt-5 mt-2">
-            <h4 className="text-xs font-semibold text-card-foreground mb-3">자동화 설정</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><label className="block text-xs text-muted-foreground mb-1">AI 분석 간격 (시간)</label><input type="number" value={prod.analyze_interval_hours} onChange={e => setProd({ ...prod, analyze_interval_hours: parseInt(e.target.value) || 8 })} className={inp} /></div>
-              <div><label className="block text-xs text-muted-foreground mb-1">콘텐츠 생성 간격 (시간)</label><input type="number" value={prod.generate_interval_hours} onChange={e => setProd({ ...prod, generate_interval_hours: parseInt(e.target.value) || 12 })} className={inp} /></div>
-              <div><label className="block text-xs text-muted-foreground mb-1">유튜브 스캔 간격 (시간)</label><input type="number" min={1} value={prod.youtube_scan_interval_hours || 24} onChange={e => setProd({ ...prod, youtube_scan_interval_hours: parseInt(e.target.value) || 24 })} className={inp} /></div>
-              <div><label className="block text-xs text-muted-foreground mb-1">유튜브 키워드당 수집 개수</label><input type="number" min={1} max={50} value={prod.youtube_max_results || 15} onChange={e => setProd({ ...prod, youtube_max_results: parseInt(e.target.value) || 15 })} className={inp} /></div>
-            </div>
-          </div>
-
           <div className="flex justify-end">
             <button onClick={saveProd} disabled={sv} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 border-none cursor-pointer">{sv ? "저장 중..." : "저장"}</button>
           </div>

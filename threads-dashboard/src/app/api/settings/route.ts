@@ -61,6 +61,11 @@ export async function PUT(request: Request) {
           generate_interval_hours: data.generate_interval_hours,
           youtube_scan_interval_hours: data.youtube_scan_interval_hours,
           youtube_max_results: data.youtube_max_results,
+          schedule_scan_feed: data.schedule_scan_feed,
+          schedule_scan_search: data.schedule_scan_search,
+          schedule_analyze: data.schedule_analyze,
+          schedule_generate: data.schedule_generate,
+          schedule_youtube: data.schedule_youtube,
         })
         .eq("id", data.id);
 
