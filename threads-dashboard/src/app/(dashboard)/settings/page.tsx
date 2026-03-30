@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 interface Acc { id: string; account: string; display_name: string; topic: string; tone: string; scan_keywords: string[]; banned_words: string[]; interval_hours: number; daily_limit: number; active_hours_start: number; active_hours_end: number; is_active: boolean; }
-interface Prod { id: string; product_name: string; product_description: string; product_features: string[]; related_topics: string[]; product_link: string; link_comment_templates: string[]; min_likes: number; min_views: number; analyze_interval_hours: number; generate_interval_hours: number; youtube_scan_interval_hours: number; youtube_max_results: number; }
+interface Prod { id: string; product_name: string; product_description: string; product_features: string[]; related_topics: string[]; product_link: string; link_comment_templates: string[]; min_likes: number; min_views: number; youtube_max_results: number; }
 
 function Tags({ tags, onChange, ph }: { tags: string[]; onChange: (t: string[]) => void; ph: string }) {
   const [v, setV] = useState("");
