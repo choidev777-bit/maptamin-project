@@ -29,18 +29,27 @@ CYCLE_ORDER = ["A", "B", "C", "D"]  # 사이클 패턴
 
 # ── DB 헬퍼 ──
 
-def get_reference_sources(content_type: str, limit: int = 5) -> list[dict]:
-    """참고할 고품질 소재 조회"""
+def get_content_source() -> dict | None:
+    """
+    내용 소재 1개 조회 (source_role = content 또는 both, 분석 완료, ABCD 타입 무관)
+    가장 오래된(먼저 등록된) 것부터 소비
+    """
     result = (
         supabase.table("threads_raw_sources")
-        .select("id, text_content, content_type, hook_style, ai_summary, likes")
-        .eq("content_type", content_type)
+        .select("id, text_content, ai_key_points, ai_summary, source_type, category")
+        .or_("source_role.eq.content,source_role.eq.both")
         .not_.is_("analyzed_at", "null")
-        .order("engagement_score", desc=True)
-        .limit(limit)
+        .order("collected_at", desc=False)  # 오래된 것 먼저
+        .limit(1)
         .execute()
     )
-    return result.data or []
+    return result.data[0] if result.data else None
+
+
+def delete_content_source(source_id: str):
+    """사용된 내용 소재 삭제"""
+    supabase.table("threads_raw_sources").delete().eq("id", source_id).execute()
+    print(f"  🗑️ 내용 소재 삭제: {source_id[:8]}...")
 
 def get_patterns(content_type: str) -> list[dict]:
     result = (
@@ -80,26 +89,41 @@ def build_generation_prompt(
     account_config: dict,
     product_config: dict | None,
     content_type: str,
-    references: list[dict],
+    content_source: dict | None,
     patterns: list[dict],
 ) -> str:
     """콘텐츠 생성 프롬프트 빌드"""
 
-    # 참고 소재 포맷
-    ref_text = ""
-    if references:
-        ref_items = []
-        for r in references[:3]:
-            ref_items.append(f"- [{r.get('hook_style', '?')}] {r.get('text_content', '')[:200]}")
-        ref_text = f"\n\n참고 소재 (이 스타일을 참고하되 베끼지 마세요):\n" + "\n".join(ref_items)
+    # 내용 소재 포맷 (ai_key_points 우선, 없으면 text_content 폴백)
+    content_text = ""
+    if content_source:
+        key_points = content_source.get("ai_key_points") or []
+        category = content_source.get("category", "")
+        summary = content_source.get("ai_summary", "")
+
+        if key_points:
+            kp_formatted = "\n".join(f"  - {kp}" for kp in key_points)
+            content_text = f"""\n\n📝 아래 소재의 내용을 바탕으로 글을 작성하세요:
+주제: {category}
+요약: {summary}
+핵심 포인트:
+{kp_formatted}"""
+        else:
+            # key_points 없으면 본문 직접 전달
+            raw = (content_source.get("text_content") or "")[:2000]
+            content_text = f"""\n\n📝 아래 소재의 내용을 바탕으로 글을 작성하세요:
+주제: {category}
+원문 (참고용):
+{raw}"""
 
     # 패턴 포맷
     pattern_text = ""
     if patterns:
         p = patterns[0]
-        pattern_text = f"\n\n추천 패턴: {p.get('pattern_name', '')}\n" \
+        pattern_text = f"\n\n🎯 추천 패턴 (이 구조/스타일로 작성): {p.get('pattern_name', '')}\n" \
                        f"훅: {p.get('hook_template', '없음')}\n" \
-                       f"구조: {p.get('body_structure', '없음')}"
+                       f"구조: {p.get('body_structure', '없음')}\n" \
+                       f"CTA: {p.get('cta_template', '없음')}"
 
     # 제품 정보
     product_text = ""
@@ -119,6 +143,11 @@ def build_generation_prompt(
 
     banned = ", ".join(account_config.get("banned_words", []))
 
+    # 폴백 안내 (내용 소재 없을 때)
+    fallback_note = ""
+    if not content_source:
+        fallback_note = "\n\n(내용 소재가 없습니다. 계정 주제를 바탕으로 자체적으로 유용한 글을 작성하세요.)"
+
     return f"""당신은 Threads 소셜미디어 마케터입니다.
 
 계정 정보:
@@ -128,7 +157,7 @@ def build_generation_prompt(
 - 금지어: {banned}
 
 생성할 콘텐츠 타입: {content_type} ({type_desc.get(content_type, '')})
-{pattern_text}{ref_text}{product_text}
+{pattern_text}{content_text}{product_text}{fallback_note}
 
 다음 규칙을 반드시 지키세요:
 1. 금지어는 절대 사용하지 마세요.
@@ -206,12 +235,17 @@ def generate_for_account(account: str, content_type: str | None, count: int = 3)
         # 타입 결정 (지정 or 사이클)
         ct = content_type if content_type else get_next_cycle_type(account)
 
-        print(f"  [{i+1}/{count}] {account} / 타입 {ct} 생성 중...")
+        # 내용 소재 조회 (ABCD 무관, 1개)
+        content_source = get_content_source()
+        if content_source:
+            print(f"  [{i+1}/{count}] {account} / 타입 {ct} / 내용소재: {content_source['id'][:8]}...")
+        else:
+            print(f"  [{i+1}/{count}] {account} / 타입 {ct} / 내용소재: 없음 (폴백)")
 
-        references = get_reference_sources(ct)
+        # 패턴 조회 (타입별)
         patterns = get_patterns(ct)
 
-        prompt = build_generation_prompt(acc_config, prod_config, ct, references, patterns)
+        prompt = build_generation_prompt(acc_config, prod_config, ct, content_source, patterns)
 
         try:
             raw = call_ai(prompt)
@@ -221,7 +255,7 @@ def generate_for_account(account: str, content_type: str | None, count: int = 3)
                 continue
 
             # DB 저장
-            source_ids = [r["id"] for r in references[:3]] if references else []
+            source_ids = [content_source["id"]] if content_source else []
             save_content({
                 "account": account,
                 "text_content": result["text"],
@@ -235,6 +269,10 @@ def generate_for_account(account: str, content_type: str | None, count: int = 3)
             })
             generated += 1
             print(f"  ✅ 생성 완료 (link: {result['link_eligible']})")
+
+            # 사용된 내용 소재 삭제 (source_role=both인 경우에도 삭제)
+            if content_source:
+                delete_content_source(content_source["id"])
 
         except Exception as e:
             print(f"  ❌ 생성 실패: {e}")

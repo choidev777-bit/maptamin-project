@@ -74,7 +74,7 @@ def get_unanalyzed_sources(limit: int = 100) -> list[dict]:
     """
     result = (
         supabase.table("threads_raw_sources")
-        .select("id, text_content, likes, replies, reposts, views, source_type")
+        .select("id, text_content, likes, replies, reposts, views, source_type, source_role")
         .is_("analyzed_at", "null")
         .order("collected_at", desc=True)
         .limit(limit)

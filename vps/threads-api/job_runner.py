@@ -21,6 +21,10 @@ JOB_COMMANDS = {
     "youtube_shorts": ["python3", "/root/threads-api/youtube_collector.py", "--type", "shorts"],
     "analyze": ["python3", "/root/threads-api/analyzer.py"],
     "generate": ["python3", "/root/threads-api/generator.py"],
+    # URL 본문 추출 (수동 등록)
+    "extract_youtube": ["python3", "/root/threads-api/extractor.py"],
+    "extract_threads": ["python3", "/root/threads-api/extractor.py"],
+    "extract_web": ["python3", "/root/threads-api/extractor.py"],
 }
 
 
@@ -85,6 +89,10 @@ def run_job(job: dict):
             cmd = cmd + ["--keywords", params["keywords"]]
         if params.get("count"):
             cmd = cmd + ["--count", str(params["count"])]
+        if params.get("url"):
+            cmd = cmd + ["--url", params["url"]]
+        if params.get("source_id"):
+            cmd = cmd + ["--source_id", params["source_id"]]
 
         result = subprocess.run(
             cmd,
