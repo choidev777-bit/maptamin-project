@@ -28,6 +28,8 @@ export default function ContentsPage() {
   const [filter, setFilter] = useState({ status: "", account: "", parent_type: "" });
   const [editId, setEditId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
+  const [jobMsg, setJobMsg] = useState("");
+  const [generateInterval, setGenerateInterval] = useState(12);
   const pageSize = 20;
 
   const load = useCallback(async () => {
@@ -44,6 +46,20 @@ export default function ContentsPage() {
   }, [page, filter]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then(d => {
+      if (d.product) setGenerateInterval(d.product.generate_interval_hours ?? 12);
+    }).catch(() => {});
+  }, []);
+
+  const triggerJob = async (type: string) => {
+    setJobMsg("");
+    const res = await fetch("/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_type: type }) });
+    const data = await res.json();
+    setJobMsg(res.ok ? `${type} 작업 등록 완료` : data.error || "실패");
+    setTimeout(() => setJobMsg(""), 3000);
+  };
 
   const updateStatus = async (id: string, status: string, text_content?: string) => {
     const body: Record<string, string> = { id, status };
@@ -62,7 +78,14 @@ export default function ContentsPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-foreground">콘텐츠 ({total})</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-foreground">콘텐츠 ({total})</h2>
+        <div className="flex items-center gap-2">
+          {jobMsg && <span className="text-xs px-3 py-1 rounded-full bg-success text-success-foreground">{jobMsg}</span>}
+          <span className="text-xs text-muted-foreground">{generateInterval}시간마다 자동 생성</span>
+          <button onClick={() => triggerJob("generate")} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:opacity-90 transition-opacity border-none cursor-pointer">콘텐츠 생성</button>
+        </div>
+      </div>
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">

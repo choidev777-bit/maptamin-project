@@ -55,6 +55,10 @@ export async function PUT(request: Request) {
           related_topics: data.related_topics,
           product_link: data.product_link,
           link_comment_templates: data.link_comment_templates,
+          min_likes: data.min_likes,
+          min_views: data.min_views,
+          analyze_interval_hours: data.analyze_interval_hours,
+          generate_interval_hours: data.generate_interval_hours,
         })
         .eq("id", data.id);
 

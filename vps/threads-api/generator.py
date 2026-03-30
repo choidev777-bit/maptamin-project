@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 import requests
 
 from config import OPENCLAW_API_URL, OPENCLAW_API_KEY
-from db import supabase
+from db import supabase, get_account_config, get_product_config
 from telegram_notify import send_telegram, notify_error
 
 
@@ -28,14 +28,6 @@ CYCLE_ORDER = ["A", "B", "C", "D"]  # 사이클 패턴
 
 
 # ── DB 헬퍼 ──
-
-def get_account_config(account: str) -> dict | None:
-    result = supabase.table("threads_accounts_config").select("*").eq("account", account).single().execute()
-    return result.data
-
-def get_product_config() -> dict | None:
-    result = supabase.table("threads_product_config").select("*").limit(1).execute()
-    return result.data[0] if result.data else None
 
 def get_reference_sources(content_type: str, limit: int = 5) -> list[dict]:
     """참고할 고품질 소재 조회"""

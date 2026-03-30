@@ -17,7 +17,7 @@ import traceback
 from playwright.async_api import async_playwright
 
 from parser import parse_thread_post, calculate_engagement_score, generate_hash
-from db import save_sources, check_duplicates, get_top_sources, update_source_views
+from db import save_sources, check_duplicates, get_top_sources, update_source_views, get_product_config
 from telegram_notify import notify_scan_result, notify_error
 
 
@@ -128,44 +128,113 @@ async def scroll_and_collect(page, target_count: int) -> list[dict]:
     return list(collected.values())
 
 
+async def _collect_and_filter_views(page, posts: list[dict], min_views: int) -> list[dict]:
+    """
+    글 목록의 개별 페이지를 방문하여 조회수를 수집하고,
+    min_views 미만인 글을 제거하여 반환
+    """
+    passed = []
+    for i, post in enumerate(posts):
+        url = post.get("source_url")
+        if not url:
+            continue
+        try:
+            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            await asyncio.sleep(3)
+
+            views_text = await page.evaluate("""
+                () => {
+                    const els = document.querySelectorAll('span');
+                    for (const el of els) {
+                        const text = el.innerText;
+                        if (text && (text.includes('조회') || text.includes('views') || text.includes('view'))) {
+                            return text;
+                        }
+                    }
+                    return '';
+                }
+            """)
+
+            if views_text:
+                views = parse_views_text(views_text)
+                if views >= min_views:
+                    post["views"] = views
+                    passed.append(post)
+                    print(f"  ✅ [{i+1}/{len(posts)}] {views}뷰 → 통과")
+                else:
+                    print(f"  ⏭️ [{i+1}/{len(posts)}] {views}뷰 → 미달")
+            else:
+                print(f"  ⏭️ [{i+1}/{len(posts)}] 조회수 없음 → 제외")
+
+        except Exception as e:
+            print(f"  ❌ [{i+1}/{len(posts)}] {e}")
+
+        await asyncio.sleep(1)
+
+    print(f"[VIEWS] 조회수 필터 결과: {len(posts)}개 → {len(passed)}개")
+    return passed
+
 async def scan_feed(count: int) -> dict:
     """
-    STEP 1-A: For You 피드 스크롤 수집
+    STEP 1-A: For You 피드 스크롤 수집 (통합 파이프라인)
+    수집 → 좋아요 필터 → 조회수 수집 → 조회수 필터 → 저장
     """
     print(f"\n{'='*50}")
     print(f"[FEED SCAN] For You 피드 스캔 시작 (목표: {count}개)")
     print(f"{'='*50}\n")
 
+    # 설정 로드
+    config = get_product_config() or {}
+    min_likes = config.get("min_likes", 0)
+    min_views = config.get("min_views", 0)
+    print(f"[필터] 최소 좋아요: {min_likes} | 최소 조회수: {min_views}")
+
     async with async_playwright() as p:
-        # 기존 Chrome 프로필 재사용 (로그인 유지)
         browser = await p.chromium.connect_over_cdp("http://localhost:9223")
         context = browser.contexts[0]
         page = context.pages[0] if context.pages else await context.new_page()
 
-        # 항상 피드를 새로 로드 (같은 글 반복 수집 방지)
+        # 피드 수집
         print("[INFO] Threads 피드 새로고침...")
         await page.goto(THREADS_BASE_URL, wait_until="domcontentloaded", timeout=60000)
-        await asyncio.sleep(8)  # SPA 렌더링 대기
-
+        await asyncio.sleep(8)
         posts = await scroll_and_collect(page, count)
 
-    # DB 저장
-    existing_hashes = check_duplicates([p["content_hash"] for p in posts])
-    new_posts = [p for p in posts if p["content_hash"] not in existing_hashes]
+        # 1차 필터: 좋아요
+        if min_likes > 0:
+            before = len(posts)
+            posts = [post_item for post_item in posts if post_item.get("likes", 0) >= min_likes]
+            print(f"[필터] 좋아요 {min_likes}개 이상: {before}개 → {len(posts)}개")
+
+        # 2차: 조회수 수집 + 필터
+        if min_views > 0 and posts:
+            print(f"[VIEWS] {len(posts)}개 글 조회수 수집 시작...")
+            posts = await _collect_and_filter_views(page, posts, min_views)
+
+    # 중복 확인 + DB 저장
+    existing_hashes = check_duplicates([post_item["content_hash"] for post_item in posts])
+    new_posts = [post_item for post_item in posts if post_item["content_hash"] not in existing_hashes]
     saved = save_sources(new_posts)
     skipped = len(posts) - len(new_posts)
 
-    print(f"\n[RESULT] 수집: {len(posts)}개 | 저장: {saved}개 | 중복: {skipped}개")
+    print(f"\n[RESULT] 최종: {len(posts)}개 | 저장: {saved}개 | 중복: {skipped}개")
     return {"total": len(posts), "saved": saved, "skipped": skipped}
 
 
 async def scan_search(keywords: list[str], count: int) -> dict:
     """
-    STEP 1-B: 키워드 검색 스캔
+    STEP 1-B: 키워드 검색 스캔 (통합 파이프라인)
+    수집 → 좋아요 필터 → 조회수 수집 → 조회수 필터 → 저장
     """
     print(f"\n{'='*50}")
     print(f"[SEARCH SCAN] 키워드 검색 스캔 (키워드: {keywords}, 목표: {count}개)")
     print(f"{'='*50}\n")
+
+    # 설정 로드
+    config = get_product_config() or {}
+    min_likes = config.get("min_likes", 0)
+    min_views = config.get("min_views", 0)
+    print(f"[필터] 최소 좋아요: {min_likes} | 최소 조회수: {min_views}")
 
     all_posts = []
 
@@ -181,25 +250,36 @@ async def scan_search(keywords: list[str], count: int) -> dict:
             print(f"\n[SEARCH] 키워드: '{keyword}' (목표: {per_keyword}개)")
 
             await page.goto(search_url, wait_until="domcontentloaded", timeout=60000)
-            await asyncio.sleep(8)  # SPA 렌더링 대기
+            await asyncio.sleep(8)
 
             posts = await scroll_and_collect(page, per_keyword)
             all_posts.extend(posts)
 
-    # 중복 제거 (키워드 간 겹침 가능)
-    unique = {}
-    for p in all_posts:
-        if p["content_hash"] not in unique:
-            unique[p["content_hash"]] = p
-    all_posts = list(unique.values())
+        # 중복 제거 (키워드 간 겹침)
+        unique = {}
+        for p_item in all_posts:
+            if p_item["content_hash"] not in unique:
+                unique[p_item["content_hash"]] = p_item
+        all_posts = list(unique.values())
 
-    # DB 저장
-    existing_hashes = check_duplicates([p["content_hash"] for p in all_posts])
-    new_posts = [p for p in all_posts if p["content_hash"] not in existing_hashes]
+        # 1차 필터: 좋아요
+        if min_likes > 0:
+            before = len(all_posts)
+            all_posts = [p_item for p_item in all_posts if p_item.get("likes", 0) >= min_likes]
+            print(f"[필터] 좋아요 {min_likes}개 이상: {before}개 → {len(all_posts)}개")
+
+        # 2차: 조회수 수집 + 필터
+        if min_views > 0 and all_posts:
+            print(f"[VIEWS] {len(all_posts)}개 글 조회수 수집 시작...")
+            all_posts = await _collect_and_filter_views(page, all_posts, min_views)
+
+    # 중복 확인 + DB 저장
+    existing_hashes = check_duplicates([p_item["content_hash"] for p_item in all_posts])
+    new_posts = [p_item for p_item in all_posts if p_item["content_hash"] not in existing_hashes]
     saved = save_sources(new_posts)
     skipped = len(all_posts) - len(new_posts)
 
-    print(f"\n[RESULT] 수집: {len(all_posts)}개 | 저장: {saved}개 | 중복: {skipped}개")
+    print(f"\n[RESULT] 최종: {len(all_posts)}개 | 저장: {saved}개 | 중복: {skipped}개")
     return {"total": len(all_posts), "saved": saved, "skipped": skipped}
 
 

@@ -29,6 +29,10 @@ export default function SourcesPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState({ source_type: "", content_type: "", analyzed: "" });
   const [jobMsg, setJobMsg] = useState("");
+  const [minLikes, setMinLikes] = useState(5);
+  const [minViews, setMinViews] = useState(1000);
+  const [analyzeInterval, setAnalyzeInterval] = useState(8);
+  const [productId, setProductId] = useState<string>("");
   const pageSize = 20;
 
   const load = useCallback(async () => {
@@ -46,12 +50,31 @@ export default function SourcesPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    fetch("/api/settings").then(r => r.json()).then(d => {
+      if (d.product) {
+        setMinLikes(d.product.min_likes ?? 5);
+        setMinViews(d.product.min_views ?? 1000);
+        setAnalyzeInterval(d.product.analyze_interval_hours ?? 8);
+        setProductId(d.product.id);
+      }
+    }).catch(() => {});
+  }, []);
+
   const triggerJob = async (type: string) => {
     setJobMsg("");
     const res = await fetch("/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_type: type }) });
     const data = await res.json();
     setJobMsg(res.ok ? `${type} 작업 등록 완료` : data.error || "실패");
     setTimeout(() => setJobMsg(""), 3000);
+  };
+
+  const saveFilter = async (likes: number, views: number) => {
+    if (!productId) return;
+    await fetch("/api/settings", {
+      method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "product", data: { id: productId, min_likes: likes, min_views: views } }),
+    });
   };
 
   const totalPages = Math.ceil(total / pageSize);
@@ -64,7 +87,23 @@ export default function SourcesPage() {
           {jobMsg && <span className="text-xs px-3 py-1 rounded-full bg-success text-success-foreground">{jobMsg}</span>}
           <button onClick={() => triggerJob("scan_feed")} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:opacity-90 transition-opacity border-none cursor-pointer">피드 스캔</button>
           <button onClick={() => triggerJob("scan_search")} className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-xs font-medium hover:bg-accent transition-colors border-none cursor-pointer">키워드 스캔</button>
+          <button onClick={() => triggerJob("analyze")} className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-xs font-medium hover:bg-accent transition-colors border-none cursor-pointer">AI 분석</button>
         </div>
+      </div>
+
+      {/* 스캔 필터 설정 */}
+      <div className="border rounded-lg p-4 bg-card flex items-center gap-6 flex-wrap">
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-muted-foreground whitespace-nowrap">최소 좋아요</label>
+          <input type="number" value={minLikes} onChange={e => { const v = parseInt(e.target.value) || 0; setMinLikes(v); saveFilter(v, minViews); }}
+            className="w-20 px-2 py-1 border border-input rounded-md text-sm bg-background text-foreground text-center focus:outline-none focus:border-foreground transition-colors" />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-muted-foreground whitespace-nowrap">최소 조회수</label>
+          <input type="number" value={minViews} onChange={e => { const v = parseInt(e.target.value) || 0; setMinViews(v); saveFilter(minLikes, v); }}
+            className="w-24 px-2 py-1 border border-input rounded-md text-sm bg-background text-foreground text-center focus:outline-none focus:border-foreground transition-colors" />
+        </div>
+        <span className="text-xs text-muted-foreground ml-auto">{analyzeInterval}시간마다 자동 분석</span>
       </div>
 
       {/* Filters */}

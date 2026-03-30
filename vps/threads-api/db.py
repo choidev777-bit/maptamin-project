@@ -111,6 +111,16 @@ def get_all_account_configs() -> list[dict]:
     return result.data or []
 
 
+# ── product_config ──
+
+def get_product_config() -> dict | None:
+    """
+    전역 제품/자동화 설정 조회 (min_likes, min_views 등)
+    """
+    result = supabase.table("threads_product_config").select("*").limit(1).execute()
+    return result.data[0] if result.data else None
+
+
 # ── job_queue ──
 
 def get_pending_jobs() -> list[dict]:
