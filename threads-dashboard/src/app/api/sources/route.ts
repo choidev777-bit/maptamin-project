@@ -123,3 +123,31 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ data, isUrl });
 }
+
+// DELETE /api/sources — 소재 삭제
+export async function DELETE(req: NextRequest) {
+  const sp = req.nextUrl.searchParams;
+  const id = sp.get("id");
+  const all = sp.get("all");
+
+  if (all === "true") {
+    // 전체 삭제
+    const { error } = await supabase
+      .from("threads_raw_sources")
+      .delete()
+      .gte("id", "00000000-0000-0000-0000-000000000000"); // 전체 매칭 조건
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ deleted: "all" });
+  }
+
+  if (!id) {
+    return NextResponse.json({ error: "삭제할 소재 ID가 필요합니다." }, { status: 400 });
+  }
+
+  const { error } = await supabase
+    .from("threads_raw_sources")
+    .delete()
+    .eq("id", id);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ deleted: id });
+}

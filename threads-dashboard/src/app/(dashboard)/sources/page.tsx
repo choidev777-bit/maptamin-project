@@ -109,6 +109,20 @@ export default function SourcesPage() {
     setRegLoading(false);
   };
 
+  // 개별 삭제 핸들러
+  const handleDelete = async (id: string) => {
+    if (!confirm("이 소재를 삭제하시겠습니까?")) return;
+    const res = await fetch(`/api/sources?id=${id}`, { method: "DELETE" });
+    if (res.ok) load();
+  };
+
+  // 전체 삭제 핸들러
+  const handleDeleteAll = async () => {
+    if (!confirm(`소재 ${total}개를 전부 삭제합니다. 정말 삭제하시겠습니까?`)) return;
+    const res = await fetch("/api/sources?all=true", { method: "DELETE" });
+    if (res.ok) { setPage(0); load(); }
+  };
+
   const totalPages = Math.ceil(total / pageSize);
 
   return (
@@ -121,6 +135,7 @@ export default function SourcesPage() {
           <button onClick={() => triggerJob("scan_search")} className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-xs font-medium hover:bg-accent transition-colors border-none cursor-pointer">키워드 스캔</button>
           <button onClick={() => triggerJob("analyze")} className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-xs font-medium hover:bg-accent transition-colors border-none cursor-pointer">AI 분석</button>
           <button onClick={() => { setShowModal(true); setRegMsg(null); }} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:opacity-90 transition-opacity border-none cursor-pointer">+ 수동 등록</button>
+          {total > 0 && <button onClick={handleDeleteAll} className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md text-xs font-medium hover:opacity-90 transition-opacity border-none cursor-pointer">전체 삭제</button>}
         </div>
       </div>
 
@@ -178,6 +193,7 @@ export default function SourcesPage() {
                 <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground w-16">좋아요</th>
                 <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground w-16">점수</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-28">수집일</th>
+                <th className="px-4 py-2.5 text-xs font-medium text-muted-foreground w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -192,10 +208,13 @@ export default function SourcesPage() {
                   <td className="px-4 py-3 text-right text-muted-foreground">{s.likes?.toLocaleString()}</td>
                   <td className="px-4 py-3 text-right text-muted-foreground">{s.engagement_score?.toFixed(1)}</td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.collected_at).toLocaleDateString("ko-KR")}</td>
+                  <td className="px-4 py-3 text-center">
+                    <button onClick={() => handleDelete(s.id)} className="text-muted-foreground hover:text-destructive text-xs border-none bg-transparent cursor-pointer transition-colors" title="삭제">✕</button>
+                  </td>
                 </tr>
               ))}
               {sources.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">소재가 없습니다.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">소재가 없습니다.</td></tr>
               )}
             </tbody>
           </table>
