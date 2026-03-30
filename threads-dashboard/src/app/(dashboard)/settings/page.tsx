@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 interface Acc { id: string; account: string; display_name: string; topic: string; tone: string; scan_keywords: string[]; banned_words: string[]; interval_hours: number; daily_limit: number; active_hours_start: number; active_hours_end: number; is_active: boolean; }
-interface Prod { id: string; product_name: string; product_description: string; product_features: string[]; related_topics: string[]; product_link: string; link_comment_templates: string[]; min_likes: number; min_views: number; analyze_interval_hours: number; generate_interval_hours: number; }
+interface Prod { id: string; product_name: string; product_description: string; product_features: string[]; related_topics: string[]; product_link: string; link_comment_templates: string[]; min_likes: number; min_views: number; analyze_interval_hours: number; generate_interval_hours: number; youtube_scan_interval_hours: number; youtube_max_results: number; }
 
 function Tags({ tags, onChange, ph }: { tags: string[]; onChange: (t: string[]) => void; ph: string }) {
   const [v, setV] = useState("");
@@ -102,6 +102,8 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div><label className="block text-xs text-muted-foreground mb-1">AI 분석 간격 (시간)</label><input type="number" value={prod.analyze_interval_hours} onChange={e => setProd({ ...prod, analyze_interval_hours: parseInt(e.target.value) || 8 })} className={inp} /></div>
               <div><label className="block text-xs text-muted-foreground mb-1">콘텐츠 생성 간격 (시간)</label><input type="number" value={prod.generate_interval_hours} onChange={e => setProd({ ...prod, generate_interval_hours: parseInt(e.target.value) || 12 })} className={inp} /></div>
+              <div><label className="block text-xs text-muted-foreground mb-1">유튜브 스캔 간격 (시간)</label><input type="number" min={1} value={prod.youtube_scan_interval_hours || 24} onChange={e => setProd({ ...prod, youtube_scan_interval_hours: parseInt(e.target.value) || 24 })} className={inp} /></div>
+              <div><label className="block text-xs text-muted-foreground mb-1">유튜브 키워드당 수집 개수</label><input type="number" min={1} max={50} value={prod.youtube_max_results || 15} onChange={e => setProd({ ...prod, youtube_max_results: parseInt(e.target.value) || 15 })} className={inp} /></div>
             </div>
           </div>
 

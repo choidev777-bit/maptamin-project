@@ -8,6 +8,7 @@ const NAV = [
   { label: "라이브러리", href: "/library" },
   { label: "콘텐츠", href: "/contents" },
   { label: "발행", href: "/publishing" },
+  { label: "로그", href: "/logs" },
   { label: "성과", href: "/analytics" },
   { label: "설정", href: "/settings" },
 ];

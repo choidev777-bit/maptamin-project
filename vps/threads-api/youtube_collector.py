@@ -113,6 +113,7 @@ def parse_video_data(item: dict, source_type: str, transcript: str) -> dict:
     return {
         "source_type": source_type,
         "input_method": "auto",
+        "source_role": "content",
         "source_url": f"https://www.youtube.com/watch?v={video_id}",
         "author": channel,
         "text_content": text_content,

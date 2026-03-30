@@ -59,6 +59,8 @@ export async function PUT(request: Request) {
           min_views: data.min_views,
           analyze_interval_hours: data.analyze_interval_hours,
           generate_interval_hours: data.generate_interval_hours,
+          youtube_scan_interval_hours: data.youtube_scan_interval_hours,
+          youtube_max_results: data.youtube_max_results,
         })
         .eq("id", data.id);
 
