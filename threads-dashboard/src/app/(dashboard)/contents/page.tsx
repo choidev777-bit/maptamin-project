@@ -30,6 +30,7 @@ export default function ContentsPage() {
   const [editText, setEditText] = useState("");
   const [jobMsg, setJobMsg] = useState("");
   const [generateInterval, setGenerateInterval] = useState(12);
+  const [generateCount, setGenerateCount] = useState(3);
   const pageSize = 20;
 
   const load = useCallback(async () => {
@@ -55,7 +56,8 @@ export default function ContentsPage() {
 
   const triggerJob = async (type: string) => {
     setJobMsg("");
-    const res = await fetch("/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_type: type }) });
+    const params = type === "generate" ? { count: generateCount } : undefined;
+    const res = await fetch("/api/jobs", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job_type: type, params }) });
     const data = await res.json();
     setJobMsg(res.ok ? `${type} 작업 등록 완료` : data.error || "실패");
     setTimeout(() => setJobMsg(""), 3000);
@@ -83,6 +85,9 @@ export default function ContentsPage() {
         <div className="flex items-center gap-2">
           {jobMsg && <span className="text-xs px-3 py-1 rounded-full bg-success text-success-foreground">{jobMsg}</span>}
           <span className="text-xs text-muted-foreground">{generateInterval}시간마다 자동 생성</span>
+          <label className="text-xs text-muted-foreground">타입당</label>
+          <input type="number" min={1} max={20} value={generateCount} onChange={e => setGenerateCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-14 px-2 py-1 border rounded-md text-xs text-center" />
+          <span className="text-xs text-muted-foreground">개</span>
           <button onClick={() => triggerJob("generate")} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:opacity-90 transition-opacity border-none cursor-pointer">콘텐츠 생성</button>
         </div>
       </div>

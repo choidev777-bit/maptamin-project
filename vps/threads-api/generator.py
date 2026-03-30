@@ -243,10 +243,13 @@ def generate_for_account(account: str, content_type: str | None, count: int = 3)
 
 
 def generate_all(count: int = 3, content_type: str | None = None):
-    """모든 활성 계정에 대해 생성"""
+    """모든 활성 계정에 대해 생성 (타입별 count개씩)"""
+    types = [content_type] if content_type else CYCLE_ORDER  # ABCD 각각
+    total_per_account = count * len(types)
+
     print(f"\n{'='*50}")
     print(f"[GENERATOR] 콘텐츠 생성 시작")
-    print(f"  계정당: {count}개 | 타입: {content_type or '사이클'}")
+    print(f"  타입: {', '.join(types)} | 타입당: {count}개 | 계정당 총: {total_per_account}개")
     print(f"{'='*50}")
 
     accounts = ["bono", "place"]
@@ -254,9 +257,10 @@ def generate_all(count: int = 3, content_type: str | None = None):
 
     for acc in accounts:
         print(f"\n[{acc}] 생성 시작...")
-        n = generate_for_account(acc, content_type, count)
-        total += n
-        print(f"[{acc}] {n}개 생성 완료")
+        for ct in types:
+            n = generate_for_account(acc, ct, count)
+            total += n
+            print(f"  [{acc}/{ct}] {n}개 생성")
 
     print(f"\n[RESULT] 총 {total}개 콘텐츠 생성")
     return total
