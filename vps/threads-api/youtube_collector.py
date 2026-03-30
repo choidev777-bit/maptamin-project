@@ -17,7 +17,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 from config import YOUTUBE_API_KEY
 from parser import generate_hash
-from db import save_sources, check_duplicates, get_all_account_configs
+from db import save_sources, check_duplicates, get_all_account_configs, get_product_config, supabase
 from telegram_notify import notify_scan_result, notify_error
 
 
@@ -32,20 +32,41 @@ TRANSCRIPT_MAX_LENGTH = 3000  # 자막 최대 글자 수
 
 def get_youtube_settings() -> dict:
     """
-    DB(accounts_config)에서 유튜브 수집 설정 가져오기.
-    대시보드에서 변경 가능: youtube_order, youtube_max_results
+    DB(product_config)에서 유튜브 수집 설정 가져오기.
+    대시보드에서 변경 가능: youtube_max_results, youtube_scan_interval_hours
     """
     try:
-        configs = get_all_account_configs()
-        if configs:
-            config = configs[0]  # 첫 번째 계정 설정 사용
+        config = get_product_config()
+        if config:
             return {
-                "order": config.get("youtube_order") or DEFAULT_ORDER,
+                "order": DEFAULT_ORDER,
                 "max_results": config.get("youtube_max_results") or DEFAULT_MAX_RESULTS,
+                "interval_hours": config.get("youtube_scan_interval_hours") or 24,
             }
     except Exception:
         pass
-    return {"order": DEFAULT_ORDER, "max_results": DEFAULT_MAX_RESULTS}
+    return {"order": DEFAULT_ORDER, "max_results": DEFAULT_MAX_RESULTS, "interval_hours": 24}
+
+
+def should_run(video_type: str, interval_hours: int) -> bool:
+    """
+    마지막 유튜브 수집 이후 interval_hours가 경과했는지 확인.
+    경과하지 않았으면 False (스킵).
+    """
+    from datetime import datetime, timezone, timedelta
+
+    source_type = f"youtube_{video_type}"
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=interval_hours)).isoformat()
+
+    result = (
+        supabase.table("threads_raw_sources")
+        .select("id")
+        .eq("source_type", source_type)
+        .gt("collected_at", cutoff)
+        .limit(1)
+        .execute()
+    )
+    return not bool(result.data)
 
 
 # ── 헬퍼 함수 ──
@@ -324,6 +345,12 @@ def main():
     args = arg_parser.parse_args()
 
     try:
+        # 간격 체크
+        settings = get_youtube_settings()
+        if not should_run(args.type, settings["interval_hours"]):
+            print(f"[SKIP] 유튜브_{args.type}: 아직 {settings['interval_hours']}시간이 경과하지 않음")
+            return
+
         if args.keywords:
             keywords = [k.strip() for k in args.keywords.split(",")]
         else:
