@@ -92,7 +92,7 @@ export default function SettingsPage() {
             <div><label className="block text-xs text-muted-foreground mb-1">제품명</label><input type="text" value={prod.product_name} onChange={e => setProd({ ...prod, product_name: e.target.value })} className={inp} /></div>
             <div><label className="block text-xs text-muted-foreground mb-1">링크</label><input type="text" value={prod.product_link} onChange={e => setProd({ ...prod, product_link: e.target.value })} className={inp} /></div>
           </div>
-          <div><label className="block text-xs text-muted-foreground mb-1">설명</label><textarea value={prod.product_description || ""} onChange={e => setProd({ ...prod, product_description: e.target.value })} rows={2} className={`${inp} resize-none`} /></div>
+          <div><label className="block text-xs text-muted-foreground mb-1">설명</label><textarea value={prod.product_description || ""} onChange={e => setProd({ ...prod, product_description: e.target.value })} rows={10} className={`${inp} resize-none`} /></div>
           <div><label className="block text-xs text-muted-foreground mb-1">제품 기능 (Enter로 추가)</label><Tags tags={prod.product_features || []} onChange={t => setProd({ ...prod, product_features: t })} ph="기능 입력..." /></div>
           <div><label className="block text-xs text-muted-foreground mb-1">관련 토픽 (Enter로 추가)</label><Tags tags={prod.related_topics || []} onChange={t => setProd({ ...prod, related_topics: t })} ph="토픽 입력..." /></div>
           <div><label className="block text-xs text-muted-foreground mb-1">댓글 문구 템플릿 (Enter로 추가)</label><Tags tags={prod.link_comment_templates || []} onChange={t => setProd({ ...prod, link_comment_templates: t })} ph="댓글 문구 입력..." /></div>
