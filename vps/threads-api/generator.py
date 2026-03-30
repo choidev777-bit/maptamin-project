@@ -23,7 +23,7 @@ from telegram_notify import send_telegram, notify_error
 
 # ── 설정 ──
 
-DEFAULT_MODEL = "glm-4.5-air"
+DEFAULT_MODEL = "glm-4.7"
 CYCLE_ORDER = ["A", "B", "C", "D"]  # 사이클 패턴
 
 
