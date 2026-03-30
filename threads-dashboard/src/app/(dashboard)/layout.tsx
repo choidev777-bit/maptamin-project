@@ -10,6 +10,7 @@ const NAV = [
   { label: "발행", href: "/publishing" },
   { label: "로그", href: "/logs" },
   { label: "성과", href: "/analytics" },
+  { label: "스케줄", href: "/schedule" },
   { label: "설정", href: "/settings" },
 ];
 
