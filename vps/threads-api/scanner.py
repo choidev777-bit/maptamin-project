@@ -13,6 +13,7 @@ import json
 import sys
 import time
 import traceback
+from urllib.parse import quote
 
 from playwright.async_api import async_playwright
 
@@ -246,7 +247,7 @@ async def scan_search(keywords: list[str], count: int) -> dict:
         per_keyword = max(count // len(keywords), 10)
 
         for keyword in keywords:
-            search_url = f"{THREADS_BASE_URL}/search?q={keyword}&serp_type=default"
+            search_url = f"{THREADS_BASE_URL}/search?q={quote(keyword)}&serp_type=default"
             print(f"\n[SEARCH] 키워드: '{keyword}' (목표: {per_keyword}개)")
 
             await page.goto(search_url, wait_until="domcontentloaded", timeout=60000)
