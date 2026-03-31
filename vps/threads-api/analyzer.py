@@ -263,6 +263,27 @@ def update_analysis_results(results: list[dict], original_sources: list[dict] = 
 
 # ── 메인 실행 ──
 
+def cleanup_none_sources() -> int:
+    """
+    AI 분석 완료 후 source_role='none'으로 판정된 행 제거.
+    마케팅 소재로 부적합한 쓸모없는 데이터를 정리하여 DB 비대화 방지.
+    """
+    try:
+        result = (
+            supabase.table("threads_raw_sources")
+            .delete()
+            .eq("source_role", "none")
+            .not_.is_("analyzed_at", "null")
+            .execute()
+        )
+        deleted = len(result.data) if result.data else 0
+        print(f"\n[정리] source_role=none 삭제: {deleted}개")
+        return deleted
+    except Exception as e:
+        print(f"  ❌ 정리 필터 실패: {e}")
+        return 0
+
+
 def analyze_all(limit: int = 100, batch_size: int = DEFAULT_BATCH_SIZE):
     """
     미분석 소재를 배치로 AI 분류 + DB 업데이트.
@@ -305,7 +326,11 @@ def analyze_all(limit: int = 100, batch_size: int = DEFAULT_BATCH_SIZE):
             print(f"  ❌ 배치 처리 실패: {e}")
 
     print(f"\n[RESULT] 전체: {len(sources)}개 | 분류: {total_analyzed}개 | 실패: {total_failed}개")
-    return {"total": len(sources), "analyzed": total_analyzed, "failed": total_failed}
+
+    # 분석 완료 후 none 소재 자동 정리
+    deleted = cleanup_none_sources()
+
+    return {"total": len(sources), "analyzed": total_analyzed, "failed": total_failed, "deleted": deleted}
 
 
 def main():
