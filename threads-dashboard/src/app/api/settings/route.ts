@@ -35,6 +35,7 @@ export async function PUT(request: Request) {
           topic: data.topic,
           tone: data.tone,
           scan_keywords: data.scan_keywords,
+          youtube_keywords: data.youtube_keywords,
           banned_words: data.banned_words,
           interval_hours: data.interval_hours,
           daily_limit: data.daily_limit,

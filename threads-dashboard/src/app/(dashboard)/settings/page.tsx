@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-interface Acc { id: string; account: string; display_name: string; topic: string; tone: string; scan_keywords: string[]; banned_words: string[]; interval_hours: number; daily_limit: number; active_hours_start: number; active_hours_end: number; is_active: boolean; }
+interface Acc { id: string; account: string; display_name: string; topic: string; tone: string; scan_keywords: string[]; youtube_keywords: string[]; banned_words: string[]; interval_hours: number; daily_limit: number; active_hours_start: number; active_hours_end: number; is_active: boolean; }
 interface Prod { id: string; product_name: string; product_description: string; product_features: string[]; related_topics: string[]; product_link: string; link_comment_templates: string[]; min_likes: number; min_views: number; youtube_max_results: number; topic_tags: string[]; link_every_n: number; }
 
 function Tags({ tags, onChange, ph }: { tags: string[]; onChange: (t: string[]) => void; ph: string }) {
@@ -77,7 +77,8 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div><label className="block text-xs text-muted-foreground mb-1">스캔 키워드 (Enter로 추가)</label><Tags tags={a.scan_keywords || []} onChange={t => upd(a.id, "scan_keywords", t)} ph="키워드 입력..." /></div>
+          <div><label className="block text-xs text-muted-foreground mb-1">스캔 키워드 - 스레드 (Enter로 추가)</label><Tags tags={a.scan_keywords || []} onChange={t => upd(a.id, "scan_keywords", t)} ph="스레드 검색 키워드..." /></div>
+          <div><label className="block text-xs text-muted-foreground mb-1">스캔 키워드 - 유튜브 (Enter로 추가)</label><Tags tags={a.youtube_keywords || []} onChange={t => upd(a.id, "youtube_keywords", t)} ph="유튜브 검색 키워드..." /></div>
           <div><label className="block text-xs text-muted-foreground mb-1">금지어 (Enter로 추가)</label><Tags tags={a.banned_words || []} onChange={t => upd(a.id, "banned_words", t)} ph="금지어 입력..." /></div>
           <div className="flex justify-end">
             <button onClick={() => saveAcc(a)} disabled={sv} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 border-none cursor-pointer">{sv ? "저장 중..." : "저장"}</button>

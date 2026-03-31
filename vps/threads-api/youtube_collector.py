@@ -245,7 +245,7 @@ def get_video_durations(video_ids: list[str]) -> dict[str, int]:
     return durations
 
 
-def collect_youtube(keywords: list[str], video_type: str = "long") -> dict:
+def collect_youtube(keywords: list[str], video_type: str = "long", account: str | None = None) -> dict:
     """
     메인 수집 함수.
 
@@ -253,7 +253,7 @@ def collect_youtube(keywords: list[str], video_type: str = "long") -> dict:
     2. 키워드 검색
     3. 영상 시간 필터 (롱/쇼츠)
     4. 자막 추출
-    5. DB 저장
+    5. DB 저장 (account 태그 포함)
     """
     settings = get_youtube_settings()
     source_type = f"youtube_{video_type}"
@@ -295,17 +295,21 @@ def collect_youtube(keywords: list[str], video_type: str = "long") -> dict:
         parsed = parse_video_data(item, source_type, transcript)
         posts.append(parsed)
 
-    # 4. DB 저장
+    # 4. DB 저장 (account 태그 포함)
     if not posts:
         print("\n[YOUTUBE] 수집된 영상 없음")
         return {"total": 0, "saved": 0, "skipped": 0}
 
     existing_hashes = check_duplicates([p["content_hash"] for p in posts])
     new_posts = [p for p in posts if p["content_hash"] not in existing_hashes]
+    # account 태그 삽입
+    if account:
+        for p in new_posts:
+            p["account"] = account
     saved = save_sources(new_posts)
     skipped = len(posts) - len(new_posts)
 
-    print(f"\n[RESULT] 수집: {len(posts)}개 | 저장: {saved}개 | 중복: {skipped}개")
+    print(f"\n[RESULT] ({account or '공용'}) 수집: {len(posts)}개 | 저장: {saved}개 | 중복: {skipped}개")
     return {"total": len(posts), "saved": saved, "skipped": skipped}
 
 
@@ -327,25 +331,42 @@ def main():
     try:
         if args.keywords:
             keywords = [k.strip() for k in args.keywords.split(",")]
+            if not keywords:
+                print("[ERROR] 키워드가 없습니다.")
+                sys.exit(1)
+            result = collect_youtube(keywords, args.type, account=None)
+            notify_scan_result(
+                f"유튜브_{args.type}",
+                result["total"],
+                result["saved"],
+                result["skipped"],
+            )
         else:
-            # DB에서 키워드 로드
+            # 계정별로 분리하여 youtube_keywords 사용
             configs = get_all_account_configs()
-            keywords = []
+            total_all = saved_all = skipped_all = 0
             for config in configs:
-                keywords.extend(config.get("scan_keywords", []))
-            keywords = list(set(keywords))
+                acc = config.get("account")
+                keywords = config.get("youtube_keywords") or []
+                if not keywords:
+                    print(f"[SKIP] {acc}: 유튜브 키워드 없음")
+                    continue
+                print(f"\n[{acc}] 유튜브 키워드: {keywords}")
+                result = collect_youtube(keywords, args.type, account=acc)
+                total_all += result["total"]
+                saved_all += result["saved"]
+                skipped_all += result["skipped"]
 
-        if not keywords:
-            print("[ERROR] 키워드가 없습니다. --keywords 또는 DB 설정을 확인하세요.")
-            sys.exit(1)
+            if not any(config.get("youtube_keywords") for config in configs):
+                print("[ERROR] 유튜브 키워드가 없습니다. 대시보드 설정에서 계정별 유튜브 키워드를 등록하세요.")
+                sys.exit(1)
 
-        result = collect_youtube(keywords, args.type)
-        notify_scan_result(
-            f"유튜브_{args.type}",
-            result["total"],
-            result["saved"],
-            result["skipped"],
-        )
+            notify_scan_result(
+                f"유튜브_{args.type}",
+                total_all,
+                saved_all,
+                skipped_all,
+            )
 
     except Exception as e:
         error_msg = f"{e}\n{traceback.format_exc()}"
