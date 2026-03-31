@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 interface Acc { id: string; account: string; display_name: string; topic: string; tone: string; scan_keywords: string[]; youtube_keywords: string[]; banned_words: string[]; interval_hours: number; daily_limit: number; active_hours_start: number; active_hours_end: number; is_active: boolean; }
-interface Prod { id: string; product_name: string; product_description: string; product_features: string[]; related_topics: string[]; product_link: string; link_comment_templates: string[]; min_likes: number; min_views: number; youtube_max_results: number; topic_tags: string[]; link_every_n: number; }
+interface Prod { id: string; product_name: string; product_description: string; product_features: string[]; related_topics: string[]; product_link: string; link_comment_templates: string[]; min_likes: number; min_views: number; youtube_max_results: number; topic_tags: string[]; }
 
 function Tags({ tags, onChange, ph }: { tags: string[]; onChange: (t: string[]) => void; ph: string }) {
   const [v, setV] = useState("");
@@ -97,14 +97,6 @@ export default function SettingsPage() {
           <div><label className="block text-xs text-muted-foreground mb-1">제품 기능 (Enter로 추가)</label><Tags tags={prod.product_features || []} onChange={t => setProd({ ...prod, product_features: t })} ph="기능 입력..." /></div>
           <div><label className="block text-xs text-muted-foreground mb-1">관련 토픽 (Enter로 추가)</label><Tags tags={prod.related_topics || []} onChange={t => setProd({ ...prod, related_topics: t })} ph="토픽 입력..." /></div>
           <div><label className="block text-xs text-muted-foreground mb-1">댓글 문구 템플릿 (Enter로 추가)</label><Tags tags={prod.link_comment_templates || []} onChange={t => setProd({ ...prod, link_comment_templates: t })} ph="댓글 문구 입력..." /></div>
-          <div>
-            <label className="block text-xs text-muted-foreground mb-1">링크 댓글 빈도</label>
-            <p className="text-xs text-muted-foreground mb-2">N개 글 중 1개에 제품 링크 댓글을 삽입합니다</p>
-            <div className="flex items-center gap-2">
-              <input type="number" min={1} max={100} value={prod.link_every_n ?? 3} onChange={e => setProd({ ...prod, link_every_n: Math.max(1, parseInt(e.target.value) || 3) })} className={`${inp} !w-20 text-center`} />
-              <span className="text-sm text-muted-foreground">개 중 1개에 링크</span>
-            </div>
-          </div>
           <div><label className="block text-xs text-muted-foreground mb-1">자주 쓰는 주제 태그 (Enter로 추가)</label><Tags tags={prod.topic_tags || []} onChange={t => setProd({ ...prod, topic_tags: t })} ph="예: 자영업자이야기" /></div>
 
           <div className="flex justify-end">

@@ -29,7 +29,6 @@ export default function ContentsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [jobMsg, setJobMsg] = useState("");
-  const [generateInterval, setGenerateInterval] = useState(12);
   const [generateCount, setGenerateCount] = useState(3);
   const [topicTags, setTopicTags] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<Record<string, string>>({});
@@ -53,7 +52,6 @@ export default function ContentsPage() {
   useEffect(() => {
     fetch("/api/settings").then(r => r.json()).then(d => {
       if (d.product) {
-        setGenerateInterval(d.product.generate_interval_hours ?? 12);
         setTopicTags(d.product.topic_tags || []);
       }
     }).catch(() => {});
@@ -90,7 +88,6 @@ export default function ContentsPage() {
         <h2 className="text-xl font-semibold text-foreground">콘텐츠 ({total})</h2>
         <div className="flex items-center gap-2">
           {jobMsg && <span className="text-xs px-3 py-1 rounded-full bg-success text-success-foreground">{jobMsg}</span>}
-          <span className="text-xs text-muted-foreground">{generateInterval}시간마다 자동 생성</span>
           <label className="text-xs text-muted-foreground">타입당</label>
           <input type="number" min={1} max={20} value={generateCount} onChange={e => setGenerateCount(Math.max(1, parseInt(e.target.value) || 1))} className="w-14 px-2 py-1 border rounded-md text-xs text-center" />
           <span className="text-xs text-muted-foreground">개</span>
