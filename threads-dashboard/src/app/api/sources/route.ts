@@ -47,7 +47,8 @@ function detectSourceType(input: string): { sourceType: string; isUrl: boolean }
 function detectExtractJobType(sourceType: string): string | null {
   const map: Record<string, string> = {
     threads: "extract_threads",
-    youtube: "extract_youtube",
+    youtube_long: "extract_youtube",
+    youtube_shorts: "extract_youtube",
     web: "extract_web",
   };
   return map[sourceType] || null;
