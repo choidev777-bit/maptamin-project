@@ -24,7 +24,7 @@ from telegram_notify import notify_scan_result, notify_error
 # ── 설정 ──
 
 VALID_TYPES = {"A", "B", "C", "D"}
-DEFAULT_BATCH_SIZE = 10
+DEFAULT_BATCH_SIZE = 5
 DEFAULT_MODEL = "glm-4.7"
 TEXT_MAX_LENGTH = 3000  # 내용 소재 핵심 포인트 추출을 위해 허용 길이 확장
 
@@ -183,7 +183,7 @@ def call_ai(prompt: str) -> str:
         "max_tokens": 4000,
     }
 
-    resp = requests.post(OPENCLAW_API_URL, json=payload, headers=headers, timeout=60)
+    resp = requests.post(OPENCLAW_API_URL, json=payload, headers=headers, timeout=120)
     resp.raise_for_status()
 
     data = resp.json()
