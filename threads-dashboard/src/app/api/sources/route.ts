@@ -40,7 +40,7 @@ function detectSourceType(input: string): { sourceType: string; isUrl: boolean }
   if (trimmed.includes("threads.net") || trimmed.includes("threads.com"))
     return { sourceType: "threads", isUrl: true };
   if (trimmed.includes("youtube.com") || trimmed.includes("youtu.be"))
-    return { sourceType: "youtube", isUrl: true };
+    return { sourceType: "youtube_long", isUrl: true };
   return { sourceType: "web", isUrl: true };
 }
 
