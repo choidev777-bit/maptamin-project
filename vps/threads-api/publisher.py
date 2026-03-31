@@ -196,11 +196,24 @@ def publish_for_account(account: str, dry_run: bool = False) -> bool:
         else:
             print(f"  ✅ 게시 완료: {post_id}")
 
-        # 링크 댓글 삽입
+        # 셀프댓글 타래 발행 (thread_parts가 2개 이상일 때만)
+        thread_parts = content.get("thread_parts") or []
+        if len(thread_parts) > 1:
+            last_id = post_id  # 첫 댓글은 본문에 달림
+            for i, part in enumerate(thread_parts[1:], 1):
+                time.sleep(random.uniform(3, 8))
+                try:
+                    last_id = threads_reply(user_id, token, last_id, part)  # 체인형
+                    print(f"  💬 타래 {i}/{len(thread_parts)-1}: {last_id}")
+                except Exception as e:
+                    print(f"  ⚠️ 타래 댓글 실패 (본문은 발행됨, 계속): {e}")
+                    break  # 실패 시 이후 댓글 중단. 본문 발행은 성공 처리
+
+        # 링크 댓글 삽입 (타래 체인 완료 후, 본문에 달림)
         if content.get("link_eligible") and content.get("link_comment"):
             time.sleep(random.uniform(3, 8))  # 자연스러운 딜레이
             reply_id = threads_reply(user_id, token, post_id, content["link_comment"])
-            print(f"  💬 댓글 삽입: {reply_id}")
+            print(f"  🔗 링크 댓글: {reply_id}")
 
         update_content_published(content["id"], post_id)
         return True

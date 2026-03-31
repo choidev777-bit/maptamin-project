@@ -222,10 +222,11 @@ async def scan_feed(count: int) -> dict:
     return {"total": len(posts), "saved": saved, "skipped": skipped}
 
 
-async def scan_search(keywords: list[str], count: int) -> dict:
+async def scan_search(keywords: list[str], count: int, account: str | None = None) -> dict:
     """
     STEP 1-B: 키워드 검색 스캔 (통합 파이프라인)
     수집 → 좋아요 필터 → 조회수 수집 → 조회수 필터 → 저장
+    account: 저장 시 계정 태그. None이면 공용 풀.
     """
     print(f"\n{'='*50}")
     print(f"[SEARCH SCAN] 키워드 검색 스캔 (키워드: {keywords}, 목표: {count}개)")
@@ -274,13 +275,17 @@ async def scan_search(keywords: list[str], count: int) -> dict:
             print(f"[VIEWS] {len(all_posts)}개 글 조회수 수집 시작...")
             all_posts = await _collect_and_filter_views(page, all_posts, min_views)
 
-    # 중복 확인 + DB 저장
+    # 중복 확인 + DB 저장 (account 태그 포함)
     existing_hashes = check_duplicates([p_item["content_hash"] for p_item in all_posts])
     new_posts = [p_item for p_item in all_posts if p_item["content_hash"] not in existing_hashes]
+    # 계정 태그 삽입
+    if account:
+        for p_item in new_posts:
+            p_item["account"] = account
     saved = save_sources(new_posts)
     skipped = len(all_posts) - len(new_posts)
 
-    print(f"\n[RESULT] 최종: {len(all_posts)}개 | 저장: {saved}개 | 중복: {skipped}개")
+    print(f"\n[RESULT] ({account or '공용'}) 최종: {len(all_posts)}개 | 저장: {saved}개 | 중복: {skipped}개")
     return {"total": len(all_posts), "saved": saved, "skipped": skipped}
 
 
@@ -379,7 +384,7 @@ def main():
                            help="feed: For You 피드, search: 키워드 검색, views: 조회수 추출")
     arg_parser.add_argument("--keywords", type=str, default="",
                            help="검색 키워드 (쉼표 구분)")
-    arg_parser.add_argument("--count", type=int, default=200,
+    arg_parser.add_argument("--count", type=int, default=500,
                            help="수집 목표 개수 (기본: 200)")
 
     args = arg_parser.parse_args()
@@ -391,22 +396,32 @@ def main():
 
         elif args.mode == "search":
             if not args.keywords:
-                # DB에서 계정 설정의 키워드 로드
+                # 계정별로 분리하여 스캔 (account 태그 포함)
                 from db import get_all_account_configs
                 configs = get_all_account_configs()
-                keywords = []
+
+                total_all = saved_all = skipped_all = 0
                 for config in configs:
-                    keywords.extend(config.get("scan_keywords", []))
-                keywords = list(set(keywords))  # 중복 제거
+                    acc = config.get("account")
+                    keywords = config.get("scan_keywords", [])
+                    if not keywords:
+                        print(f"[SKIP] {acc}: 스캔 키워드 없음")
+                        continue
+                    print(f"\n[{acc}] 키워드: {keywords}")
+                    result = asyncio.run(scan_search(keywords, args.count, account=acc))
+                    total_all += result["total"]
+                    saved_all += result["saved"]
+                    skipped_all += result["skipped"]
+
+                notify_scan_result("검색", total_all, saved_all, skipped_all)
             else:
+                # --keywords 직접 지정 시 공용 풀로 저장
                 keywords = [k.strip() for k in args.keywords.split(",")]
-
-            if not keywords:
-                print("[ERROR] 키워드가 없습니다. --keywords 또는 DB 설정을 확인하세요.")
-                sys.exit(1)
-
-            result = asyncio.run(scan_search(keywords, args.count))
-            notify_scan_result("검색", result["total"], result["saved"], result["skipped"])
+                if not keywords:
+                    print("[ERROR] 키워드가 없습니다.")
+                    sys.exit(1)
+                result = asyncio.run(scan_search(keywords, args.count, account=None))
+                notify_scan_result("검색", result["total"], result["saved"], result["skipped"])
 
         elif args.mode == "views":
             result = asyncio.run(scan_views())
