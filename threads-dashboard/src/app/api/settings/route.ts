@@ -63,6 +63,7 @@ export async function PUT(request: Request) {
           schedule_analyze: data.schedule_analyze,
           schedule_generate: data.schedule_generate,
           schedule_youtube: data.schedule_youtube,
+          topic_tags: data.topic_tags,
         })
         .eq("id", data.id);
 

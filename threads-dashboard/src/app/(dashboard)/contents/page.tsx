@@ -5,7 +5,7 @@ interface Content {
   id: string; account: string; text_content: string; parent_type: string;
   status: string; link_eligible: boolean; link_comment: string | null;
   scheduled_at: string | null; published_at: string | null; created_at: string;
-  engagement: Record<string, number>;
+  engagement: Record<string, number>; topic_tag: string | null;
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -31,6 +31,8 @@ export default function ContentsPage() {
   const [jobMsg, setJobMsg] = useState("");
   const [generateInterval, setGenerateInterval] = useState(12);
   const [generateCount, setGenerateCount] = useState(3);
+  const [topicTags, setTopicTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<Record<string, string>>({});
   const pageSize = 20;
 
   const load = useCallback(async () => {
@@ -50,7 +52,10 @@ export default function ContentsPage() {
 
   useEffect(() => {
     fetch("/api/settings").then(r => r.json()).then(d => {
-      if (d.product) setGenerateInterval(d.product.generate_interval_hours ?? 12);
+      if (d.product) {
+        setGenerateInterval(d.product.generate_interval_hours ?? 12);
+        setTopicTags(d.product.topic_tags || []);
+      }
     }).catch(() => {});
   }, []);
 
@@ -63,9 +68,10 @@ export default function ContentsPage() {
     setTimeout(() => setJobMsg(""), 3000);
   };
 
-  const updateStatus = async (id: string, status: string, text_content?: string) => {
-    const body: Record<string, string> = { id, status };
+  const updateStatus = async (id: string, status: string, text_content?: string, topic_tag?: string) => {
+    const body: Record<string, unknown> = { id, status };
     if (text_content !== undefined) body.text_content = text_content;
+    if (topic_tag !== undefined) body.topic_tag = topic_tag;
     await fetch("/api/contents", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     setEditId(null);
     load();
@@ -136,6 +142,7 @@ export default function ContentsPage() {
                   <span className="text-xs text-muted-foreground">@{c.account === "bono" ? "bono_marketing" : "place_hacker_"}</span>
                   <span className="text-xs text-muted-foreground">{c.parent_type} · {TYPE_LABELS[c.parent_type]}</span>
                   {c.link_eligible && <span className="text-xs px-2 py-0.5 rounded-full bg-type-a text-type-a-foreground">링크</span>}
+                  {c.topic_tag && <span className="text-xs px-2 py-0.5 rounded-full bg-accent text-accent-foreground">#{c.topic_tag}</span>}
                 </div>
                 <span className="text-xs text-muted-foreground">{new Date(c.created_at).toLocaleDateString("ko-KR")}</span>
               </div>
@@ -157,10 +164,20 @@ export default function ContentsPage() {
 
               {/* Actions */}
               {c.status === "draft" && editId !== c.id && (
-                <div className="flex gap-2 justify-end">
+                <div className="flex gap-2 items-center justify-end">
+                  {topicTags.length > 0 && (
+                    <select
+                      value={selectedTags[c.id] || ""}
+                      onChange={e => setSelectedTags(prev => ({ ...prev, [c.id]: e.target.value }))}
+                      className="px-2 py-1.5 border border-input rounded-md text-xs bg-background text-foreground"
+                    >
+                      <option value="">주제 태그 없음</option>
+                      {topicTags.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  )}
                   <button onClick={() => { setEditId(c.id); setEditText(c.text_content); }} className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-xs border-none cursor-pointer hover:bg-accent">수정</button>
                   <button onClick={() => deleteContent(c.id)} className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md text-xs border-none cursor-pointer">삭제</button>
-                  <button onClick={() => updateStatus(c.id, "approved")} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-xs border-none cursor-pointer">승인</button>
+                  <button onClick={() => updateStatus(c.id, "approved", undefined, selectedTags[c.id] || undefined)} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-xs border-none cursor-pointer">승인</button>
                 </div>
               )}
               {c.status === "approved" && (

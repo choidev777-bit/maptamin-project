@@ -28,12 +28,13 @@ export async function GET(req: NextRequest) {
 // PUT /api/contents — update status (approve/reject)
 export async function PUT(req: NextRequest) {
   const body = await req.json();
-  const { id, status, text_content } = body;
+  const { id, status, text_content, topic_tag } = body;
 
   if (!id || !status) return NextResponse.json({ error: "id and status required" }, { status: 400 });
 
   const updates: Record<string, unknown> = { status };
   if (text_content !== undefined) updates.text_content = text_content;
+  if (topic_tag !== undefined) updates.topic_tag = topic_tag;
   if (status === "published") updates.published_at = new Date().toISOString();
 
   const { error } = await supabase.from("threads_contents").update(updates).eq("id", id);

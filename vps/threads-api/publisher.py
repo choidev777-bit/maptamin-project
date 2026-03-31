@@ -91,15 +91,18 @@ def update_content_failed(content_id: str, error: str):
 
 # ── Threads API ──
 
-def threads_create_post(user_id: str, access_token: str, text: str) -> str:
+def threads_create_post(user_id: str, access_token: str, text: str, topic_tag: str = "") -> str:
     """Threads API로 글 게시. 반환: media_id"""
     # Step 1: 컨테이너 생성
     create_url = f"https://graph.threads.net/v1.0/{user_id}/threads"
-    resp = requests.post(create_url, data={
+    payload = {
         "media_type": "TEXT",
         "text": text,
         "access_token": access_token,
-    }, timeout=30)
+    }
+    if topic_tag:
+        payload["topic_tag"] = topic_tag
+    resp = requests.post(create_url, data=payload, timeout=30)
     resp.raise_for_status()
     container_id = resp.json()["id"]
 
@@ -186,8 +189,12 @@ def publish_for_account(account: str, dry_run: bool = False) -> bool:
         return False
 
     try:
-        post_id = threads_create_post(user_id, token, text)
-        print(f"  ✅ 게시 완료: {post_id}")
+        topic_tag = content.get("topic_tag") or ""
+        post_id = threads_create_post(user_id, token, text, topic_tag)
+        if topic_tag:
+            print(f"  ✅ 게시 완료: {post_id} (#{topic_tag})")
+        else:
+            print(f"  ✅ 게시 완료: {post_id}")
 
         # 링크 댓글 삽입
         if content.get("link_eligible") and content.get("link_comment"):
