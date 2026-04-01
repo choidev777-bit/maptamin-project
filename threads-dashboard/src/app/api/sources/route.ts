@@ -165,3 +165,32 @@ export async function DELETE(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ deleted: id });
 }
+
+// PATCH /api/sources — 추출 대기 중인 URL 소재들의 extract job 일괄 등록
+export async function PATCH() {
+  // source_url이 있고 text_content가 비어있는 소재 = 추출 미완료
+  const { data: pending, error } = await supabase
+    .from("threads_raw_sources")
+    .select("id, source_type, source_url")
+    .not("source_url", "is", null)
+    .is("analyzed_at", null)
+    .eq("text_content", "");
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!pending || pending.length === 0) {
+    return NextResponse.json({ message: "추출 대기 중인 소재가 없습니다.", count: 0 });
+  }
+
+  let registered = 0;
+  for (const src of pending) {
+    const jobType = detectExtractJobType(src.source_type);
+    if (!jobType) continue;
+    await supabase.from("threads_job_queue").insert({
+      job_type: jobType,
+      params: { url: src.source_url, source_id: src.id },
+    });
+    registered++;
+  }
+
+  return NextResponse.json({ message: `${registered}개 추출 작업 등록 완료`, count: registered });
+}

@@ -75,6 +75,14 @@ export default function SourcesPage() {
     setTimeout(() => setJobMsg(""), 3000);
   };
 
+  const triggerExtract = async () => {
+    setJobMsg("");
+    const res = await fetch("/api/sources", { method: "PATCH" });
+    const data = await res.json();
+    setJobMsg(data.message || "완료");
+    setTimeout(() => setJobMsg(""), 5000);
+  };
+
   const saveFilter = async (likes: number, views: number) => {
     if (!productId) return;
     await fetch("/api/settings", {
@@ -135,6 +143,7 @@ export default function SourcesPage() {
           <button onClick={() => triggerJob("scan_search")} className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-xs font-medium hover:bg-accent transition-colors border-none cursor-pointer">키워드 스캔</button>
           <button onClick={() => triggerJob("analyze_feed")} className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-xs font-medium hover:bg-accent transition-colors border-none cursor-pointer">피드 분석</button>
           <button onClick={() => triggerJob("analyze_keyword")} className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-xs font-medium hover:bg-accent transition-colors border-none cursor-pointer">키워드 분석</button>
+          <button onClick={triggerExtract} className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md text-xs font-medium hover:bg-accent transition-colors border-none cursor-pointer">🔄 추출 실행</button>
           <button onClick={() => { setShowModal(true); setRegMsg(null); }} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md text-xs font-medium hover:opacity-90 transition-opacity border-none cursor-pointer">+ 수동 등록</button>
           {total > 0 && <button onClick={handleDeleteAll} className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md text-xs font-medium hover:opacity-90 transition-opacity border-none cursor-pointer">전체 삭제</button>}
         </div>
