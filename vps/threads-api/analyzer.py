@@ -253,7 +253,11 @@ def call_ai(prompt: str) -> str:
     resp.raise_for_status()
 
     data = resp.json()
-    return data["choices"][0]["message"]["content"]
+    content = data["choices"][0]["message"].get("content", "")
+    if not content or not content.strip():
+        reasoning = data["choices"][0]["message"].get("reasoning_content", "")
+        print(f"  ⚠️ content 비어있음 (reasoning {len(reasoning)}자 소비)")
+    return content or ""
 
 
 # ── 배치 분류 ──
