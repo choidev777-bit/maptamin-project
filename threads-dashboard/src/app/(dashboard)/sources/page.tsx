@@ -37,6 +37,7 @@ export default function SourcesPage() {
   const [showModal, setShowModal] = useState(false);
   const [regInput, setRegInput] = useState("");
   const [regRole, setRegRole] = useState<"content" | "pattern" | "both">("content");
+  const [regAccount, setRegAccount] = useState<"bono" | "place">("bono");
   const [regLoading, setRegLoading] = useState(false);
   const [regMsg, setRegMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const pageSize = 20;
@@ -100,7 +101,7 @@ export default function SourcesPage() {
       const res = await fetch("/api/sources", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input: regInput, source_role: regRole }),
+        body: JSON.stringify({ input: regInput, source_role: regRole, account: regAccount }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -286,6 +287,25 @@ export default function SourcesPage() {
                 ))}
               </div>
             </div>
+
+            {regRole !== "pattern" && (
+              <div className="flex items-center gap-3">
+                <p className="text-xs text-muted-foreground whitespace-nowrap">사용 계정:</p>
+                <div className="flex gap-2">
+                  {(["bono", "place"] as const).map(acc => (
+                    <button
+                      key={acc}
+                      onClick={() => setRegAccount(acc)}
+                      className={`px-4 py-1.5 rounded-md text-xs font-medium border transition-colors cursor-pointer ${
+                        regAccount === acc
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-input bg-background text-muted-foreground hover:border-foreground"
+                      }`}
+                    >{acc}</button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {regMsg && (
               <p className={`text-xs px-3 py-2 rounded-md ${

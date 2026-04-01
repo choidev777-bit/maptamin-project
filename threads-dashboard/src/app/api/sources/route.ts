@@ -57,7 +57,7 @@ function detectExtractJobType(sourceType: string): string | null {
 // POST /api/sources — 수동 소재 등록
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { input, source_role } = body as { input?: string; source_role?: string };
+  const { input, source_role, account } = body as { input?: string; source_role?: string; account?: string };
 
   // 유효성 검사
   if (!input || !input.trim()) {
@@ -99,6 +99,8 @@ export async function POST(req: NextRequest) {
     engagement_score: 0,
     // 직접 텍스트 + content 역할 → 즉시 분석완료 처리 (AI 분석 불필요)
     analyzed_at: (!isUrl && source_role === "content") ? new Date().toISOString() : null,
+    // pattern 소재는 특정 계정 귀속 없음. content/both는 지정된 계정에 귀속
+    account: source_role === "pattern" ? null : (account || null),
   };
 
   const { data, error } = await supabase
