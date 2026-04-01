@@ -305,11 +305,17 @@ def analyze_all(limit: int = 100, batch_size: int = DEFAULT_BATCH_SIZE):
     total_analyzed = 0
     total_failed = 0
 
-    # 배치 처리
+    # 라운드 방식 처리: 5배치(25개)씩 → 5분 쿨다운 → 반복
+    BATCHES_PER_ROUND = 5
+    COOLDOWN_SECONDS = 300  # 5분
+
+    total_batches = (len(sources) + batch_size - 1) // batch_size
+    batch_num = 0
+
     for i in range(0, len(sources), batch_size):
         batch = sources[i:i+batch_size]
-        batch_num = (i // batch_size) + 1
-        total_batches = (len(sources) + batch_size - 1) // batch_size
+        batch_num += 1
+        batch_in_round = ((batch_num - 1) % BATCHES_PER_ROUND) + 1
 
         print(f"\n[BATCH {batch_num}/{total_batches}] {len(batch)}개 분류 중...")
 
@@ -325,11 +331,11 @@ def analyze_all(limit: int = 100, batch_size: int = DEFAULT_BATCH_SIZE):
                 else:
                     total_failed += len(batch)
                     print(f"  ❌ AI 응답 파싱 실패")
-                break  # 성공이든 파싱 실패든 재시도 불필요
+                break
             except Exception as e:
                 error_msg = str(e)
                 if "429" in error_msg and attempt < max_retries:
-                    wait_time = 60 * (attempt + 1)  # 60초, 120초
+                    wait_time = 60 * (attempt + 1)
                     print(f"  ⏳ Rate limit - {wait_time}초 대기 후 재시도 ({attempt+1}/{max_retries})")
                     time.sleep(wait_time)
                     continue
@@ -337,9 +343,15 @@ def analyze_all(limit: int = 100, batch_size: int = DEFAULT_BATCH_SIZE):
                 print(f"  ❌ 배치 처리 실패: {e}")
                 break
 
-        # Rate limit 방지: 배치 사이 15초 대기
+        # 남은 배치가 있을 때만 대기
         if i + batch_size < len(sources):
-            time.sleep(15)
+            if batch_in_round == BATCHES_PER_ROUND:
+                # 라운드 완료 → 5분 쿨다운
+                print(f"\n  ⏸️  라운드 완료 ({batch_num}/{total_batches}) — {COOLDOWN_SECONDS // 60}분 쿨다운...")
+                time.sleep(COOLDOWN_SECONDS)
+            else:
+                # 라운드 내 배치 간 15초 대기
+                time.sleep(15)
 
     print(f"\n[RESULT] 전체: {len(sources)}개 | 분류: {total_analyzed}개 | 실패: {total_failed}개")
 

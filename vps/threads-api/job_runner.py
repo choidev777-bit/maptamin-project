@@ -94,11 +94,14 @@ def run_job(job: dict):
         if params.get("source_id"):
             cmd = cmd + ["--source_id", params["source_id"]]
 
+        # analyze는 라운드 쿨다운으로 오래 걸리므로 타임아웃 없음
+        job_timeout = None if job_type == "analyze" else 1800
+
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=1800,  # 30분 타임아웃
+            timeout=job_timeout,
         )
 
         if result.returncode == 0:
