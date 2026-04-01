@@ -31,7 +31,7 @@ export default function SourcesPage() {
   const [jobMsg, setJobMsg] = useState("");
   const [minLikes, setMinLikes] = useState(5);
   const [minViews, setMinViews] = useState(1000);
-  const [analyzeInterval, setAnalyzeInterval] = useState(8);
+
   const [productId, setProductId] = useState<string>("");
   // 수동 등록 모달
   const [showModal, setShowModal] = useState(false);
@@ -61,7 +61,7 @@ export default function SourcesPage() {
       if (d.product) {
         setMinLikes(d.product.min_likes ?? 5);
         setMinViews(d.product.min_views ?? 1000);
-        setAnalyzeInterval(d.product.analyze_interval_hours ?? 8);
+
         setProductId(d.product.id);
       }
     }).catch(() => {});
@@ -152,7 +152,7 @@ export default function SourcesPage() {
           <input type="number" value={minViews} onChange={e => { const v = parseInt(e.target.value) || 0; setMinViews(v); saveFilter(minLikes, v); }}
             className="w-24 px-2 py-1 border border-input rounded-md text-sm bg-background text-foreground text-center focus:outline-none focus:border-foreground transition-colors" />
         </div>
-        <span className="text-xs text-muted-foreground ml-auto">{analyzeInterval}시간마다 자동 분석</span>
+
       </div>
 
       {/* Filters */}

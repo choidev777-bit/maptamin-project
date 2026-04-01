@@ -40,18 +40,35 @@ export async function GET(req: NextRequest) {
 }
 
 // DELETE /api/library?tab=content&id=xxx  또는  ?tab=pattern&id=xxx
+// DELETE /api/library?tab=content&all=true  또는  ?tab=pattern&all=true
 export async function DELETE(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const tab = sp.get("tab") || "content";
   const id = sp.get("id");
+  const all = sp.get("all");
+
+  const table = tab === "pattern" ? "threads_patterns" : "threads_raw_sources";
+
+  if (all === "true") {
+    if (tab === "content") {
+      // 내용 소재 전체삭제: source_role이 content 또는 both이고 analyzed_at이 있는 것만
+      const { error } = await supabase.from(table).delete().or("source_role.eq.content,source_role.eq.both").not("analyzed_at", "is", null);
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    } else {
+      // 패턴 소재 전체삭제
+      const { error } = await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ deleted: "all", tab });
+  }
 
   if (!id) {
     return NextResponse.json({ error: "삭제할 항목 ID가 필요합니다." }, { status: 400 });
   }
 
-  const table = tab === "pattern" ? "threads_patterns" : "threads_raw_sources";
   const { error } = await supabase.from(table).delete().eq("id", id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ deleted: id, tab });
 }
+

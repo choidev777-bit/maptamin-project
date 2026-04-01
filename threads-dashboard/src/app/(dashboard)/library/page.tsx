@@ -64,10 +64,19 @@ export default function LibraryPage() {
     load();
   };
 
+  const deleteAll = async () => {
+    const label = tab === "content" ? "내용 소재" : "패턴 소재";
+    if (!confirm(`${label} ${total}개를 전부 삭제합니다. 정말 삭제하시겠습니까?`)) return;
+    await fetch(`/api/library?tab=${tab}&all=true`, { method: "DELETE" });
+    setPage(0);
+    load();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-foreground">라이브러리 ({total})</h2>
+        {total > 0 && <button onClick={deleteAll} className="px-3 py-1.5 bg-destructive text-destructive-foreground rounded-md text-xs font-medium hover:opacity-90 transition-opacity border-none cursor-pointer">전체 삭제</button>}
       </div>
 
       {/* 탭 */}
