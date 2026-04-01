@@ -145,11 +145,11 @@ export async function DELETE(req: NextRequest) {
   const all = sp.get("all");
 
   if (all === "true") {
-    // 전체 삭제
+    // 미분석 소재만 삭제 (library에 있는 분석완료 소재는 보호)
     const { error } = await supabase
       .from("threads_raw_sources")
       .delete()
-      .gte("id", "00000000-0000-0000-0000-000000000000"); // 전체 매칭 조건
+      .is("analyzed_at", null);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ deleted: "all" });
   }
