@@ -5,7 +5,7 @@ interface ContentSource {
   id: string; text_content: string; source_type: string; source_role: string;
   content_type: string | null; category: string | null; ai_summary: string | null;
   ai_key_points: string[] | null; likes: number; engagement_score: number;
-  collected_at: string; analyzed_at: string | null;
+  collected_at: string; analyzed_at: string | null; account: string | null;
 }
 
 interface PatternItem {
@@ -119,6 +119,7 @@ export default function LibraryPage() {
               <tr className="bg-muted border-b">
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-20">타입</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground">요약 / 핵심 포인트</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-16">계정</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-20">소스</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-20">역할</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-28">수집일</th>
@@ -143,6 +144,9 @@ export default function LibraryPage() {
                         ))}
                       </ul>
                     )}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs">
+                    <span className="font-medium text-foreground">{s.account || '-'}</span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">{s.source_type}</td>
                   <td className="px-4 py-3">

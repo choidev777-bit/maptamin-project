@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   // 내용 소재: threads_raw_sources 중 source_role = content 또는 both
   let query = supabase
     .from("threads_raw_sources")
-    .select("id, text_content, source_type, source_role, content_type, category, ai_summary, ai_key_points, likes, engagement_score, collected_at, analyzed_at", { count: "exact" })
+    .select("id, text_content, source_type, source_role, content_type, category, ai_summary, ai_key_points, likes, engagement_score, collected_at, analyzed_at, account", { count: "exact" })
     .or("source_role.eq.content,source_role.eq.both")
     .not("analyzed_at", "is", null)
     .order("collected_at", { ascending: false })
