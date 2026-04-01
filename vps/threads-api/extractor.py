@@ -16,7 +16,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from parser import generate_hash
-from db import supabase
+from db import supabase, set_analyzed_at
 from telegram_notify import send_telegram
 
 
@@ -57,7 +57,7 @@ def extract_youtube(url: str) -> dict:
                 if items:
                     snippet = items[0]["snippet"]
                     title = snippet.get("title", "")
-                    description = snippet.get("description", "")[:500]
+                    description = snippet.get("description", "")
         except Exception:
             pass
 
@@ -157,8 +157,8 @@ def extract_web(url: str) -> dict:
         text = content_el.get_text(separator="\n", strip=True)
         # 연속 줄바꿈 정리
         text = re.sub(r"\n{3,}", "\n\n", text)
-        # 최대 5000자
-        text = text[:5000]
+        # 길이 제한 없이 전체 저장
+
 
         # 제목 추출
         title = ""
@@ -229,6 +229,25 @@ def main():
 
     print(f"  ✅ 추출 완료: {len(text_content)}자")
     send_telegram(f"✅ URL 추출 완료: {url_type}\n{url}\n({len(text_content)}자)")
+
+    # ── source_role에 따라 분기 ──
+    source = supabase.table("threads_raw_sources") \
+        .select("source_role") \
+        .eq("id", source_id) \
+        .single() \
+        .execute().data
+    role = (source or {}).get("source_role", "")
+
+    if role == "content":
+        # content 소재: AI 분석 없이 즉시 분석완료
+        set_analyzed_at(source_id)
+        print("  ✅ content 소재: analyzed_at 자동 설정")
+
+    elif role in ("pattern", "both"):
+        # pattern/both 소재: 패턴 추출 AI 호출
+        from analyzer import run_pattern_analysis
+        run_pattern_analysis(source_id)
+        print("  ✅ pattern 소재: 패턴 추출 AI 실행")
 
 
 if __name__ == "__main__":

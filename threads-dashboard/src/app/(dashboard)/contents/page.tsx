@@ -53,9 +53,27 @@ export default function ContentsPage() {
     fetch("/api/settings").then(r => r.json()).then(d => {
       if (d.product) {
         setTopicTags(d.product.topic_tags || []);
+        if (d.product.generate_count) setGenerateCount(d.product.generate_count);
       }
     }).catch(() => {});
   }, []);
+
+  // generateCount 변경 시 debounce 500ms 후 DB 저장
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetch("/api/settings").then(r => r.json()).then(d => {
+        if (d.product) {
+          fetch("/api/settings", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "product", data: { ...d.product, generate_count: generateCount } }),
+          });
+        }
+      }).catch(() => {});
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [generateCount]);
+
 
   const triggerJob = async (type: string) => {
     setJobMsg("");

@@ -215,6 +215,9 @@ async def scan_feed(count: int) -> dict:
     # 중복 확인 + DB 저장
     existing_hashes = check_duplicates([post_item["content_hash"] for post_item in posts])
     new_posts = [post_item for post_item in posts if post_item["content_hash"] not in existing_hashes]
+    # 피드 수집 = 패턴 소재로 힙스 (패턴 AI가 나중에 분류)
+    for post_item in new_posts:
+        post_item["source_role"] = "pattern"
     saved = save_sources(new_posts)
     skipped = len(posts) - len(new_posts)
 
@@ -278,6 +281,9 @@ async def scan_search(keywords: list[str], count: int, account: str | None = Non
     # 중복 확인 + DB 저장 (account 태그 포함)
     existing_hashes = check_duplicates([p_item["content_hash"] for p_item in all_posts])
     new_posts = [p_item for p_item in all_posts if p_item["content_hash"] not in existing_hashes]
+    # 키워드 스캔 = 내용 소재로 힙스 (내용/none AI가 나중에 분류)
+    for p_item in new_posts:
+        p_item["source_role"] = "content"
     # 계정 태그 삽입
     if account:
         for p_item in new_posts:

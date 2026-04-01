@@ -38,3 +38,20 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ data, total: count, page, pageSize });
 }
+
+// DELETE /api/library?tab=content&id=xxx  또는  ?tab=pattern&id=xxx
+export async function DELETE(req: NextRequest) {
+  const sp = req.nextUrl.searchParams;
+  const tab = sp.get("tab") || "content";
+  const id = sp.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "삭제할 항목 ID가 필요합니다." }, { status: 400 });
+  }
+
+  const table = tab === "pattern" ? "threads_patterns" : "threads_raw_sources";
+  const { error } = await supabase.from(table).delete().eq("id", id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ deleted: id, tab });
+}

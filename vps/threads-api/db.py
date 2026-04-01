@@ -68,18 +68,21 @@ def update_source_views(source_id: str, views: int):
     ).eq("id", source_id).execute()
 
 
-def get_unanalyzed_sources(limit: int = 100) -> list[dict]:
+def get_unanalyzed_sources(limit: int = 100, source_role: str | None = None) -> list[dict]:
     """
     미분석(analyzed_at IS NULL) 소재 조회
+    source_role: "pattern" | "content" | None (전체)
     """
-    result = (
+    query = (
         supabase.table("threads_raw_sources")
-        .select("id, text_content, likes, replies, reposts, views, source_type, source_role")
+        .select("id, text_content, likes, replies, reposts, views, source_type, source_role, input_method")
         .is_("analyzed_at", "null")
         .order("collected_at", desc=True)
         .limit(limit)
-        .execute()
     )
+    if source_role:
+        query = query.eq("source_role", source_role)
+    result = query.execute()
     return result.data or []
 
 
@@ -156,3 +159,29 @@ def update_job_status(job_id: str, status: str, error_message: str = None):
     supabase.table("threads_job_queue").update(
         update_data
     ).eq("id", job_id).execute()
+
+
+# ── raw_sources 헬퍼 ──
+
+def get_source_by_id(source_id: str) -> dict | None:
+    """
+    특정 소재 1건 조회
+    """
+    result = (
+        supabase.table("threads_raw_sources")
+        .select("*")
+        .eq("id", source_id)
+        .single()
+        .execute()
+    )
+    return result.data
+
+
+def set_analyzed_at(source_id: str):
+    """
+    수동/자동 내용소재를 AI 분석 없이 즉시 분석완료 처리
+    """
+    from datetime import datetime, timezone
+    supabase.table("threads_raw_sources").update({
+        "analyzed_at": datetime.now(timezone.utc).isoformat()
+    }).eq("id", source_id).execute()

@@ -5,7 +5,7 @@ AI 분석 엔진
 사용법:
     python analyzer.py                    # 미분석 소재 전체 분류
     python analyzer.py --limit 10         # 10개만 분류
-    python analyzer.py --batch-size 5     # 5개씩 배치 처리
+    python analyzer.py --batch-size 10    # 10개씩 배치 처리 (기본값)
 """
 import argparse
 import json
@@ -18,15 +18,16 @@ from datetime import datetime, timezone
 import requests
 
 from config import OPENCLAW_API_URL, OPENCLAW_API_KEY
-from db import get_unanalyzed_sources, supabase
+from db import get_unanalyzed_sources, supabase, get_source_by_id, set_analyzed_at
 from telegram_notify import notify_scan_result, notify_error
+
 
 
 # ── 설정 ──
 
 VALID_TYPES = {"A", "B", "C", "D"}
-DEFAULT_BATCH_SIZE = 3
-DEFAULT_MODEL = "glm-4.7-flash"
+DEFAULT_BATCH_SIZE = 10
+DEFAULT_MODEL = "glm-5.1"
 TEXT_MAX_LENGTH = 3000  # 내용 소재 핵심 포인트 추출을 위해 허용 길이 확장
 
 
@@ -65,6 +66,42 @@ SYSTEM_PROMPT = """당신은 소셜미디어 마케팅 콘텐츠 분석 전문�
 반드시 순수 JSON 배열만 출력하세요. 마크다운이나 설명을 붙이지 마세요."""
 
 
+# Mode 1: 패턴 추출 AI (피드 스캔 소재 + 수동 pattern/both)
+SYSTEM_PROMPT_PATTERN = """당신은 소셜미디어 콘텐츠 구조 분석 전문가입니다.
+주어진 스레드 글들의 글쓰기 패턴을 분석하여 JSON 배열로 응답하세요.
+
+분류 기준:
+1. source_role (선택지: pattern 또는 none 만 허용)
+   - pattern: 글쓰기 구조, 어투, 훅 방식, 형식으로 참고할 가치가 있는 글.
+   - none: 마케팅 패턴으로 사용하기 부적합한 글 (광고, 개인일기, 욕설 등).
+
+2. content_type (글의 역할/목적):
+   - A = 트래픽 유도 (짧고 자극적, 어그로, 댓글 유도형)
+   - B = 인사이트 (유익한 정보, 팁, 체크리스트, 가이드)
+   - C = 라포/신뢰 (경험담, 공감, 스토리텔링)
+   - D = 트렌드 (시사, 이슈 코멘트)
+
+3. 패턴 정보 (source_role=pattern인 경우만 채우고, none이면 빈 문자열):
+   - pattern_name: 이 패턴의 직관적인 이름 (예: 리스트형 질문 패턴)
+   - hook_template: 도입부 구조 (예: [고민] + [확신에 찬 해결책])
+   - body_structure: 본문 전개 구조 (예: 문제→3가지 팁→적용사례)
+   - cta_template: 결론/유도 방식 (예: 댓글로 의견 요청)
+
+반드시 순수 JSON 배열만 출력하세요."""
+
+
+# Mode 2: 내용/none 판단 AI (키워드 스캔 소재)
+SYSTEM_PROMPT_KEYWORD = """당신은 콘텐츠 적합성 판단 전문가입니다.
+주어진 스레드 글들이 마케팅 콘텐츠의 '내용 소재'로 사용 가능한지만 판단하세요.
+
+분류 기준 (선택지: content 또는 none 만 허용):
+- content: 정보, 지식, 사례, 팁 등 글 작성에 참고할 내용적 소재가 있는 글.
+- none: 단순광고, 무의미한 일상, 욕설, 스팸 등 소재로 부적합한 글.
+
+반드시 순수 JSON 배열만 출력하세요.
+응답 형식: [{"id": "소재ID", "source_role": "content 또는 none"}]"""
+
+
 def build_classification_prompt(sources: list[dict]) -> str:
     """
     소재 목록 → AI에게 보낼 프롬프트 생성
@@ -98,6 +135,46 @@ def build_classification_prompt(sources: list[dict]) -> str:
     "cta_template": "결론"
   }}
 ]"""
+
+
+def build_pattern_prompt(sources: list[dict]) -> str:
+    """Mode 1: 패턴 추출 AI 프롬프트"""
+    items = []
+    for s in sources:
+        text = (s.get("text_content") or "")[:500]  # 스레드 글은 500자 이하
+        items.append(
+            f"---\nID: {s['id']}\n내용: {text}\n---"
+        )
+    return f"""다음 {len(sources)}개 스레드 글의 패턴을 분석하세요.
+
+{chr(10).join(items)}
+
+응답 JSON 형식:
+[
+  {{
+    "id": "소재ID",
+    "source_role": "pattern 또는 none",
+    "content_type": "A/B/C/D",
+    "pattern_name": "패턴이름",
+    "hook_template": "도입부구조",
+    "body_structure": "본문구조",
+    "cta_template": "결론유도"
+  }}
+]"""
+
+
+def build_keyword_prompt(sources: list[dict]) -> str:
+    """Mode 2: 내용/none 판단 AI 프롬프트"""
+    items = []
+    for s in sources:
+        text = (s.get("text_content") or "")[:500]
+        items.append(f"---\nID: {s['id']}\n내용: {text}\n---")
+    return f"""다음 {len(sources)}개 글이 내용 소재로 적합한지 판단하세요.
+
+{chr(10).join(items)}
+
+응답 JSON 형식: [{{"id": "소재ID", "source_role": "content 또는 none"}}]"""
+
 
 
 # ── AI 응답 파싱 ──
@@ -227,9 +304,10 @@ def _validate_parsed_data(data: list) -> list[dict]:
 
 # ── AI API 호출 ──
 
-def call_ai(prompt: str) -> str:
+def call_ai(prompt: str, system_prompt: str = SYSTEM_PROMPT) -> str:
     """
     z.ai GLM API 호출 (OpenAI 호환 형식)
+    system_prompt: 기본값은 기존 SYSTEM_PROMPT, Mode별로 교체 가능
     """
     if not OPENCLAW_API_URL or not OPENCLAW_API_KEY:
         raise RuntimeError("OPENCLAW_API_URL 또는 OPENCLAW_API_KEY가 설정되지 않았습니다")
@@ -242,14 +320,14 @@ def call_ai(prompt: str) -> str:
     payload = {
         "model": DEFAULT_MODEL,
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ],
         "temperature": 0.3,
-        "max_tokens": 16000,
+        "max_tokens": 65000,
     }
 
-    resp = requests.post(OPENCLAW_API_URL, json=payload, headers=headers, timeout=120)
+    resp = requests.post(OPENCLAW_API_URL, json=payload, headers=headers, timeout=600)
     resp.raise_for_status()
 
     data = resp.json()
@@ -430,17 +508,234 @@ def analyze_all(limit: int = 100, batch_size: int = DEFAULT_BATCH_SIZE):
     return {"total": len(sources), "analyzed": total_analyzed, "failed": total_failed, "deleted": deleted}
 
 
+# ── Mode별 실행 함수 (v4) ──
+
+def analyze_feed(limit: int = 100):
+    """
+    Mode 1: 피드 스캔 소재(source_role=pattern) → 패턴 추출 AI
+    """
+    print(f"\n{'='*50}")
+    print(f"[ANALYZE_FEED] Mode 1: 패턴 추출 시작")
+    print(f"{'='*50}")
+
+    sources = get_unanalyzed_sources(limit, source_role="pattern")
+    if not sources:
+        print("\n[ANALYZE_FEED] 미분석 pattern 소재 없음")
+        return {"total": 0, "analyzed": 0, "failed": 0, "deleted": 0}
+
+    print(f"\n[ANALYZE_FEED] 미분석 pattern 소재: {len(sources)}개")
+
+    batch_size = 50  # 패턴 추출용 배치
+    total_analyzed = 0
+    total_failed = 0
+    now = datetime.now(timezone.utc).isoformat()
+
+    for i in range(0, len(sources), batch_size):
+        batch = sources[i:i+batch_size]
+        print(f"\n[BATCH] {len(batch)}개 패턴 분석 중...")
+
+        try:
+            prompt = build_pattern_prompt(batch)
+            raw_response = call_ai(prompt, SYSTEM_PROMPT_PATTERN)
+            results = parse_ai_response(raw_response)
+
+            for r in results:
+                if not r.get("id"):
+                    continue
+                sr = r.get("source_role", "none")
+                if sr not in ("pattern", "none"):
+                    sr = "none"
+
+                try:
+                    # DB 업데이트 — source_role, content_type, analyzed_at만
+                    ct = r.get("content_type", "unknown")
+                    if ct not in VALID_TYPES:
+                        ct = "unknown"
+
+                    supabase.table("threads_raw_sources").update({
+                        "source_role": sr,
+                        "content_type": ct,
+                        "analyzed_at": now,
+                    }).eq("id", r["id"]).execute()
+
+                    # pattern이면 threads_patterns에도 삽입
+                    if sr == "pattern" and ct in VALID_TYPES:
+                        original = next((s for s in batch if s["id"] == r["id"]), {})
+                        base_engagement = original.get("likes", 0) * 1.0 + original.get("replies", 0) * 2.0
+
+                        supabase.table("threads_patterns").insert({
+                            "parent_type": ct,
+                            "pattern_name": str(r.get("pattern_name", "미분류 패턴"))[:100],
+                            "hook_template": str(r.get("hook_template", "")),
+                            "body_structure": str(r.get("body_structure", "")),
+                            "cta_template": str(r.get("cta_template", "")),
+                            "avg_engagement": float(base_engagement),
+                            "usage_count": 0,
+                            "success_rate": 0,
+                        }).execute()
+
+                    total_analyzed += 1
+                except Exception as e:
+                    print(f"  ❌ DB 업데이트 실패 [{r['id']}]: {e}")
+                    total_failed += 1
+
+        except Exception as e:
+            print(f"  ❌ 배치 처리 실패: {e}")
+            total_failed += len(batch)
+
+        if i + batch_size < len(sources):
+            time.sleep(15)
+
+    print(f"\n[RESULT] 전체: {len(sources)}개 | 분류: {total_analyzed}개 | 실패: {total_failed}개")
+    deleted = cleanup_none_sources()
+    return {"total": len(sources), "analyzed": total_analyzed, "failed": total_failed, "deleted": deleted}
+
+
+def analyze_keyword(limit: int = 100):
+    """
+    Mode 2: 키워드 스캔 소재(source_role=content) → 내용/none 판단 AI
+    DB 업데이트: source_role, analyzed_at만 (나머지 null 유지)
+    """
+    print(f"\n{'='*50}")
+    print(f"[ANALYZE_KEYWORD] Mode 2: 내용/none 판단 시작")
+    print(f"{'='*50}")
+
+    sources = get_unanalyzed_sources(limit, source_role="content")
+    if not sources:
+        print("\n[ANALYZE_KEYWORD] 미분석 content 소재 없음")
+        return {"total": 0, "analyzed": 0, "failed": 0, "deleted": 0}
+
+    print(f"\n[ANALYZE_KEYWORD] 미분석 content 소재: {len(sources)}개")
+
+    batch_size = 100  # 경량 판단이라 큰 배치 가능
+    total_analyzed = 0
+    total_failed = 0
+    now = datetime.now(timezone.utc).isoformat()
+
+    for i in range(0, len(sources), batch_size):
+        batch = sources[i:i+batch_size]
+        print(f"\n[BATCH] {len(batch)}개 내용/none 판단 중...")
+
+        try:
+            prompt = build_keyword_prompt(batch)
+            raw_response = call_ai(prompt, SYSTEM_PROMPT_KEYWORD)
+            results = parse_ai_response(raw_response)
+
+            for r in results:
+                if not r.get("id"):
+                    continue
+                sr = r.get("source_role", "none")
+                if sr not in ("content", "none"):
+                    sr = "none"
+
+                try:
+                    # Mode 2: source_role + analyzed_at만 업데이트 (나머지 null 유지)
+                    supabase.table("threads_raw_sources").update({
+                        "source_role": sr,
+                        "analyzed_at": now,
+                    }).eq("id", r["id"]).execute()
+
+                    total_analyzed += 1
+                except Exception as e:
+                    print(f"  ❌ DB 업데이트 실패 [{r['id']}]: {e}")
+                    total_failed += 1
+
+        except Exception as e:
+            print(f"  ❌ 배치 처리 실패: {e}")
+            total_failed += len(batch)
+
+        if i + batch_size < len(sources):
+            time.sleep(15)
+
+    print(f"\n[RESULT] 전체: {len(sources)}개 | 판단: {total_analyzed}개 | 실패: {total_failed}개")
+    deleted = cleanup_none_sources()
+    return {"total": len(sources), "analyzed": total_analyzed, "failed": total_failed, "deleted": deleted}
+
+
+def run_pattern_analysis(source_id: str):
+    """
+    단일 소재에 대한 패턴 추출 AI 실행.
+    extractor.py에서 수동 등록 pattern/both URL 추출 완료 후 호출됨.
+    """
+    source = get_source_by_id(source_id)
+    if not source:
+        print(f"  ❌ 소재 없음: {source_id}")
+        return
+
+    print(f"\n[PATTERN] 단일 소재 패턴 분석: {source_id[:8]}...")
+
+    try:
+        prompt = build_pattern_prompt([source])
+        raw_response = call_ai(prompt, SYSTEM_PROMPT_PATTERN)
+        results = parse_ai_response(raw_response)
+
+        now = datetime.now(timezone.utc).isoformat()
+
+        for r in results:
+            sr = r.get("source_role", "none")
+            ct = r.get("content_type", "unknown")
+            if ct not in VALID_TYPES:
+                ct = "unknown"
+
+            # raw_sources 업데이트
+            update_data = {
+                "content_type": ct,
+                "analyzed_at": now,
+            }
+            # source_role은 수동 지정(pattern/both)이므로 AI 결과로 덮어쓰지 않음
+            if sr == "none":
+                # AI가 none으로 판단해도, 수동 등록이므로 원래 role 유지
+                pass
+            supabase.table("threads_raw_sources").update(update_data).eq("id", source_id).execute()
+
+            # 패턴 삽입 (none이 아닌 경우)
+            if sr != "none" and ct in VALID_TYPES:
+                supabase.table("threads_patterns").insert({
+                    "parent_type": ct,
+                    "pattern_name": str(r.get("pattern_name", "미분류 패턴"))[:100],
+                    "hook_template": str(r.get("hook_template", "")),
+                    "body_structure": str(r.get("body_structure", "")),
+                    "cta_template": str(r.get("cta_template", "")),
+                    "avg_engagement": 0,
+                    "usage_count": 0,
+                    "success_rate": 0,
+                }).execute()
+
+        print(f"  ✅ 패턴 분석 완료")
+
+    except Exception as e:
+        print(f"  ❌ 패턴 분석 실패: {e}")
+        # 실패해도 analyzed_at 설정하여 무한 재시도 방지
+        set_analyzed_at(source_id)
+
+
 def main():
     arg_parser = argparse.ArgumentParser(description="AI 분석 엔진")
+    arg_parser.add_argument("--mode", choices=["feed", "keyword", "pattern", "legacy"],
+                           default="legacy", help="분석 모드 (feed: 패턴추출, keyword: 내용/none, pattern: 단일패턴, legacy: 기존)")
     arg_parser.add_argument("--limit", type=int, default=100, help="분석할 최대 소재 수")
     arg_parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE, help="배치 크기")
+    arg_parser.add_argument("--source_id", type=str, default=None, help="단일 소재 ID (pattern 모드)")
 
     args = arg_parser.parse_args()
 
     try:
-        result = analyze_all(args.limit, args.batch_size)
+        if args.mode == "feed":
+            result = analyze_feed(args.limit)
+        elif args.mode == "keyword":
+            result = analyze_keyword(args.limit)
+        elif args.mode == "pattern":
+            if not args.source_id:
+                print("[ERROR] --source_id 필요")
+                sys.exit(1)
+            run_pattern_analysis(args.source_id)
+            return  # run_pattern_analysis는 dict를 반환하지 않음
+        else:
+            # legacy 모드 (기존 analyze_all)
+            result = analyze_all(args.limit, args.batch_size)
+
         notify_scan_result(
-            "AI_분류",
+            f"AI_{args.mode}",
             result["total"],
             result["analyzed"],
             result["failed"],
@@ -454,3 +749,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

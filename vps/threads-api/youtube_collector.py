@@ -19,6 +19,7 @@ from config import YOUTUBE_API_KEY
 from parser import generate_hash
 from db import save_sources, check_duplicates, get_all_account_configs, get_product_config
 from telegram_notify import notify_scan_result, notify_error
+from datetime import datetime, timezone
 
 
 # ── 설정 ──
@@ -27,7 +28,6 @@ YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search"
 YOUTUBE_VIDEOS_URL = "https://www.googleapis.com/youtube/v3/videos"
 DEFAULT_MAX_RESULTS = 15
 DEFAULT_ORDER = "relevance"  # relevance, viewCount, date, rating
-TRANSCRIPT_MAX_LENGTH = 3000  # 자막 최대 글자 수
 
 
 def get_youtube_settings() -> dict:
@@ -51,9 +51,10 @@ def get_youtube_settings() -> dict:
 
 # ── 헬퍼 함수 ──
 
-def format_transcript(segments: list[dict], max_length: int = TRANSCRIPT_MAX_LENGTH) -> str:
+def format_transcript(segments: list[dict]) -> str:
     """
     youtube-transcript-api 결과를 하나의 문자열로 변환.
+    길이 제한 없이 전체 저장.
     """
     if not segments:
         return ""
@@ -64,9 +65,6 @@ def format_transcript(segments: list[dict], max_length: int = TRANSCRIPT_MAX_LEN
     )
     # 연속 공백 정리
     text = re.sub(r"\s+", " ", text).strip()
-
-    if max_length and len(text) > max_length:
-        text = text[:max_length]
 
     return text
 
@@ -101,10 +99,10 @@ def parse_video_data(item: dict, source_type: str, transcript: str) -> dict:
     channel = snippet.get("channelTitle", "")
     description = snippet.get("description", "")
 
-    # 텍스트: 제목 + 설명 + 자막
+    # 텍스트: 제목 + 설명 + 자막 (길이 제한 없이 전체 저장)
     text_parts = [f"[제목] {title}"]
     if description:
-        text_parts.append(f"[설명] {description[:300]}")
+        text_parts.append(f"[설명] {description}")
     if transcript:
         text_parts.append(f"[자막] {transcript}")
 
@@ -115,6 +113,7 @@ def parse_video_data(item: dict, source_type: str, transcript: str) -> dict:
         "source_type": source_type,
         "input_method": "auto",
         "source_role": "content",
+        "analyzed_at": datetime.now(timezone.utc).isoformat(),
         "source_url": f"https://www.youtube.com/watch?v={video_id}",
         "author": channel,
         "text_content": text_content,

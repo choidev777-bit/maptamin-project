@@ -58,6 +58,12 @@ export default function LibraryPage() {
 
   const totalPages = Math.ceil(total / pageSize);
 
+  const deleteItem = async (id: string, itemTab: "content" | "pattern") => {
+    if (!confirm("정말 삭제하시겠습니까?")) return;
+    await fetch(`/api/library?tab=${itemTab}&id=${id}`, { method: "DELETE" });
+    load();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -107,6 +113,7 @@ export default function LibraryPage() {
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-20">소스</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-20">역할</th>
                 <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-28">수집일</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground w-16"></th>
               </tr>
             </thead>
             <tbody>
@@ -135,10 +142,16 @@ export default function LibraryPage() {
                     }`}>{s.source_role}</span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">{new Date(s.collected_at).toLocaleDateString("ko-KR")}</td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteItem(s.id, "content"); }}
+                      className="text-xs text-destructive hover:underline bg-transparent border-none cursor-pointer"
+                    >삭제</button>
+                  </td>
                 </tr>
               ))}
               {contentSources.length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">내용 소재가 없습니다. 소재를 수집하고 AI 분석을 실행하세요.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">내용 소재가 없습니다. 소재를 수집하고 AI 분석을 실행하세요.</td></tr>
               )}
             </tbody>
           </table>
@@ -150,7 +163,13 @@ export default function LibraryPage() {
             <div key={p.id} className="border rounded-lg p-4 bg-card hover:border-foreground/20 transition-colors space-y-3">
               <div className="flex items-center justify-between">
                 <Badge type={p.parent_type} />
-                <span className="text-xs text-muted-foreground">사용 {p.usage_count}회 · 성공률 {(p.success_rate * 100).toFixed(0)}%</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">사용 {p.usage_count}회 · 성공률 {(p.success_rate * 100).toFixed(0)}%</span>
+                  <button
+                    onClick={() => deleteItem(p.id, "pattern")}
+                    className="text-xs text-destructive hover:underline bg-transparent border-none cursor-pointer"
+                  >삭제</button>
+                </div>
               </div>
               <h3 className="text-sm font-semibold text-foreground">{p.pattern_name}</h3>
               {p.hook_template && (

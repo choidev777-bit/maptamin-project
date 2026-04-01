@@ -20,6 +20,9 @@ JOB_COMMANDS = {
     "youtube_long": ["python3", "/root/threads-api/youtube_collector.py", "--type", "long"],
     "youtube_shorts": ["python3", "/root/threads-api/youtube_collector.py", "--type", "shorts"],
     "analyze": ["python3", "/root/threads-api/analyzer.py"],
+    "analyze_feed": ["python3", "/root/threads-api/analyzer.py", "--mode", "feed"],
+    "analyze_keyword": ["python3", "/root/threads-api/analyzer.py", "--mode", "keyword"],
+    "analyze_pattern": ["python3", "/root/threads-api/analyzer.py", "--mode", "pattern"],
     "generate": ["python3", "/root/threads-api/generator.py"],
     # URL 본문 추출 (수동 등록)
     "extract_youtube": ["python3", "/root/threads-api/extractor.py"],
@@ -94,8 +97,9 @@ def run_job(job: dict):
         if params.get("source_id"):
             cmd = cmd + ["--source_id", params["source_id"]]
 
-        # analyze는 라운드 쿨다운으로 오래 걸리므로 타임아웃 없음
-        job_timeout = None if job_type == "analyze" else 1800
+        # 분석 계열 작업은 라운드 쿨다운으로 오래 걸리므로 타임아웃 없음
+        NOTIMEOUT_JOBS = {"analyze", "analyze_feed", "analyze_keyword", "analyze_pattern"}
+        job_timeout = None if job_type in NOTIMEOUT_JOBS else 1800
 
         result = subprocess.run(
             cmd,

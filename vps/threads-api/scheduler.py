@@ -14,7 +14,9 @@ KST = timezone(timedelta(hours=9))
 SCHEDULE_MAP = {
     "schedule_scan_feed": "scan_feed",
     "schedule_scan_search": "scan_search",
-    "schedule_analyze": "analyze",
+    "schedule_analyze": "analyze",          # legacy (하위 호환 유지)
+    "schedule_analyze_feed": "analyze_feed",    # v4: 피드 패턴 추출
+    "schedule_analyze_keyword": "analyze_keyword",  # v4: 키워드 내용 판단
     "schedule_generate": "generate",
     "schedule_youtube": "youtube_long",
 }

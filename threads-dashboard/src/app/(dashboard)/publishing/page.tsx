@@ -25,6 +25,16 @@ export default function PublishingPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  const removeFromQueue = async (id: string) => {
+    // queued → draft로 되돌리기
+    await fetch("/api/contents", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status: "draft" }),
+    });
+    load();
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64"><p className="text-sm text-muted-foreground">로딩 중...</p></div>;
 
   return (
@@ -49,6 +59,10 @@ export default function PublishingPage() {
                   </div>
                   <p className="text-sm text-foreground truncate">{c.text_content?.slice(0, 100)}</p>
                 </div>
+                <button
+                  onClick={() => removeFromQueue(c.id)}
+                  className="text-xs text-destructive hover:underline bg-transparent border-none cursor-pointer shrink-0 mt-1"
+                >제거</button>
               </div>
             ))}
           </div>

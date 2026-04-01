@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 interface Acc { id: string; account: string; display_name: string; topic: string; tone: string; scan_keywords: string[]; youtube_keywords: string[]; banned_words: string[]; interval_hours: number; daily_limit: number; active_hours_start: number; active_hours_end: number; is_active: boolean; }
-interface Prod { id: string; product_name: string; product_description: string; product_features: string[]; related_topics: string[]; product_link: string; link_comment_templates: string[]; min_likes: number; min_views: number; youtube_max_results: number; topic_tags: string[]; }
+interface Prod { id: string; product_name: string; product_description: string; product_features: string[]; related_topics: string[]; product_link: string; link_comment_templates: string[]; min_likes: number; min_views: number; youtube_max_results: number; topic_tags: string[]; generate_count: number; schedule_analyze_feed: string; schedule_analyze_keyword: string; }
 
 function Tags({ tags, onChange, ph }: { tags: string[]; onChange: (t: string[]) => void; ph: string }) {
   const [v, setV] = useState("");
@@ -98,6 +98,28 @@ export default function SettingsPage() {
           <div><label className="block text-xs text-muted-foreground mb-1">관련 토픽 (Enter로 추가)</label><Tags tags={prod.related_topics || []} onChange={t => setProd({ ...prod, related_topics: t })} ph="토픽 입력..." /></div>
           <div><label className="block text-xs text-muted-foreground mb-1">댓글 문구 템플릿 (Enter로 추가)</label><Tags tags={prod.link_comment_templates || []} onChange={t => setProd({ ...prod, link_comment_templates: t })} ph="댓글 문구 입력..." /></div>
           <div><label className="block text-xs text-muted-foreground mb-1">자주 쓰는 주제 태그 (Enter로 추가)</label><Tags tags={prod.topic_tags || []} onChange={t => setProd({ ...prod, topic_tags: t })} ph="예: 자영업자이야기" /></div>
+
+          {/* 자동화 스케줄 */}
+          <div className="border-t pt-4 mt-2">
+            <h4 className="text-xs font-semibold text-card-foreground mb-1">자동화 스케줄</h4>
+            <p className="text-xs text-muted-foreground mb-3">
+              형식: <code className="bg-muted px-1 rounded">{'{"days":[0~6],"times":["08:00","16:00"]}'}</code> — 0=월, 6=일
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">타입당 생성 개수</label>
+                <input type="number" min={1} max={20} value={prod.generate_count ?? 3} onChange={e => setProd({ ...prod, generate_count: parseInt(e.target.value) || 3 })} className={inp} />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">피드 분석 스케줄</label>
+                <input type="text" value={typeof prod.schedule_analyze_feed === "string" ? prod.schedule_analyze_feed : JSON.stringify(prod.schedule_analyze_feed || "")} onChange={e => setProd({ ...prod, schedule_analyze_feed: e.target.value as unknown as string })} placeholder='{"days":[0,1,2,3,4,5,6],"times":["08:00"]}' className={inp} />
+              </div>
+              <div>
+                <label className="block text-xs text-muted-foreground mb-1">키워드 분석 스케줄</label>
+                <input type="text" value={typeof prod.schedule_analyze_keyword === "string" ? prod.schedule_analyze_keyword : JSON.stringify(prod.schedule_analyze_keyword || "")} onChange={e => setProd({ ...prod, schedule_analyze_keyword: e.target.value as unknown as string })} placeholder='{"days":[0,1,2,3,4,5,6],"times":["06:00","18:00"]}' className={inp} />
+              </div>
+            </div>
+          </div>
 
           <div className="flex justify-end">
             <button onClick={saveProd} disabled={sv} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50 border-none cursor-pointer">{sv ? "저장 중..." : "저장"}</button>

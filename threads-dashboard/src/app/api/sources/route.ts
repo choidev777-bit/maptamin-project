@@ -97,6 +97,8 @@ export async function POST(req: NextRequest) {
     replies: 0,
     reposts: 0,
     engagement_score: 0,
+    // 직접 텍스트 + content 역할 → 즉시 분석완료 처리 (AI 분석 불필요)
+    analyzed_at: (!isUrl && source_role === "content") ? new Date().toISOString() : null,
   };
 
   const { data, error } = await supabase
@@ -122,7 +124,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // 직접 텍스트 + pattern/both → 패턴 추출 AI job 등록
+  if (!isUrl && (source_role === "pattern" || source_role === "both")) {
+    await supabase
+      .from("threads_job_queue")
+      .insert({
+        job_type: "analyze_pattern",
+        params: { source_id: data.id },
+      });
+  }
+
   return NextResponse.json({ data, isUrl });
+
 }
 
 // DELETE /api/sources — 소재 삭제

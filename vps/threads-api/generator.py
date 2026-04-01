@@ -52,7 +52,7 @@ def get_content_source(account: str | None = None) -> dict | None:
     """
     query = (
         supabase.table("threads_raw_sources")
-        .select("id, text_content, ai_key_points, ai_summary, source_type, category")
+        .select("id, text_content, source_type, category")
         .or_("source_role.eq.content,source_role.eq.both")
         .not_.is_("analyzed_at", "null")
         .order("collected_at", desc=False)
@@ -66,7 +66,7 @@ def get_content_source(account: str | None = None) -> dict | None:
         # 없으면 공용(account=NULL) 소재 폴백
         result = (
             supabase.table("threads_raw_sources")
-            .select("id, text_content, ai_key_points, ai_summary, source_type, category")
+            .select("id, text_content, source_type, category")
             .or_("source_role.eq.content,source_role.eq.both")
             .not_.is_("analyzed_at", "null")
             .is_("account", "null")
@@ -138,15 +138,10 @@ def build_generation_prompt(
 
     # ── 소재 블록 ──
     if content_source:
-        key_points = content_source.get("ai_key_points") or []
-        category = content_source.get("category", "")
-        summary = content_source.get("ai_summary", "")
-        if key_points:
-            kp_str = "\n".join(f"  - {kp}" for kp in key_points)
-            source_block = f"주제: {category}\n원문 요약: {summary}\n핵심 포인트:\n{kp_str}"
-        else:
-            raw = (content_source.get("text_content") or "")[:2000]
-            source_block = f"주제: {category}\n원문 (참고용):\n{raw}"
+        text_content = content_source.get("text_content") or ""
+        category = content_source.get("category") or ""
+        category_part = f"주제: {category}\n" if category else ""
+        source_block = f"{category_part}원문:\n{text_content}"
     else:
         source_block = "(소재 없음. 계정 전문 분야에 맞춰 스스로 유용한 내용을 창작하세요.)"
 
@@ -194,6 +189,7 @@ def build_generation_prompt(
 2. thread_parts[1~N] (자답 댓글): 원문 핵심 포인트를 썰 풀듯이 전개.
    - 소재 분량에 따라 자동 결정: 짧으면 0개, 방대하면 최대 8개.
    - 억지로 늘리지 말 것. 할 말이 없으면 줄이세요.
+   - 각 댓글은 반드시 500자 이하로 작성하세요 (Threads 플랫폼 제한).
    - 각 댓글 첫 줄: "#번호. 소제목" 형식 (예: "#1. 블로그 체험단의 함정")."""
         link_instruction = (
             "link_eligible: true로 설정하고, link_comment를 자연스럽고 짧게 작성하세요."
@@ -295,7 +291,7 @@ def call_ai(prompt: str, content_type: str | None = None) -> str:
             {"role": "user", "content": prompt},
         ],
         "temperature": 0.7,
-        "max_tokens": 2000,
+        "max_tokens": 8000 if content_type == "A" else 2000,
     }
     resp = requests.post(OPENCLAW_API_URL, json=payload, headers=headers, timeout=60)
     resp.raise_for_status()
