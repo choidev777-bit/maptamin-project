@@ -46,44 +46,37 @@ ACCOUNT_LINK_TYPES: dict[str, list[str]] = {
 
 def get_content_source(account: str | None = None) -> dict | None:
     """
-    내용 소재 1개 조회 (source_role = content 또는 both, 분석 완료)
-    account가 지정되면 해당 계정 소재 우선, 없으면 account=NULL인 공용 소재 사용.
-    가장 오래된(먼저 등록된) 것부터 소비
+    내용 소재 1개 랜덤 조회 (source_role = content 또는 both, 분석 완료)
+    account가 지정되면 해당 계정 소재만 사용. 공용(NULL) 폴백 없음.
     """
+    import random
     query = (
         supabase.table("threads_raw_sources")
-        .select("id, text_content, source_type, category")
+        .select("id, text_content, source_type, category, source_role")
         .or_("source_role.eq.content,source_role.eq.both")
         .not_.is_("analyzed_at", "null")
-        .order("collected_at", desc=False)
-        .limit(1)
     )
     if account:
-        # 해당 계정 소재 먼저 시도
         result = query.eq("account", account).execute()
-        if result.data:
-            return result.data[0]
-        # 없으면 공용(account=NULL) 소재 폴백
-        result = (
-            supabase.table("threads_raw_sources")
-            .select("id, text_content, source_type, category")
-            .or_("source_role.eq.content,source_role.eq.both")
-            .not_.is_("analyzed_at", "null")
-            .is_("account", "null")
-            .order("collected_at", desc=False)
-            .limit(1)
-            .execute()
-        )
-        return result.data[0] if result.data else None
     else:
         result = query.execute()
-        return result.data[0] if result.data else None
+
+    if not result.data:
+        return None
+    return random.choice(result.data)
 
 
-def delete_content_source(source_id: str):
-    """사용된 내용 소재 삭제"""
-    supabase.table("threads_raw_sources").delete().eq("id", source_id).execute()
-    print(f"  🗑️ 내용 소재 삭제: {source_id[:8]}...")
+def delete_content_source(source_id: str, source_role: str = "content"):
+    """사용된 내용 소재 처리:
+    - both: source_role을 pattern으로 변경 (패턴 소재로 보존)
+    - content: 삭제
+    """
+    if source_role == "both":
+        supabase.table("threads_raw_sources").update({"source_role": "pattern"}).eq("id", source_id).execute()
+        print(f"  ♻️ 내용 소재(both) → pattern으로 변환: {source_id[:8]}...")
+    else:
+        supabase.table("threads_raw_sources").delete().eq("id", source_id).execute()
+        print(f"  🗑️ 내용 소재 삭제: {source_id[:8]}...")
 
 
 def get_patterns(content_type: str) -> list[dict]:
@@ -402,7 +395,7 @@ def generate_for_account(account: str, content_type: str | None, count: int = 1)
 
             # 사용된 내용 소재 삭제
             if content_source:
-                delete_content_source(content_source["id"])
+                delete_content_source(content_source["id"], content_source.get("source_role", "content"))
 
         except Exception as e:
             print(f"  ❌ 생성 실패: {e}")
