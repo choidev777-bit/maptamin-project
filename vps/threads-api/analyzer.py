@@ -313,22 +313,33 @@ def analyze_all(limit: int = 100, batch_size: int = DEFAULT_BATCH_SIZE):
 
         print(f"\n[BATCH {batch_num}/{total_batches}] {len(batch)}개 분류 중...")
 
-        try:
-            results = classify_batch(batch)
-            if results:
-                updated = update_analysis_results(results, batch)
-                total_analyzed += updated
-                print(f"  ✅ {updated}개 분류 완료")
-            else:
+        # 최대 2회 재시도 (429 rate limit 대응)
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            try:
+                results = classify_batch(batch)
+                if results:
+                    updated = update_analysis_results(results, batch)
+                    total_analyzed += updated
+                    print(f"  ✅ {updated}개 분류 완료")
+                else:
+                    total_failed += len(batch)
+                    print(f"  ❌ AI 응답 파싱 실패")
+                break  # 성공이든 파싱 실패든 재시도 불필요
+            except Exception as e:
+                error_msg = str(e)
+                if "429" in error_msg and attempt < max_retries:
+                    wait_time = 60 * (attempt + 1)  # 60초, 120초
+                    print(f"  ⏳ Rate limit - {wait_time}초 대기 후 재시도 ({attempt+1}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
                 total_failed += len(batch)
-                print(f"  ❌ AI 응답 파싱 실패")
-        except Exception as e:
-            total_failed += len(batch)
-            print(f"  ❌ 배치 처리 실패: {e}")
+                print(f"  ❌ 배치 처리 실패: {e}")
+                break
 
-        # Rate limit 방지: 배치 사이 3초 대기
+        # Rate limit 방지: 배치 사이 15초 대기
         if i + batch_size < len(sources):
-            time.sleep(3)
+            time.sleep(15)
 
     print(f"\n[RESULT] 전체: {len(sources)}개 | 분류: {total_analyzed}개 | 실패: {total_failed}개")
 
