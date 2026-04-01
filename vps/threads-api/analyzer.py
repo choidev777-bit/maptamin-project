@@ -10,6 +10,7 @@ AI 분석 엔진
 import argparse
 import json
 import re
+import time
 import sys
 import traceback
 from datetime import datetime, timezone
@@ -324,6 +325,10 @@ def analyze_all(limit: int = 100, batch_size: int = DEFAULT_BATCH_SIZE):
         except Exception as e:
             total_failed += len(batch)
             print(f"  ❌ 배치 처리 실패: {e}")
+
+        # Rate limit 방지: 배치 사이 3초 대기
+        if i + batch_size < len(sources):
+            time.sleep(3)
 
     print(f"\n[RESULT] 전체: {len(sources)}개 | 분류: {total_analyzed}개 | 실패: {total_failed}개")
 
