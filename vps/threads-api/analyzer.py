@@ -25,7 +25,7 @@ from telegram_notify import notify_scan_result, notify_error
 
 VALID_TYPES = {"A", "B", "C", "D"}
 DEFAULT_BATCH_SIZE = 5
-DEFAULT_MODEL = "glm-4.7"
+DEFAULT_MODEL = "glm-4.7-flash"
 TEXT_MAX_LENGTH = 3000  # 내용 소재 핵심 포인트 추출을 위해 허용 길이 확장
 
 

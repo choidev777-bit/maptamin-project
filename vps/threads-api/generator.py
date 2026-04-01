@@ -24,7 +24,7 @@ from telegram_notify import send_telegram, notify_error
 
 # ── 설정 ──
 
-DEFAULT_MODEL = "glm-4.7"
+DEFAULT_MODEL = "glm-4.7-flash"
 
 # 하위 호환용 기본 사이클 순서
 CYCLE_ORDER = ["A", "B", "C", "D"]
