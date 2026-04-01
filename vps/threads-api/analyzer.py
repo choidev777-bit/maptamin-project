@@ -25,7 +25,7 @@ from telegram_notify import notify_scan_result, notify_error
 # ── 설정 ──
 
 VALID_TYPES = {"A", "B", "C", "D"}
-DEFAULT_BATCH_SIZE = 5
+DEFAULT_BATCH_SIZE = 3
 DEFAULT_MODEL = "glm-4.7-flash"
 TEXT_MAX_LENGTH = 3000  # 내용 소재 핵심 포인트 추출을 위해 허용 길이 확장
 
@@ -102,31 +102,96 @@ def build_classification_prompt(sources: list[dict]) -> str:
 
 # ── AI 응답 파싱 ──
 
+def _extract_objects_from_partial_json(text: str) -> list[dict]:
+    """
+    잘린 JSON 텍스트에서 완성된 { } 객체만 추출.
+    """
+    objects = []
+    start = text.find('{')
+    while start != -1:
+        depth = 0
+        in_string = False
+        escape_next = False
+        end = -1
+        for idx in range(start, len(text)):
+            ch = text[idx]
+            if escape_next:
+                escape_next = False
+                continue
+            if ch == '\\' and in_string:
+                escape_next = True
+                continue
+            if ch == '"':
+                in_string = not in_string
+                continue
+            if not in_string:
+                if ch == '{':
+                    depth += 1
+                elif ch == '}':
+                    depth -= 1
+                    if depth == 0:
+                        end = idx
+                        break
+        if end != -1:
+            try:
+                obj = json.loads(text[start:end + 1])
+                if isinstance(obj, dict) and obj.get('id'):
+                    objects.append(obj)
+            except json.JSONDecodeError:
+                pass
+            start = text.find('{', end + 1)
+        else:
+            break
+    return objects
+
+
 def parse_ai_response(raw_text: str) -> list[dict]:
     """
     AI 응답 텍스트에서 JSON 배열 추출 및 검증.
     마크다운 코드블록(```json...```) 안의 JSON도 처리.
+    잘린 JSON에서도 완성된 객체를 최대한 복구.
     """
     text = raw_text.strip()
 
-    # 마크다운 코드블록 제거
+    # 마크다운 코드블록 처리 (닫힌 경우)
     code_block_match = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
     if code_block_match:
         text = code_block_match.group(1).strip()
+    else:
+        # 열린 코드블록 (잘린 응답) - ``` 이후 텍스트 추출
+        open_block_match = re.search(r"```(?:json)?\s*\n?(.*)", text, re.DOTALL)
+        if open_block_match:
+            text = open_block_match.group(1).strip()
 
-    # JSON 배열 찾기
+    # 완전한 JSON 배열 파싱 시도
     bracket_match = re.search(r"\[.*\]", text, re.DOTALL)
     if bracket_match:
-        text = bracket_match.group(0)
+        try:
+            data = json.loads(bracket_match.group(0))
+            if isinstance(data, list):
+                pass  # 아래 공통 검증으로
+            else:
+                data = [data]
+            # 공통 검증
+            return _validate_parsed_data(data)
+        except json.JSONDecodeError:
+            pass
 
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
-        print(f"  ❌ JSON 파싱 실패: {raw_text[:200]}...")
-        return []
+    # 잘린 JSON에서 완성된 객체 복구 시도
+    objects = _extract_objects_from_partial_json(text)
+    if objects:
+        print(f"  ⚠️ 부분 파싱: {len(objects)}개 객체 복구")
+        return _validate_parsed_data(objects)
+
+    print(f"  ❌ JSON 파싱 실패: {raw_text[:200]}...")
+    return []
+
+
+def _validate_parsed_data(data: list) -> list[dict]:
 
     if not isinstance(data, list):
         data = [data]
+
 
     # 필드 검증 및 기본값 적용
     results = []
@@ -306,7 +371,7 @@ def analyze_all(limit: int = 100, batch_size: int = DEFAULT_BATCH_SIZE):
     total_failed = 0
 
     # 라운드 방식 처리: 5배치(25개)씩 → 5분 쿨다운 → 반복
-    BATCHES_PER_ROUND = 5
+    BATCHES_PER_ROUND = 8
     COOLDOWN_SECONDS = 300  # 5분
 
     total_batches = (len(sources) + batch_size - 1) // batch_size
