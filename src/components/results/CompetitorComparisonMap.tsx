@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { Map, AdvancedMarker } from '@vis.gl/react-google-maps'
+import { Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps'
 import { SearchResult, Competitor } from '@/lib/types'
 import { CompetitorDetailModal } from './CompetitorDetailModal'
 
@@ -44,6 +44,38 @@ const VERDICT_STYLE: Record<Verdict, { color: string; text: string }> = {
     WIN: { color: '#22c55e', text: '승' },
     LOSE: { color: '#ef4444', text: '패' },
     DRAW: { color: '#9ca3af', text: '무' },
+}
+
+/** 구글 지도 자동 줌 보정 */
+function GoogleFitBounds({ center, points }: { center: { lat: number; lng: number }; points: ComparisonPoint[] }) {
+    const map = useMap()
+    const initializedRef = useRef(false)
+
+    useEffect(() => {
+        if (!map || initializedRef.current || points.length === 0) return
+
+        const timer = setTimeout(() => {
+            if (initializedRef.current) return
+            initializedRef.current = true
+
+            if (points.length <= 1) {
+                map.setCenter(center)
+                map.setZoom(14)
+                return
+            }
+
+            const bounds = new google.maps.LatLngBounds()
+            bounds.extend(center)
+            points.forEach(p => {
+                bounds.extend({ lat: p.lat, lng: p.lng })
+            })
+            map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 })
+        }, 300)
+
+        return () => clearTimeout(timer)
+    }, [map, center, points])
+
+    return null
 }
 
 export function CompetitorComparisonMap({
@@ -178,6 +210,7 @@ export function CompetitorComparisonMap({
                     fullscreenControl={true}
                     style={{ width: '100%', height: 'clamp(280px, 60vw, 500px)' }}
                 >
+                    <GoogleFitBounds center={center} points={comparisonPoints} />
                     {comparisonPoints.map((point) => {
                         const style = VERDICT_STYLE[point.verdict]
                         const atCenter = Math.abs(point.lat - center.lat) < 0.0001 && Math.abs(point.lng - center.lng) < 0.0001

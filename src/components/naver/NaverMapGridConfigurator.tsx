@@ -435,7 +435,7 @@ export function NaverMapGridConfigurator({
                     }`}
                 >
                     <MapIcon className="w-3.5 h-3.5" />
-                    행정구역 경계
+                    법정경계
                 </button>
             </div>
 

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import dynamic from 'next/dynamic'
-import { Map, AdvancedMarker } from '@vis.gl/react-google-maps'
+import { Map, AdvancedMarker, useMap } from '@vis.gl/react-google-maps'
 import { SearchResult } from '@/lib/types'
 import { getRankColor, getRankLabel } from '@/lib/utils/rank-colors'
 import { RankDetailModal } from './RankDetailModal'
@@ -25,6 +25,38 @@ interface PositionData {
     lng: number
     rank: number | null
     results: SearchResult[]
+}
+
+/** 구글 지도 자동 줌 보정 (모든 마커가 화면에 보이도록) */
+function GoogleFitBounds({ center, positions }: { center: { lat: number; lng: number }; positions: PositionData[] }) {
+    const map = useMap()
+    const initializedRef = useRef(false)
+
+    useEffect(() => {
+        if (!map || initializedRef.current || positions.length === 0) return
+
+        const timer = setTimeout(() => {
+            if (initializedRef.current) return
+            initializedRef.current = true
+
+            if (positions.length <= 1) {
+                map.setCenter(center)
+                map.setZoom(14)
+                return
+            }
+
+            const bounds = new google.maps.LatLngBounds()
+            bounds.extend(center)
+            positions.forEach(pos => {
+                bounds.extend({ lat: pos.lat, lng: pos.lng })
+            })
+            map.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 })
+        }, 300)
+
+        return () => clearTimeout(timer)
+    }, [map, center, positions])
+
+    return null
 }
 
 export function RankHeatmap({ center, results, selectedKeyword }: Props) {
@@ -145,6 +177,7 @@ export function RankHeatmap({ center, results, selectedKeyword }: Props) {
                     fullscreenControl={true}
                     style={{ width: '100%', height: 'clamp(280px, 60vw, 500px)' }}
                 >
+                    <GoogleFitBounds center={center} positions={uniquePositions} />
                     {uniquePositions.map((pos) => {
                         const atCenter = Math.abs(pos.lat - center.lat) < 0.0001 && Math.abs(pos.lng - center.lng) < 0.0001
                         return (

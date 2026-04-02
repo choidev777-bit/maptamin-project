@@ -356,7 +356,7 @@ export function NaverCompetitorComparisonMap({
                         }`}
                     >
                         <MapIcon className="w-3 h-3" />
-                        행정구역 경계
+                        법정경계
                     </button>
                     {/* 구글 지도 전환 버튼 */}
                     {onSwitchMap && (
