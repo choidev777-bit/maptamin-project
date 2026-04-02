@@ -3,6 +3,7 @@
 import { SearchResult, Competitor } from '@/lib/types'
 import { getRankColor, getRankBgClass } from '@/lib/utils/rank-colors'
 import { X, MapPin, Trophy, Medal, Award } from 'lucide-react'
+import { useReverseGeocode } from '@/hooks/useReverseGeocode'
 
 interface Props {
     isOpen: boolean
@@ -11,6 +12,12 @@ interface Props {
 }
 
 export function RankDetailModal({ isOpen, onClose, result }: Props) {
+    // 훅은 항상 early return 전에 호출 (Rules of Hooks)
+    const { district, isLoading: isLoadingDistrict } = useReverseGeocode(
+        isOpen ? result.grid_lat : null,
+        isOpen ? result.grid_lng : null
+    )
+
     if (!isOpen) return null
 
     const competitors = (result.competitors || []) as Competitor[]
@@ -38,10 +45,14 @@ export function RankDetailModal({ isOpen, onClose, result }: Props) {
                     <div className="flex justify-between items-start">
                         <div>
                             <h3 className="font-bold text-lg">{result.keyword}</h3>
-                            {/* <p className="text-blue-100 text-sm flex items-center gap-1 mt-1">
-                                <MapPin className="w-4 h-4" />
-                                {result.grid_lat.toFixed(6)}, {result.grid_lng.toFixed(6)}
-                            </p> */}
+                            <p className="text-gray-400 text-sm flex items-center gap-1 mt-1">
+                                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                                {isLoadingDistrict ? (
+                                    <span className="animate-pulse">위치 확인 중...</span>
+                                ) : district ? (
+                                    <span>{district}</span>
+                                ) : null}
+                            </p>
                         </div>
                         <button
                             onClick={onClose}

@@ -581,17 +581,16 @@ export function ReportSettingsContent({
                                         onReset={handleReset}
                                     />
                                 ) : (
-                                    <GoogleMapsProvider>
-                                        <MapGridConfigurator
-                                            centerLat={currentPlace.lat}
-                                            centerLng={currentPlace.lng}
-                                            selectedPoints={currentPoints}
-                                            onPointsChange={setCurrentPoints}
-                                            gridDistance={distance}
-                                            maxPoints={maxPoints}
-                                            onReset={handleReset}
-                                        />
-                                    </GoogleMapsProvider>
+                                    <NaverMapGridConfigurator
+                                        centerLat={currentPlace.lat}
+                                        centerLng={currentPlace.lng}
+                                        selectedPoints={currentPoints}
+                                        onPointsChange={setCurrentPoints}
+                                        gridDistance={distance}
+                                        maxPoints={maxPoints}
+                                        onReset={handleReset}
+                                        colorScheme="blue"
+                                    />
                                 )}
                             </div>
                         </>

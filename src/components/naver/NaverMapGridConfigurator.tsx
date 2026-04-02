@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useCallback, useEffect, useRef } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { NavermapsProvider, Container as MapDiv, NaverMap, Marker, useNavermaps } from 'react-naver-maps'
-import { MapPin, Grid3X3 } from 'lucide-react'
+import { MapPin, Grid3X3, Map as MapIcon } from 'lucide-react'
 
 // ========================================
 // Types
@@ -23,6 +23,30 @@ interface Props {
     onReset?: () => void
     allowedGridSizes?: number[]
     onGridSizeChange?: (size: number) => void
+    colorScheme?: 'green' | 'blue' // green=네이버(기본), blue=구글
+}
+
+const COLOR_SCHEMES = {
+    green: {
+        iconBg: 'bg-[#E5F9F4]',
+        iconText: 'text-[#00C896]',
+        countText: 'text-[#00C896]',
+        activeBorder: 'border-[#00C896]',
+        activeBg: 'bg-[#E5F9F4]',
+        activeText: 'text-[#00A87D]',
+        hoverBorder: 'hover:border-[#00C896]/50',
+        hoverBg: 'hover:bg-[#E5F9F4]/50',
+    },
+    blue: {
+        iconBg: 'bg-blue-50',
+        iconText: 'text-blue-500',
+        countText: 'text-blue-500',
+        activeBorder: 'border-blue-500',
+        activeBg: 'bg-blue-50',
+        activeText: 'text-blue-700',
+        hoverBorder: 'hover:border-blue-400/50',
+        hoverBg: 'hover:bg-blue-50/50',
+    },
 }
 
 const PRESETS = [
@@ -58,11 +82,110 @@ interface MapContentProps {
     centerLng: number
     pointsWithPosition: Array<GridPoint & { lat: number; lng: number }>
     togglePoint: (row: number, col: number) => void
+    showDistrict: boolean
 }
 
-function MapContent({ centerLat, centerLng, pointsWithPosition, togglePoint }: MapContentProps) {
+function MapContent({ centerLat, centerLng, pointsWithPosition, togglePoint, showDistrict }: MapContentProps) {
     const navermaps = useNavermaps()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mapRef = useRef<any>(null)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const polygonsRef = useRef<any[]>([])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const labelsRef = useRef<any[]>([])
+    const [boundaryData, setBoundaryData] = useState<Array<{ geometry: { type: string; coordinates: number[][][][] }; full_nm: string }> | null>(null)
+    const fetchedKeyRef = useRef<string>('')
+
+    // 행정구역 데이터 가져오기 (지도 표시 영역 기준)
+    useEffect(() => {
+        if (!showDistrict || !mapRef.current) return
+
+        const bounds = mapRef.current.getBounds()
+        if (!bounds) return
+        const sw = bounds.getSW()
+        const ne = bounds.getNE()
+        const key = `${sw.lat().toFixed(3)},${sw.lng().toFixed(3)},${ne.lat().toFixed(3)},${ne.lng().toFixed(3)}`
+        if (fetchedKeyRef.current === key) return
+        fetchedKeyRef.current = key
+
+        fetch(`/api/boundary?x1=${sw.lng()}&y1=${sw.lat()}&x2=${ne.lng()}&y2=${ne.lat()}`)
+            .then(r => r.json())
+            .then(data => { if (data.features) setBoundaryData(data.features) })
+            .catch(err => console.error('Boundary fetch error:', err))
+    }, [showDistrict, pointsWithPosition]) // pointsWithPosition 변경 시 fitBounds 후 재조회
+
+    // 행정구역 경계 렌더링
+    useEffect(() => {
+        polygonsRef.current.forEach(p => p.setMap(null))
+        polygonsRef.current = []
+        labelsRef.current.forEach(l => l.setMap(null))
+        labelsRef.current = []
+
+        if (!mapRef.current || !navermaps || !showDistrict || !boundaryData) return
+
+        boundaryData.forEach((feature) => {
+            const { geometry, full_nm } = feature
+            if (!geometry?.coordinates) return
+            const allCoords: number[][][][] = geometry.type === 'MultiPolygon'
+                ? geometry.coordinates : [geometry.coordinates as unknown as number[][][]]
+
+            allCoords.forEach((polygonCoords) => {
+                if (!polygonCoords[0]) return
+                const paths = polygonCoords[0].map(
+                    ([lng, lat]: number[]) => new navermaps.LatLng(lat, lng)
+                )
+                const polygon = new navermaps.Polygon({
+                    map: mapRef.current, paths,
+                    strokeColor: '#3B82F6', strokeWeight: 2.5, strokeOpacity: 0.8,
+                    fillColor: '#3B82F6', fillOpacity: 0.03, clickable: false,
+                })
+                polygonsRef.current.push(polygon)
+
+                // 동 이름 라벨
+                const ring = polygonCoords[0]
+                let tLng = 0, tLat = 0
+                for (const [ln, lt] of ring) { tLng += ln; tLat += lt }
+                const cLat = tLat / ring.length
+                const cLng = tLng / ring.length
+
+                const parts = full_nm.split(' ')
+                const label = parts.length >= 3 ? parts.slice(-2).join('\n') : parts[parts.length - 1] || full_nm
+
+                const labelOverlay = new navermaps.Marker({
+                    map: mapRef.current,
+                    position: new navermaps.LatLng(cLat, cLng),
+                    icon: {
+                        content: `<div style="
+                            background:rgba(255,255,255,0.85);border:1px solid #93C5FD;border-radius:4px;
+                            padding:2px 6px;font-size:11px;font-weight:600;color:#1E40AF;
+                            white-space:pre-line;text-align:center;line-height:1.3;
+                            pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,0.1);
+                        ">${label}</div>`,
+                        anchor: new navermaps.Point(30, 12),
+                    },
+                    clickable: false, zIndex: 0,
+                })
+                labelsRef.current.push(labelOverlay)
+            })
+        })
+
+        return () => {
+            polygonsRef.current.forEach(p => p.setMap(null))
+            polygonsRef.current = []
+            labelsRef.current.forEach(l => l.setMap(null))
+            labelsRef.current = []
+        }
+    }, [navermaps, showDistrict, boundaryData])
+
+    // 컴포넌트 언마운트 시 정리
+    useEffect(() => {
+        return () => {
+            polygonsRef.current.forEach(p => p.setMap(null))
+            polygonsRef.current = []
+            labelsRef.current.forEach(l => l.setMap(null))
+            labelsRef.current = []
+        }
+    }, [])
 
     // Auto-fit bounds when points change
     useEffect(() => {
@@ -166,7 +289,10 @@ export function NaverMapGridConfigurator({
     onReset,
     allowedGridSizes = [3, 5, 7],
     onGridSizeChange,
+    colorScheme = 'green',
 }: Props) {
+    const colors = COLOR_SCHEMES[colorScheme]
+    const [showDistrict, setShowDistrict] = useState(false)
     const clientId = process.env.NEXT_PUBLIC_NAVER_MAPS_CLIENT_ID
 
     // Calculate positions for all points
@@ -223,8 +349,8 @@ export function NaverMapGridConfigurator({
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#E5F9F4] rounded-lg flex items-center justify-center">
-                        <Grid3X3 className="w-5 h-5 text-[#00C896]" />
+                    <div className={`w-10 h-10 ${colors.iconBg} rounded-lg flex items-center justify-center`}>
+                        <Grid3X3 className={`w-5 h-5 ${colors.iconText}`} />
                     </div>
                     <div>
                         <h3 className="font-semibold text-gray-900">좌표 위치 선택</h3>
@@ -232,7 +358,7 @@ export function NaverMapGridConfigurator({
                     </div>
                 </div>
                 <div className="text-right">
-                    <span className="text-3xl font-bold text-[#00C896]">{enabledCount}</span>
+                    <span className={`text-3xl font-bold ${colors.countText}`}>{enabledCount}</span>
                     <span className="ml-1 text-sm font-medium text-gray-500">개 좌표 선택됨</span>
                 </div>
             </div>
@@ -250,8 +376,8 @@ export function NaverMapGridConfigurator({
                                 !allowed
                                     ? 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed'
                                     : enabledCount === preset.points
-                                        ? 'border-[#00C896] bg-[#E5F9F4] text-[#00A87D]'
-                                        : 'border-gray-200 hover:border-[#00C896]/50 hover:bg-[#E5F9F4]/50 text-gray-700'
+                                        ? `${colors.activeBorder} ${colors.activeBg} ${colors.activeText}`
+                                        : `border-gray-200 ${colors.hoverBorder} ${colors.hoverBg} text-gray-700`
                             }`}
                         >
                             <span className="text-base sm:text-lg">{preset.label}</span>
@@ -276,27 +402,41 @@ export function NaverMapGridConfigurator({
                             centerLng={centerLng}
                             pointsWithPosition={pointsWithPosition}
                             togglePoint={togglePoint}
+                            showDistrict={showDistrict}
                         />
                     </MapDiv>
                 </NavermapsProvider>
             </div>
 
-            {/* Legend */}
-            <div className="mt-4 flex items-center gap-3 sm:gap-6 text-sm text-gray-600 px-1">
-                <div className="flex items-center gap-2">
-                    <div className="w-5 h-5 rounded-full bg-[#00C896] flex items-center justify-center">
-                        <MapPin className="w-3 h-3 text-white" />
+            {/* Legend + District Toggle */}
+            <div className="mt-4 flex items-center justify-between gap-3 text-sm text-gray-600 px-1">
+                <div className="flex items-center gap-3 sm:gap-5 flex-wrap">
+                    <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full bg-[#00C896] flex items-center justify-center">
+                            <MapPin className="w-3 h-3 text-white" />
+                        </div>
+                        <span>매장 위치</span>
                     </div>
-                    <span>매장 위치</span>
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow" />
+                        <span>분석 위치</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 rounded-full bg-gray-400 border-2 border-white opacity-60" />
+                        <span>비활성</span>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow" />
-                    <span>분석 위치</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 rounded-full bg-gray-400 border-2 border-white opacity-60" />
-                    <span>비활성</span>
-                </div>
+                <button
+                    onClick={() => setShowDistrict(prev => !prev)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap ${
+                        showDistrict
+                            ? 'bg-blue-50 border-blue-200 text-blue-700'
+                            : 'bg-gray-50 border-gray-200 text-gray-500'
+                    }`}
+                >
+                    <MapIcon className="w-3.5 h-3.5" />
+                    행정구역
+                </button>
             </div>
 
             {/* Hint */}

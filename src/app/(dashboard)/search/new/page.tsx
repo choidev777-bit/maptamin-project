@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
-import { MapGridConfigurator } from '@/components/search/MapGridConfigurator'
+// Google MapGridConfigurator replaced by NaverMapGridConfigurator (Phase 4)
 // DistanceSettings removed — inline onboarding-style UI used instead
 import { generateGridPointsFromTemplate, milesToKm } from '@/lib/utils/grid-calculator'
 import { Tag, Grid3X3, Check, ArrowLeft, ArrowRight, Loader2, Swords, AlertTriangle, Lock } from 'lucide-react'
@@ -18,6 +18,11 @@ import { getAllowedGridSizes } from '@/lib/utils/subscription'
 const GoogleMapsProvider = dynamic(
     () => import('@/components/maps/GoogleMapsProvider').then(m => m.GoogleMapsProvider),
     { ssr: false }
+)
+
+const NaverMapGridConfigurator = dynamic(
+    () => import('@/components/naver/NaverMapGridConfigurator').then(m => m.NaverMapGridConfigurator),
+    { ssr: false, loading: () => <div className="flex h-64 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-400">지도 로딩 중...</div> }
 )
 
 interface GridPointSelection {
@@ -550,7 +555,7 @@ export default function NewSearchPage() {
                                     </div>
 
                                     {/* 지도 */}
-                                    <MapGridConfigurator
+                                    <NaverMapGridConfigurator
                                         centerLat={place.lat}
                                         centerLng={place.lng}
                                         selectedPoints={gridPoints}
@@ -559,6 +564,7 @@ export default function NewSearchPage() {
                                         maxPoints={selectedGridSize * selectedGridSize}
                                         allowedGridSizes={allowedGridSizes}
                                         onGridSizeChange={handleGridSizeChange}
+                                        colorScheme="blue"
                                     />
 
                                     <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">

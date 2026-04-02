@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react'
 import { X, MapPin } from 'lucide-react'
+import { useReverseGeocode } from '@/hooks/useReverseGeocode'
 
 type Verdict = 'WIN' | 'LOSE' | 'DRAW'
 
@@ -36,6 +37,12 @@ export function CompetitorDetailModal({
 }: Props) {
     const handleBackdropClick = useCallback(() => onClose(), [onClose])
 
+    // 훅은 항상 early return 전에 호출 (Rules of Hooks)
+    const { district, isLoading: isLoadingDistrict } = useReverseGeocode(
+        isOpen ? gridLat : null,
+        isOpen ? gridLng : null
+    )
+
     if (!isOpen) return null
 
     const config = VERDICT_CONFIG[verdict]
@@ -58,10 +65,14 @@ export function CompetitorDetailModal({
                     <div className="flex justify-between items-start">
                         <div>
                             <h3 className="font-bold text-lg">{keyword}</h3>
-                            {/* <p className="text-white/80 text-sm flex items-center gap-1 mt-1">
-                                <MapPin className="w-4 h-4" />
-                                {gridLat.toFixed(4)}, {gridLng.toFixed(4)}
-                            </p> */}
+                            <p className="text-white/70 text-sm flex items-center gap-1 mt-1">
+                                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                                {isLoadingDistrict ? (
+                                    <span className="animate-pulse">위치 확인 중...</span>
+                                ) : district ? (
+                                    <span>{district}</span>
+                                ) : null}
+                            </p>
                         </div>
                         <button
                             onClick={onClose}

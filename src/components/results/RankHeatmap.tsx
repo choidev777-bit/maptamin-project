@@ -1,11 +1,17 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import dynamic from 'next/dynamic'
 import { Map, AdvancedMarker } from '@vis.gl/react-google-maps'
 import { SearchResult } from '@/lib/types'
 import { getRankColor, getRankLabel } from '@/lib/utils/rank-colors'
 import { RankDetailModal } from './RankDetailModal'
 import { Grid } from 'lucide-react'
+
+const NaverRankHeatmap = dynamic(
+    () => import('@/components/naver/NaverRankHeatmap').then(m => m.NaverRankHeatmap),
+    { ssr: false, loading: () => <div className="flex items-center justify-center h-64 bg-slate-100 text-sm text-gray-400">네이버 지도 로딩 중...</div> }
+)
 
 interface Props {
     center: { lat: number; lng: number }
@@ -24,6 +30,7 @@ interface PositionData {
 export function RankHeatmap({ center, results, selectedKeyword }: Props) {
     const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [showNaverMap, setShowNaverMap] = useState(true)
 
     const filteredResults = useMemo(() => {
         if (!selectedKeyword) return results
@@ -69,37 +76,70 @@ export function RankHeatmap({ center, results, selectedKeyword }: Props) {
         setSelectedResult(null)
     }, [])
 
+    // 네이버 지도 모드: NaverRankHeatmap 컴포넌트에 위임 (행정구역 토글 포함)
+    if (showNaverMap) {
+        return (
+            <div className="relative">
+                <NaverRankHeatmap
+                    center={center}
+                    results={results}
+                    selectedKeyword={selectedKeyword}
+                />
+                {/* 구글 지도 전환 버튼 — 지도 좌측 하단 플로팅 */}
+                <button
+                    onClick={() => setShowNaverMap(false)}
+                    className="absolute bottom-20 left-4 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border bg-white/90 backdrop-blur-sm border-gray-200 text-gray-600 hover:bg-white hover:border-gray-300 shadow-sm transition-all"
+                >
+                    <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-[#4285F4] text-[8px] font-bold text-white">G</span>
+                    구글 지도로 보기
+                </button>
+            </div>
+        )
+    }
+
+    // 구글 지도 모드: 기존 구글 맵 렌더링
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm mb-8 overflow-hidden">
-            {/* 헤더: 타이틀 + legend (네이버와 동일한 구조) */}
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+            {/* 헤더: 타이틀 + 토글 + legend */}
+            <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex flex-wrap justify-between items-center gap-3">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <span className="text-blue-500">
                         <Grid className="w-5 h-5" />
                     </span>
                     플레이스 순위 지도
                 </h3>
-                <div className="flex items-center gap-4 text-xs font-medium text-gray-500 dark:text-gray-400">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                        1-3위
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                        4-10위
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                        11위~
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-3 h-3 rounded-full bg-gray-300 border-2 border-blue-600"></div>
-                        내 매장
+                <div className="flex items-center gap-3 flex-wrap">
+                    {/* 네이버 지도 전환 버튼 */}
+                    <button
+                        onClick={() => setShowNaverMap(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100 transition-all"
+                    >
+                        <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-[#03C75A] text-[8px] font-bold text-white">N</span>
+                        네이버 지도로 보기
+                    </button>
+                    {/* 범례 */}
+                    <div className="flex items-center gap-3 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                            1-3위
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            4-10위
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                            11위~
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded-full bg-gray-300 border-2 border-blue-600"></div>
+                            내 매장
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* 지도 */}
+            {/* 구글 지도 */}
             <div className="relative w-full bg-slate-100 dark:bg-slate-900">
                 <Map
                     defaultCenter={center}

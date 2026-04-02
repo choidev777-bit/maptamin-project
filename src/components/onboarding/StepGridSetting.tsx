@@ -229,20 +229,19 @@ export default function StepGridSetting({ planId, naverPlace, googlePlace, onCom
                 </div>
             )}
 
-            {/* 구글 그리드 설정 (Premium) */}
+            {/* 구글 그리드 설정 (Premium) — 기본: 네이버 지도(행정구역), 토글: 구글 지도 */}
             {isPremium && googlePlace && activeTab === 'google' && (
                 <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
-                    <GoogleMapsProvider>
-                        <MapGridConfigurator
-                            centerLat={googlePlace.lat}
-                            centerLng={googlePlace.lng}
-                            selectedPoints={googlePoints}
-                            onPointsChange={setGooglePoints}
-                            gridDistance={distance}
-                            maxPoints={maxPoints}
-                            onReset={handleReset}
-                        />
-                    </GoogleMapsProvider>
+                    <NaverMapGridConfigurator
+                        centerLat={googlePlace.lat}
+                        centerLng={googlePlace.lng}
+                        selectedPoints={googlePoints}
+                        onPointsChange={setGooglePoints}
+                        gridDistance={distance}
+                        maxPoints={maxPoints}
+                        onReset={handleReset}
+                        colorScheme="blue"
+                    />
                 </div>
             )}
 
