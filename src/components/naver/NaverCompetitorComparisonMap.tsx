@@ -14,6 +14,7 @@ interface Props {
     selectedKeyword: string
     competitorPlaceId: string
     competitorName: string
+    onSwitchMap?: () => void
 }
 
 interface ComparisonPoint {
@@ -260,6 +261,7 @@ export function NaverCompetitorComparisonMap({
     selectedKeyword,
     competitorPlaceId,
     competitorName,
+    onSwitchMap,
 }: Props) {
     const [selectedPoint, setSelectedPoint] = useState<ComparisonPoint | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -354,8 +356,18 @@ export function NaverCompetitorComparisonMap({
                         }`}
                     >
                         <MapIcon className="w-3 h-3" />
-                        행정구역
+                        행정구역 경계
                     </button>
+                    {/* 구글 지도 전환 버튼 */}
+                    {onSwitchMap && (
+                        <button
+                            onClick={onSwitchMap}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border bg-white border-gray-200 text-gray-500 hover:bg-gray-100 transition-all"
+                        >
+                            <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-[#4285F4] text-[8px] font-bold text-white">G</span>
+                            구글
+                        </button>
+                    )}
                     <div className="flex flex-wrap gap-3 text-xs">
                         <div className="flex items-center gap-1.5">
                             <div className="w-3 h-3 rounded-full bg-emerald-500"></div>

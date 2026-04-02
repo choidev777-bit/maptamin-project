@@ -11,6 +11,8 @@ interface Props {
     center: { lat: number; lng: number }
     results: SearchResult[]
     selectedKeyword?: string
+    onSwitchMap?: () => void  // 구글 지도 전환 콜백
+    platform?: 'naver' | 'google'  // 범례 기준 플랫폼
 }
 
 interface PositionData {
@@ -266,7 +268,7 @@ function MapContent({ center, uniquePositions, onMarkerClick, showDistrict }: Ma
     )
 }
 
-export function NaverRankHeatmap({ center, results, selectedKeyword }: Props) {
+export function NaverRankHeatmap({ center, results, selectedKeyword, onSwitchMap, platform = 'naver' }: Props) {
     const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [showDistrict, setShowDistrict] = useState(false)
@@ -349,19 +351,29 @@ export function NaverRankHeatmap({ center, results, selectedKeyword }: Props) {
                         <MapIcon className="w-3.5 h-3.5" />
                         행정구역 경계
                     </button>
+                    {/* 구글 지도 전환 버튼 */}
+                    {onSwitchMap && (
+                        <button
+                            onClick={onSwitchMap}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100 transition-all"
+                        >
+                            <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-[#4285F4] text-[8px] font-bold text-white">G</span>
+                            구글 지도로 보기
+                        </button>
+                    )}
                     {/* 범례 */}
                     <div className="flex items-center gap-3 text-xs font-medium text-gray-500 dark:text-gray-400">
                         <div className="flex items-center gap-1.5">
                             <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                            1-5위
+                            {platform === 'google' ? '1-3위' : '1-5위'}
                         </div>
                         <div className="flex items-center gap-1.5">
                             <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                            6-10위
+                            {platform === 'google' ? '4-10위' : '6-10위'}
                         </div>
                         <div className="flex items-center gap-1.5">
                             <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                            11위 이상
+                            {platform === 'google' ? '11위~' : '11위 이상'}
                         </div>
                         <div className="flex items-center gap-1.5">
                             <div className="w-3 h-3 rounded-full bg-gray-300 border-2 border-blue-600"></div>

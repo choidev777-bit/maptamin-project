@@ -79,21 +79,13 @@ export function RankHeatmap({ center, results, selectedKeyword }: Props) {
     // 네이버 지도 모드: NaverRankHeatmap 컴포넌트에 위임 (행정구역 토글 포함)
     if (showNaverMap) {
         return (
-            <div className="relative">
-                <NaverRankHeatmap
-                    center={center}
-                    results={results}
-                    selectedKeyword={selectedKeyword}
-                />
-                {/* 구글 지도 전환 버튼 — 지도 좌측 하단 플로팅 */}
-                <button
-                    onClick={() => setShowNaverMap(false)}
-                    className="absolute bottom-20 left-4 z-10 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border bg-white/90 backdrop-blur-sm border-gray-200 text-gray-600 hover:bg-white hover:border-gray-300 shadow-sm transition-all"
-                >
-                    <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-[#4285F4] text-[8px] font-bold text-white">G</span>
-                    구글 지도로 보기
-                </button>
-            </div>
+            <NaverRankHeatmap
+                center={center}
+                results={results}
+                selectedKeyword={selectedKeyword}
+                onSwitchMap={() => setShowNaverMap(false)}
+                platform="google"
+            />
         )
     }
 

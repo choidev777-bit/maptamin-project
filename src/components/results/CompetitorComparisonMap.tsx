@@ -121,23 +121,14 @@ export function CompetitorComparisonMap({
     // 네이버 지도 모드
     if (showNaverMap) {
         return (
-            <div className="relative">
-                <NaverCompetitorComparisonMap
-                    center={center}
-                    results={results}
-                    selectedKeyword={selectedKeyword}
-                    competitorPlaceId={competitorPlaceId}
-                    competitorName={competitorName}
-                />
-                {/* 구글 지도 전환 버튼 — 지도 좌측 하단 플로팅 */}
-                <button
-                    onClick={() => setShowNaverMap(false)}
-                    className="absolute bottom-20 left-4 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border bg-white/90 backdrop-blur-sm border-gray-200 text-gray-600 hover:bg-white hover:border-gray-300 shadow-sm transition-all"
-                >
-                    <span className="inline-flex h-4 w-4 items-center justify-center rounded bg-[#4285F4] text-[8px] font-bold text-white">G</span>
-                    구글
-                </button>
-            </div>
+            <NaverCompetitorComparisonMap
+                center={center}
+                results={results}
+                selectedKeyword={selectedKeyword}
+                competitorPlaceId={competitorPlaceId}
+                competitorName={competitorName}
+                onSwitchMap={() => setShowNaverMap(false)}
+            />
         )
     }
 
