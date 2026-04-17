@@ -80,6 +80,14 @@ export function CheckoutContent() {
     const totalAmountDisplay = totalAmount.toLocaleString()
 
     const handlePayment = async () => {
+        /* ──────────────────────────────────────────────
+         * [PORTFOLIO MODE] 사업자 폐업으로 인해 실결제 비활성화 (2026-04-17)
+         * 원복 시 아래 alert/return 2줄을 삭제하고, 그 아래 주석을 해제하세요.
+         * ────────────────────────────────────────────── */
+        alert('포트폴리오 데모 환경입니다. 실제 결제는 비활성화되어 있습니다.\n\n결제 시스템 코드는 src/lib/portone/ 및 src/app/api/payment/ 에서 확인하실 수 있습니다.')
+        return
+
+        /* [PORTFOLIO MODE] 원래 결제 로직 — 원복 시 주석 해제
         if (!agreed) {
             setError('이용 약관에 동의해주세요.')
             return
@@ -143,6 +151,7 @@ export function CheckoutContent() {
             setError(err instanceof Error ? err.message : '결제 처리 중 오류가 발생했습니다.')
             setLoading(false)
         }
+        */
     }
 
     return (
@@ -287,7 +296,8 @@ export function CheckoutContent() {
                                     처리 중...
                                 </span>
                             ) : (
-                                `₩${totalAmountDisplay} 결제하기`
+                                /* [PORTFOLIO MODE] 원래: `₩${totalAmountDisplay} 결제하기` */
+                '데모 환경 — 결제 체험하기'
                             )}
                         </button>
 
@@ -296,13 +306,20 @@ export function CheckoutContent() {
                 </div>
             </div>
 
-            {/* 사업자 정보 (PG사/카드사 심사 필수 노출) */}
-            <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700 text-center">
+            {/* ──────────────────────────────────────────────
+             * [PORTFOLIO MODE] 사업자 정보 주석처리 (2026-04-17)
+             * 원복 시 아래 주석을 해제하고, 포트폴리오 모드 블록을 삭제하세요.
+             * ────────────────────────────────────────────── */}
+            {/* <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700 text-center">
                 <p className="text-xs font-semibold text-gray-500 mb-1">아카식 허브</p>
                 <div className="space-y-0.5 text-[11px] text-gray-400">
                     <p>대표: 최연준 | 사업자등록번호: 186-35-01741 | 통신판매업신고: 제 2026-고양일산서-0229 호</p>
                     <p>주소: 경기도 고양시 일산서구 대산로 142, 305동 802호 | 대표번호: 070-8065-3362</p>
                 </div>
+            </div> */}
+            {/* [PORTFOLIO MODE] 대체 표시 */}
+            <div className="mt-16 pt-8 border-t border-gray-200 dark:border-gray-700 text-center">
+                <p className="text-[11px] text-gray-400">포트폴리오 데모 환경 — 실제 결제가 발생하지 않습니다.</p>
             </div>
         </div>
     )

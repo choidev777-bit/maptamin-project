@@ -58,6 +58,14 @@ export function TicketShopContent({
     }
 
     const handleRefund = async (item: PaymentHistoryItem) => {
+        /* ──────────────────────────────────────────────
+         * [PORTFOLIO MODE] 사업자 폐업으로 인해 환불 비활성화 (2026-04-17)
+         * 원복 시 아래 alert/return 2줄을 삭제하고, 그 아래 주석을 해제하세요.
+         * ────────────────────────────────────────────── */
+        alert('포트폴리오 데모 환경입니다. 실제 환불은 비활성화되어 있습니다.')
+        return
+
+        /* [PORTFOLIO MODE] 원래 환불 로직 — 원복 시 주석 해제
         setRefundingPaymentId(item.payment_id)
         setRefundMessage(null)
         setRefundConfirmTarget(null)
@@ -85,6 +93,7 @@ export function TicketShopContent({
         } finally {
             setRefundingPaymentId(null)
         }
+        */
     }
 
     const handleQuantityChange = (value: number) => {
@@ -101,6 +110,14 @@ export function TicketShopContent({
     }
 
     const handlePurchase = async () => {
+        /* ──────────────────────────────────────────────
+         * [PORTFOLIO MODE] 사업자 폐업으로 인해 실결제 비활성화 (2026-04-17)
+         * 원복 시 아래 alert/return 2줄을 삭제하고, 그 아래 주석을 해제하세요.
+         * ────────────────────────────────────────────── */
+        alert('포트폴리오 데모 환경입니다. 실제 결제는 비활성화되어 있습니다.\n\n결제 시스템 코드는 src/lib/portone/ 및 src/app/api/payment/ 에서 확인하실 수 있습니다.')
+        return
+
+        /* [PORTFOLIO MODE] 원래 결제 로직 — 원복 시 주석 해제
         setIsPurchasing(true);
         setResultMessage(null);
 
@@ -147,6 +164,7 @@ export function TicketShopContent({
         } finally {
             setIsPurchasing(false);
         }
+        */
     }
 
     return (
@@ -382,8 +400,8 @@ export function TicketShopContent({
                     </>
                 ) : (
                     <>
-                        <CreditCard className="w-5 h-5" />
-                        {formatPrice(totalPrice)}원 결제하기
+                        {/* [PORTFOLIO MODE] 원래: {formatPrice(totalPrice)}원 결제하기 */}
+                        데모 환경 — 결제 체험하기
                     </>
                 )}
             </button>
